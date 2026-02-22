@@ -238,7 +238,7 @@ async function loadPortfolio() {
   el.innerHTML = `
     <table class="history-table">
       <thead>
-        <tr><th>Ticker</th><th>Shares</th><th>Avg Cost</th><th>Price</th><th>Market Value</th><th>P&amp;L%</th><th>Rec</th><th></th></tr>
+        <tr><th>Ticker</th><th>Shares</th><th>Avg Cost</th><th>Price</th><th>Market Value</th><th>P&amp;L%</th><th>Since Last Run</th><th>Rec</th><th></th></tr>
       </thead>
       <tbody>
         ${rows.map(r => `
@@ -249,6 +249,7 @@ async function loadPortfolio() {
             <td>${r.current_price ? "$" + fmt(r.current_price) : "—"}</td>
             <td>${r.market_value ? "$" + fmt(r.market_value) : "—"}</td>
             <td class="${pctColor(r.gain_loss_pct)}">${pct(r.gain_loss_pct)}</td>
+            <td class="${pctColor(r.since_run_pct)}">${sinceRun(r.since_run_value, r.since_run_pct)}</td>
             <td class="rec-${r.recommendation ?? ''}">${r.recommendation ?? "—"}</td>
             <td><button class="delete-btn" onclick="deleteHolding('${r.ticker}')">✕</button></td>
           </tr>
@@ -259,7 +260,7 @@ async function loadPortfolio() {
           <td colspan="4" style="color:var(--muted);font-size:.8rem">Total</td>
           <td>$${fmt(totalMarket)}</td>
           <td class="${pctColor(totalGainPct)}">${pct(totalGainPct)}</td>
-          <td colspan="2"></td>
+          <td colspan="3"></td>
         </tr>
       </tfoot>
     </table>
@@ -362,6 +363,12 @@ function rsiColor(rsi) {
   if (rsi >= 70) return "neg";
   if (rsi <= 30) return "pos";
   return "";
+}
+
+function sinceRun(value, pct) {
+  if (value == null || pct == null) return "—";
+  const sign = value >= 0 ? "+" : "";
+  return `${sign}$${fmt(Math.abs(value))} (${sign}${pct.toFixed(2)}%)`;
 }
 
 function outcomeIcon(outcome) {

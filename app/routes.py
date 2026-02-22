@@ -93,6 +93,10 @@ def get_portfolio():
         market_value = round(current_price * h["shares"], 2) if current_price else None
         gain_loss_pct = round((current_price / h["avg_cost"] - 1) * 100, 2) if current_price else None
 
+        last_run_price = history[0]["signals"].get("current_price") if history else None
+        since_run_pct  = round((current_price / last_run_price - 1) * 100, 2) if (current_price and last_run_price) else None
+        since_run_value = round((current_price - last_run_price) * h["shares"], 2) if (current_price and last_run_price) else None
+
         result.append({
             "ticker": ticker,
             "shares": h["shares"],
@@ -101,6 +105,8 @@ def get_portfolio():
             "cost_value": cost_value,
             "market_value": market_value,
             "gain_loss_pct": gain_loss_pct,
+            "since_run_pct": since_run_pct,
+            "since_run_value": since_run_value,
             "recommendation": latest_rec,
         })
     return result
