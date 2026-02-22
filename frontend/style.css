@@ -205,6 +205,8 @@ main {
   font-weight: 500;
 }
 
+.pos { color: var(--buy); }
+.neg { color: var(--sell); }
 .signal-val.pos { color: var(--buy); }
 .signal-val.neg { color: var(--sell); }
 
@@ -245,10 +247,10 @@ main {
 }
 
 .portfolio-since-run {
-  font-size: 1.25rem;
-  font-weight: 700;
-  letter-spacing: 0;
-  text-transform: none;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .ticker-tabs {
