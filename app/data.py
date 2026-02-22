@@ -1,9 +1,13 @@
+import asyncio
+import logging
 import os
 from datetime import date, timedelta
 
 import httpx
 
 from . import cache
+
+logger = logging.getLogger(__name__)
 
 POLYGON_BASE = "https://api.polygon.io"
 COINGECKO_BASE = "https://api.coingecko.com/api/v3"
@@ -16,6 +20,11 @@ async def fetch_polygon(ticker: str, from_date: str, to_date: str) -> list[dict]
     url = f"{POLYGON_BASE}/v2/aggs/ticker/{ticker}/range/1/day/{from_date}/{to_date}"
     async with httpx.AsyncClient(timeout=30) as client:
         resp = await client.get(url, params={"apiKey": api_key, "limit": 500, "sort": "asc"})
+        if resp.status_code == 429:
+            wait = int(resp.headers.get("Retry-After", 15))
+            logger.warning(f"Polygon rate limit hit for {ticker}, retrying in {wait}s")
+            await asyncio.sleep(wait)
+            resp = await client.get(url, params={"apiKey": api_key, "limit": 500, "sort": "asc"})
         resp.raise_for_status()
         data = resp.json()
 
