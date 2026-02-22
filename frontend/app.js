@@ -235,6 +235,20 @@ async function loadPortfolio() {
   const totalMarket = rows.reduce((s, r) => s + (r.market_value ?? 0), 0);
   const totalGainPct = totalCost > 0 ? (totalMarket / totalCost - 1) * 100 : null;
 
+  const totalSinceRunValue = rows.reduce((s, r) => s + (r.since_run_value ?? 0), 0);
+  const prevTotalMarket    = totalMarket - totalSinceRunValue;
+  const totalSinceRunPct   = prevTotalMarket > 0 ? (totalSinceRunValue / prevTotalMarket * 100) : null;
+  const hasRunData         = rows.some(r => r.since_run_value != null);
+
+  const h2 = document.querySelector("#portfolioSection h2");
+  if (hasRunData) {
+    const sign = totalSinceRunValue >= 0 ? "+" : "";
+    const cls  = totalSinceRunValue >= 0 ? "pos" : "neg";
+    h2.innerHTML = `Portfolio <span class="portfolio-since-run ${cls}">${sign}$${fmt(Math.abs(totalSinceRunValue))} (${sign}${totalSinceRunPct.toFixed(2)}%) since last run</span>`;
+  } else {
+    h2.textContent = "Portfolio";
+  }
+
   el.innerHTML = `
     <table class="history-table">
       <thead>

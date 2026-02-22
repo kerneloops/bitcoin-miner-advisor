@@ -239,6 +239,16 @@ main {
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.08em;
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+}
+
+.portfolio-since-run {
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
 }
 
 .ticker-tabs {
