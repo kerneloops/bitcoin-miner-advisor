@@ -117,6 +117,13 @@ def delete_holding(ticker: str):
         conn.execute("DELETE FROM holdings WHERE ticker = ?", (ticker,))
 
 
+def delete_ticker_trades(ticker: str):
+    """Remove all trades and the holding for a ticker (full position close)."""
+    with get_conn() as conn:
+        conn.execute("DELETE FROM trades WHERE ticker = ?", (ticker,))
+        conn.execute("DELETE FROM holdings WHERE ticker = ?", (ticker,))
+
+
 def get_holdings() -> list[dict]:
     with get_conn() as conn:
         rows = conn.execute("SELECT * FROM holdings ORDER BY ticker").fetchall()

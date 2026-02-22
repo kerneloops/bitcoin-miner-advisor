@@ -222,9 +222,6 @@ async function exportToGoogle() {
 checkExportStatus();
 
 async function loadPortfolio() {
-  document.getElementById("holdingTicker").innerHTML =
-    TICKERS.map(t => `<option value="${t}">${t}</option>`).join("");
-
   const resp = await fetch("/api/portfolio");
   const rows = await resp.json();
   const el = document.getElementById("portfolioContent");
@@ -270,8 +267,10 @@ async function loadPortfolio() {
 }
 
 async function deleteHolding(ticker) {
+  if (!confirm(`Remove ${ticker} and delete all its trades?`)) return;
   await fetch(`/api/portfolio/${ticker}`, { method: "DELETE" });
   loadPortfolio();
+  loadTrades();
 }
 
 async function loadTrades() {
@@ -311,6 +310,7 @@ async function loadTrades() {
 }
 
 async function deleteTrade(tradeId) {
+  if (!confirm("Delete this trade? Holdings will be recomputed.")) return;
   await fetch(`/api/trades/${tradeId}`, { method: "DELETE" });
   loadTrades();
   loadPortfolio();
@@ -323,31 +323,20 @@ document.getElementById("tradeForm").addEventListener("submit", async (e) => {
   const type     = document.getElementById("tradeType").value;
   const price    = parseFloat(document.getElementById("tradePrice").value);
   const quantity = parseFloat(document.getElementById("tradeQuantity").value);
+  const notes    = document.getElementById("tradeNotes").value.trim();
   if (!ticker || !date || isNaN(price) || isNaN(quantity)) return;
   await fetch("/api/trades", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ ticker, date, trade_type: type, price, quantity }),
+    body: JSON.stringify({ ticker, date, trade_type: type, price, quantity, notes }),
   });
   e.target.reset();
+  document.getElementById("tradeDate").valueAsDate = new Date();
   loadTrades();
   loadPortfolio();
 });
 
-document.getElementById("holdingForm").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const ticker   = document.getElementById("holdingTicker").value;
-  const shares   = parseFloat(document.getElementById("holdingShares").value);
-  const avg_cost = parseFloat(document.getElementById("holdingCost").value);
-  if (!ticker || isNaN(shares) || isNaN(avg_cost)) return;
-  await fetch("/api/portfolio", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ ticker, shares, avg_cost }),
-  });
-  e.target.reset();
-  loadPortfolio();
-});
+document.getElementById("tradeDate").valueAsDate = new Date();
 
 loadPortfolio();
 loadTrades();

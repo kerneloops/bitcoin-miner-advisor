@@ -114,7 +114,7 @@ def save_holding(body: HoldingIn):
 
 @router.delete("/api/portfolio/{ticker}")
 def remove_holding(ticker: str):
-    cache.delete_holding(ticker)
+    cache.delete_ticker_trades(ticker)
     return {"ok": True}
 
 

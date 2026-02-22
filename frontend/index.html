@@ -27,12 +27,6 @@
     <div id="portfolioSection" class="history-section">
       <h2>Portfolio</h2>
       <div id="portfolioContent"></div>
-      <form id="holdingForm" class="holding-form">
-        <select id="holdingTicker"></select>
-        <input id="holdingShares" type="number" step="any" min="0" placeholder="Shares">
-        <input id="holdingCost"   type="number" step="any" min="0" placeholder="Avg cost ($)">
-        <button type="submit">Save</button>
-      </form>
     </div>
 
     <div id="tradeLogSection" class="history-section">
@@ -47,6 +41,7 @@
         </select>
         <input id="tradePrice"    type="number" step="any" min="0" placeholder="Price ($)">
         <input id="tradeQuantity" type="number" step="any" min="0" placeholder="Quantity">
+        <input id="tradeNotes"    type="text" placeholder="Notes (optional)">
         <button type="submit">Record Trade</button>
       </form>
     </div>
