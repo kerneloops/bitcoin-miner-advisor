@@ -55,6 +55,12 @@ def init_db():
                 notes TEXT DEFAULT ''
             )
         """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS macro_signals (
+                date TEXT PRIMARY KEY,
+                data TEXT NOT NULL
+            )
+        """)
 
 
 def upsert_prices(ticker: str, rows: list[dict]):
@@ -181,6 +187,23 @@ def get_trades() -> list[dict]:
             "SELECT * FROM trades ORDER BY date DESC, id DESC"
         ).fetchall()
     return [dict(r) for r in rows]
+
+
+def upsert_macro(date_str: str, data: dict):
+    with get_conn() as conn:
+        conn.execute(
+            """INSERT INTO macro_signals (date, data) VALUES (?, ?)
+               ON CONFLICT(date) DO UPDATE SET data=excluded.data""",
+            (date_str, json.dumps(data)),
+        )
+
+
+def get_latest_macro() -> dict:
+    with get_conn() as conn:
+        row = conn.execute(
+            "SELECT data FROM macro_signals ORDER BY date DESC LIMIT 1"
+        ).fetchone()
+    return json.loads(row["data"]) if row else {}
 
 
 def get_analysis_history(ticker: str, limit: int = 12) -> list[dict]:

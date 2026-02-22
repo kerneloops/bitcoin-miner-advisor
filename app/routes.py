@@ -5,8 +5,9 @@ from pydantic import BaseModel
 
 from .advisor import run_analysis
 from .data import TICKERS, fetch_btc_prices, refresh_all
+from .macro import fetch_all_macro
 from .miners import fetch_miner_fundamentals
-from .technicals import compute_signals
+from .technicals import add_relative_strength, compute_signals
 from . import cache, google_workspace
 
 router = APIRouter()
@@ -37,9 +38,9 @@ async def analyze():
     except Exception as e:
         raise HTTPException(502, f"Data fetch failed: {e}")
 
-    signals = {ticker: compute_signals(ticker) for ticker in TICKERS}
+    signals = add_relative_strength({ticker: compute_signals(ticker) for ticker in TICKERS})
 
-    # Fetch miner fundamentals — non-fatal if unavailable
+    # Fetch miner fundamentals and macro signals — non-fatal if unavailable
     fundamentals = None
     try:
         btc_rows = cache.get_prices("BTC", limit=2)
@@ -48,18 +49,30 @@ async def analyze():
     except Exception as e:
         logger.warning(f"Miner fundamentals fetch failed (non-fatal): {e}")
 
+    macro = None
     try:
-        results = await run_analysis(signals, fundamentals)
+        macro = await fetch_all_macro()
+    except Exception as e:
+        logger.warning(f"Macro fetch failed (non-fatal): {e}")
+
+    try:
+        results = await run_analysis(signals, fundamentals, macro)
     except Exception as e:
         raise HTTPException(502, f"AI analysis failed: {e}")
 
-    return {"tickers": results, "fundamentals": fundamentals}
+    return {"tickers": results, "fundamentals": fundamentals, "macro": macro}
 
 
 @router.get("/api/signals")
 async def get_signals():
     """Return current computed signals from cached data (no API calls)."""
-    return {ticker: compute_signals(ticker) for ticker in TICKERS}
+    return add_relative_strength({ticker: compute_signals(ticker) for ticker in TICKERS})
+
+
+@router.get("/api/macro")
+def get_macro():
+    """Return latest cached macro signals."""
+    return cache.get_latest_macro()
 
 
 @router.get("/api/history/{ticker}")

@@ -21,7 +21,35 @@ def _btc_trend_summary() -> str:
     return f"{pct:+.1f}% over 7 days (current: ${now:,.0f})"
 
 
-async def get_recommendation(ticker: str, signals: dict, btc_trend: str, fundamentals: dict | None = None) -> dict:
+def _macro_summary(macro: dict) -> str:
+    if not macro:
+        return ""
+    lines = []
+    if "btc_dvol" in macro:
+        lvl = "elevated" if macro["btc_dvol"] > 60 else "normal"
+        lines.append(f"- BTC 30d IV (DVOL): {macro['btc_dvol']} ({lvl})")
+    if "btc_funding_rate_pct" in macro:
+        r = macro["btc_funding_rate_pct"]
+        sentiment = "crowded long" if r > 0.03 else "crowded short" if r < -0.01 else "neutral"
+        lines.append(f"- BTC perp funding rate: {r:+.4f}% ({sentiment})")
+    if "fear_greed_value" in macro:
+        lines.append(f"- Crypto Fear & Greed: {macro['fear_greed_value']}/100 ({macro.get('fear_greed_label', '')})")
+    if "puell_multiple" in macro:
+        p = macro["puell_multiple"]
+        ctx = "miner capitulation zone" if p < 0.5 else "miner euphoria" if p > 2.0 else "normal range"
+        lines.append(f"- Puell Multiple: {p} ({ctx})")
+    if "vix" in macro:
+        lines.append(f"- VIX: {macro['vix']}")
+    if "us_2y_yield" in macro:
+        lines.append(f"- US 2Y Treasury yield: {macro['us_2y_yield']}%")
+    if "dxy" in macro:
+        lines.append(f"- US Dollar Index: {macro['dxy']}")
+    if "hy_spread" in macro:
+        lines.append(f"- HY credit spread: {macro['hy_spread']}%")
+    return "\nMacro & market context:\n" + "\n".join(lines) if lines else ""
+
+
+async def get_recommendation(ticker: str, signals: dict, btc_trend: str, fundamentals: dict | None = None, macro: dict | None = None) -> dict:
     fund_section = ""
     if fundamentals:
         fund_section = f"""
@@ -33,13 +61,15 @@ Bitcoin network fundamentals:
 - Avg block time: {fundamentals.get('block_time_min', 'N/A')} min (target: 10 min)
 """
 
+    macro_section = _macro_summary(macro or {})
+
     prompt = f"""Analyze {ticker} for today's decision.
 
 Technical signals:
 {json.dumps(signals, indent=2)}
 
 BTC 7-day trend: {btc_trend}
-{fund_section}
+{fund_section}{macro_section}
 Consider how hashprice trend and the upcoming difficulty adjustment affect miner profitability and sector sentiment.
 
 Respond ONLY with valid JSON (no markdown):
@@ -62,7 +92,7 @@ Respond ONLY with valid JSON (no markdown):
     return json.loads(text.strip())
 
 
-async def run_analysis(all_signals: dict, fundamentals: dict | None = None) -> dict:
+async def run_analysis(all_signals: dict, fundamentals: dict | None = None, macro: dict | None = None) -> dict:
     from datetime import date
 
     btc_trend = _btc_trend_summary()
@@ -74,7 +104,7 @@ async def run_analysis(all_signals: dict, fundamentals: dict | None = None) -> d
             results[ticker] = signals
             continue
 
-        rec = await get_recommendation(ticker, signals, btc_trend, fundamentals)
+        rec = await get_recommendation(ticker, signals, btc_trend, fundamentals, macro)
         cache.save_analysis(
             run_date, ticker, signals, rec["recommendation"], rec.get("reasoning", "")
         )

@@ -19,6 +19,7 @@ async function runAnalysis() {
     lastAnalysisData = data;
     document.getElementById("exportBtn").style.display = "";
     renderFundamentals(data.fundamentals);
+    renderMacro(data.macro);
     renderDashboard(data.tickers);
     await loadHistory(activeHistoryTicker);
     document.getElementById("historySection").style.display = "block";
@@ -61,6 +62,36 @@ function renderFundamentals(f) {
       <div class="fund-sub">avg block: ${f.block_time_min} min</div>
     </div>
   `;
+}
+
+function renderMacro(m) {
+  const el = document.getElementById("macroPanel");
+  if (!m || !Object.keys(m).length) { el.style.display = "none"; return; }
+
+  const fgColor = m.fear_greed_value != null
+    ? (m.fear_greed_value < 30 ? "pos" : m.fear_greed_value > 70 ? "neg" : "")
+    : "";
+  const fundingColor = m.btc_funding_rate_pct != null
+    ? (m.btc_funding_rate_pct > 0.03 ? "neg" : m.btc_funding_rate_pct < -0.01 ? "pos" : "")
+    : "";
+  const puellColor = m.puell_multiple != null
+    ? (m.puell_multiple < 0.5 ? "pos" : m.puell_multiple > 2.0 ? "neg" : "")
+    : "";
+  const vixColor = m.vix != null ? (m.vix > 30 ? "neg" : m.vix < 20 ? "pos" : "") : "";
+
+  const items = [
+    m.btc_dvol       != null ? `<div class="fund-item"><div class="fund-label">BTC IV (DVOL)</div><div class="fund-value">${m.btc_dvol}</div><div class="fund-sub">30-day implied vol</div></div>` : "",
+    m.btc_funding_rate_pct != null ? `<div class="fund-item"><div class="fund-label">Funding Rate</div><div class="fund-value ${fundingColor}">${m.btc_funding_rate_pct > 0 ? "+" : ""}${m.btc_funding_rate_pct}%</div><div class="fund-sub">BTC perp 8h rate</div></div>` : "",
+    m.fear_greed_value != null ? `<div class="fund-item"><div class="fund-label">Fear & Greed</div><div class="fund-value ${fgColor}">${m.fear_greed_value}</div><div class="fund-sub">${m.fear_greed_label ?? ""}</div></div>` : "",
+    m.puell_multiple  != null ? `<div class="fund-item"><div class="fund-label">Puell Multiple</div><div class="fund-value ${puellColor}">${m.puell_multiple}</div><div class="fund-sub">miner revenue vs 365d avg</div></div>` : "",
+    m.vix             != null ? `<div class="fund-item"><div class="fund-label">VIX</div><div class="fund-value ${vixColor}">${m.vix}</div></div>` : "",
+    m.us_2y_yield     != null ? `<div class="fund-item"><div class="fund-label">US 2Y Yield</div><div class="fund-value">${m.us_2y_yield}%</div></div>` : "",
+    m.dxy             != null ? `<div class="fund-item"><div class="fund-label">DXY</div><div class="fund-value">${m.dxy}</div></div>` : "",
+    m.hy_spread       != null ? `<div class="fund-item"><div class="fund-label">HY Spread</div><div class="fund-value">${m.hy_spread}%</div></div>` : "",
+  ].filter(Boolean).join("");
+
+  el.style.display = "grid";
+  el.innerHTML = items;
 }
 
 function renderDashboard(data) {
@@ -119,6 +150,8 @@ function buildCard(d) {
         <span class="signal-val">${d.btc_correlation ?? "—"}</span>
       </div>
       ${d.btc_trend ? `<div class="signal-row" style="grid-column:1/-1"><span>BTC 7d</span><span class="signal-val">${d.btc_trend}</span></div>` : ""}
+      ${d.vs_sector_1w != null ? `<div class="signal-row"><span>vs Sector 1W</span><span class="signal-val ${pctColor(d.vs_sector_1w)}">${pct(d.vs_sector_1w)}</span></div>` : ""}
+      ${d.vs_sector_1m != null ? `<div class="signal-row"><span>vs Sector 1M</span><span class="signal-val ${pctColor(d.vs_sector_1m)}">${pct(d.vs_sector_1m)}</span></div>` : ""}
     </div>
 
     ${conf ? `<div class="confidence">Confidence: ${conf}</div>` : ""}
@@ -355,6 +388,9 @@ document.getElementById("tradeDate").valueAsDate = new Date();
 
 loadPortfolio();
 loadTrades();
+
+// Load cached macro on page load (no API calls)
+fetch("/api/macro").then(r => r.json()).then(renderMacro).catch(() => {});
 
 // Formatting helpers
 function fmt(n) {

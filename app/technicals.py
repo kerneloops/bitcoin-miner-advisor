@@ -53,3 +53,20 @@ def compute_signals(ticker: str) -> dict:
         "month_return_pct": month_return,
         "btc_correlation": btc_correlation,
     }
+
+
+def add_relative_strength(all_signals: dict) -> dict:
+    """Add vs-sector delta columns to each ticker's signals dict."""
+    week_vals = {t: s["week_return_pct"] for t, s in all_signals.items() if s.get("week_return_pct") is not None}
+    month_vals = {t: s["month_return_pct"] for t, s in all_signals.items() if s.get("month_return_pct") is not None}
+
+    avg_1w = sum(week_vals.values()) / len(week_vals) if week_vals else None
+    avg_1m = sum(month_vals.values()) / len(month_vals) if month_vals else None
+
+    for ticker, signals in all_signals.items():
+        w = signals.get("week_return_pct")
+        m = signals.get("month_return_pct")
+        signals["vs_sector_1w"] = round(w - avg_1w, 2) if (w is not None and avg_1w is not None) else None
+        signals["vs_sector_1m"] = round(m - avg_1m, 2) if (m is not None and avg_1m is not None) else None
+
+    return all_signals

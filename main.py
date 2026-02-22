@@ -21,8 +21,9 @@ logger = logging.getLogger(__name__)
 async def _scheduled_analysis():
     from app.advisor import run_analysis
     from app.data import TICKERS, fetch_btc_prices, refresh_all
+    from app.macro import fetch_all_macro
     from app.miners import fetch_miner_fundamentals
-    from app.technicals import compute_signals
+    from app.technicals import add_relative_strength, compute_signals
 
     logger.info("Scheduled analysis starting…")
     try:
@@ -32,7 +33,7 @@ async def _scheduled_analysis():
         logger.error(f"Scheduled fetch failed: {e}")
         return
 
-    signals = {ticker: compute_signals(ticker) for ticker in TICKERS}
+    signals = add_relative_strength({ticker: compute_signals(ticker) for ticker in TICKERS})
 
     fundamentals = None
     try:
@@ -42,8 +43,14 @@ async def _scheduled_analysis():
     except Exception as e:
         logger.warning(f"Scheduled fundamentals fetch failed (non-fatal): {e}")
 
+    macro = None
     try:
-        await run_analysis(signals, fundamentals)
+        macro = await fetch_all_macro()
+    except Exception as e:
+        logger.warning(f"Scheduled macro fetch failed (non-fatal): {e}")
+
+    try:
+        await run_analysis(signals, fundamentals, macro)
         logger.info("Scheduled analysis complete.")
     except Exception as e:
         logger.error(f"Scheduled AI analysis failed: {e}")
