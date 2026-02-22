@@ -70,7 +70,7 @@ async def export_to_google(analysis_data: dict):
             f"Google not configured. Missing: {', '.join(google_workspace._get_missing())}",
         )
 
-    result = {"sheet": "error", "drive": "error", "sheet_url": None, "drive_url": None}
+    result = {"sheet": "error", "sheet_url": None}
 
     try:
         result["sheet_url"] = google_workspace.append_to_sheet(analysis_data)
@@ -78,12 +78,5 @@ async def export_to_google(analysis_data: dict):
     except Exception as e:
         logger.error(f"Sheets export failed: {e}")
         result["sheet"] = f"error: {e}"
-
-    try:
-        result["drive_url"] = google_workspace.upload_to_drive(analysis_data)
-        result["drive"] = "ok"
-    except Exception as e:
-        logger.error(f"Drive upload failed: {e}")
-        result["drive"] = f"error: {e}"
 
     return result

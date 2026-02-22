@@ -201,19 +201,11 @@ async function exportToGoogle() {
     const result = await resp.json();
     if (!resp.ok) throw new Error(result.detail || "Export failed");
 
-    const parts = [];
     if (result.sheet === "ok" && result.sheet_url) {
-      parts.push(`<a href="${result.sheet_url}" target="_blank">Sheet</a>`);
+      status.innerHTML = `Exported — <a href="${result.sheet_url}" target="_blank">Open Sheet</a>`;
     } else {
-      parts.push(`Sheets: ${result.sheet}`);
+      throw new Error(result.sheet);
     }
-    if (result.drive === "ok" && result.drive_url) {
-      parts.push(`<a href="${result.drive_url}" target="_blank">Drive</a>`);
-    } else {
-      parts.push(`Drive: ${result.drive}`);
-    }
-
-    status.innerHTML = "Exported — " + parts.join(" · ");
     status.className = "status export-status export-ok";
   } catch (e) {
     status.textContent = `Export error: ${e.message}`;

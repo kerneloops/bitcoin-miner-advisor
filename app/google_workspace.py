@@ -1,17 +1,14 @@
-import json
 import logging
 import os
 from datetime import date
 
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
-from googleapiclient.http import MediaInMemoryUpload
 
 logger = logging.getLogger(__name__)
 
 SCOPES = [
     "https://www.googleapis.com/auth/spreadsheets",
-    "https://www.googleapis.com/auth/drive.file",  # min-privilege: only files this app creates
 ]
 
 SHEET_HEADERS = [
@@ -91,22 +88,3 @@ def append_to_sheet(analysis_data: dict) -> str:
     return f"https://docs.google.com/spreadsheets/d/{sheet_id}/edit"
 
 
-def upload_to_drive(analysis_data: dict) -> str:
-    """Upload JSON report to Google Drive. Returns file webViewLink."""
-    creds = _build_credentials()
-    service = build("drive", "v3", credentials=creds)
-
-    filename = f"btc-miner-analysis-{date.today().isoformat()}.json"
-    content = json.dumps(analysis_data, indent=2).encode("utf-8")
-
-    metadata = {"name": filename, "mimeType": "application/json"}
-    folder_id = os.getenv("GOOGLE_DRIVE_FOLDER_ID")
-    if folder_id:
-        metadata["parents"] = [folder_id]
-
-    media = MediaInMemoryUpload(content, mimetype="application/json", resumable=False)
-    file = service.files().create(
-        body=metadata, media_body=media, fields="id,webViewLink"
-    ).execute()
-
-    return file["webViewLink"]
