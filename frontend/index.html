@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bitcoin Miner Weekly Advisor</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <header>
+    <div class="header-inner">
+      <h1>Bitcoin Miner Weekly Advisor</h1>
+      <div class="controls">
+        <button id="analyzeBtn" onclick="runAnalysis()">Run Weekly Analysis</button>
+        <span id="status" class="status"></span>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div id="fundamentals" class="fundamentals" style="display:none"></div>
+
+    <div id="dashboard" class="dashboard">
+      <div class="placeholder">
+        <p>Click <strong>Run Weekly Analysis</strong> to fetch the latest data and get AI recommendations.</p>
+        <p class="sub">First run will fetch up to 1 year of price history and may take ~30 seconds.</p>
+      </div>
+    </div>
+
+    <section id="historySection" class="history-section" style="display:none">
+      <h2>Analysis History</h2>
+      <div class="ticker-tabs" id="historyTabs"></div>
+      <div id="historyContent"></div>
+    </section>
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

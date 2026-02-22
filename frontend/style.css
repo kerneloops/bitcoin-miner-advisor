@@ -1,0 +1,276 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0f1117;
+  --surface: #1a1d27;
+  --border: #2a2d3a;
+  --text: #e2e8f0;
+  --muted: #8892a4;
+  --buy: #22c55e;
+  --sell: #ef4444;
+  --hold: #f59e0b;
+  --accent: #6366f1;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  min-height: 100vh;
+}
+
+header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 1rem 2rem;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.header-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+h1 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+button {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  padding: 0.55rem 1.25rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+button:hover { opacity: 0.85; }
+button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.status {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+main {
+  max-width: 1100px;
+  margin: 2rem auto;
+  padding: 0 1.5rem;
+}
+
+.placeholder {
+  text-align: center;
+  padding: 4rem 2rem;
+  color: var(--muted);
+}
+
+.placeholder .sub {
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
+}
+
+/* Network fundamentals bar */
+.fundamentals {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+}
+
+.fund-item {
+  background: var(--surface);
+  padding: 0.9rem 1.1rem;
+}
+
+.fund-label {
+  font-size: 0.72rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  margin-bottom: 0.3rem;
+}
+
+.fund-value {
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.fund-unit {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.fund-sub {
+  font-size: 0.73rem;
+  color: var(--muted);
+  margin-top: 0.2rem;
+}
+
+/* Dashboard grid */
+.dashboard {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1.25rem;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ticker-name {
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
+.badge {
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.25rem 0.65rem;
+  border-radius: 20px;
+  letter-spacing: 0.05em;
+}
+
+.badge.BUY  { background: rgba(34,197,94,0.15); color: var(--buy); }
+.badge.SELL { background: rgba(239,68,68,0.15);  color: var(--sell); }
+.badge.HOLD { background: rgba(245,158,11,0.15); color: var(--hold); }
+
+.price {
+  font-size: 1.6rem;
+  font-weight: 600;
+}
+
+.signals {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem 1rem;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.signal-row {
+  display: flex;
+  justify-content: space-between;
+}
+
+.signal-val {
+  color: var(--text);
+  font-weight: 500;
+}
+
+.signal-val.pos { color: var(--buy); }
+.signal-val.neg { color: var(--sell); }
+
+.confidence {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.reasoning {
+  font-size: 0.83rem;
+  color: var(--muted);
+  border-top: 1px solid var(--border);
+  padding-top: 0.65rem;
+  line-height: 1.5;
+}
+
+.key-risk {
+  font-size: 0.78rem;
+  color: var(--sell);
+  opacity: 0.8;
+}
+
+/* History */
+.history-section {
+  margin-top: 2.5rem;
+}
+
+.history-section h2 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.ticker-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.tab-btn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  padding: 0.35rem 0.9rem;
+  border-radius: 20px;
+  font-size: 0.83rem;
+}
+
+.tab-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.history-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.history-table th {
+  text-align: left;
+  color: var(--muted);
+  font-weight: 500;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.history-table td {
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.history-table tr:last-child td { border-bottom: none; }
+
+.rec-BUY  { color: var(--buy);  font-weight: 700; }
+.rec-SELL { color: var(--sell); font-weight: 700; }
+.rec-HOLD { color: var(--hold); font-weight: 700; }
