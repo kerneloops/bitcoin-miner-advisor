@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 POLYGON_BASE = "https://api.polygon.io"
 COINGECKO_BASE = "https://api.coingecko.com/api/v3"
 
-TICKERS = ["WGMI", "MARA", "RIOT", "BITX"]
+TICKERS = ["WGMI", "MARA", "RIOT", "BITX", "RIOX", "CIFU", "BMNU", "MSTX"]
 
 
 async def fetch_polygon(ticker: str, from_date: str, to_date: str) -> list[dict]:

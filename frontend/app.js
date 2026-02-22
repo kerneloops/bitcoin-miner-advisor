@@ -1,4 +1,4 @@
-const TICKERS = ["WGMI", "MARA", "RIOT", "BITX"];
+const TICKERS = ["WGMI", "MARA", "RIOT", "BITX", "RIOX", "CIFU", "BMNU", "MSTX"];
 let activeHistoryTicker = TICKERS[0];
 let lastAnalysisData = null;
 
