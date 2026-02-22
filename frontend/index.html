@@ -3,15 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Bitcoin Miner Weekly Advisor</title>
+  <title>Bitcoin Miner Daily Advisor</title>
   <link rel="stylesheet" href="/static/style.css" />
 </head>
 <body>
   <header>
     <div class="header-inner">
-      <h1>Bitcoin Miner Weekly Advisor</h1>
+      <h1>Bitcoin Miner Daily Advisor</h1>
       <div class="controls">
-        <button id="analyzeBtn" onclick="runAnalysis()">Run Weekly Analysis</button>
+        <button id="analyzeBtn" onclick="runAnalysis()">Run Analysis</button>
         <button id="exportBtn" class="export-btn" onclick="exportToGoogle()" style="display:none">
           Export to Sheets &amp; Drive
         </button>
@@ -48,7 +48,7 @@
 
     <div id="dashboard" class="dashboard">
       <div class="placeholder">
-        <p>Click <strong>Run Weekly Analysis</strong> to fetch the latest data and get AI recommendations.</p>
+        <p>Click <strong>Run Analysis</strong> to fetch the latest data and get AI recommendations.</p>
         <p class="sub">First run will fetch up to 1 year of price history and may take ~30 seconds.</p>
       </div>
     </div>

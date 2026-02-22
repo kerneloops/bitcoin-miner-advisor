@@ -7,7 +7,7 @@ from . import cache
 client = AsyncAnthropic()
 
 SYSTEM_PROMPT = """You are a disciplined, data-driven investment advisor specializing in Bitcoin miner ETFs and stocks.
-You analyze technical signals and provide clear, reasoned weekly buy/sell/hold recommendations.
+You analyze technical signals and provide clear, reasoned daily buy/sell/hold recommendations.
 Be concise, specific, and honest about uncertainty. Never give financial advice disclaimers — the user understands this is a personal decision-support tool."""
 
 
@@ -33,7 +33,7 @@ Bitcoin network fundamentals:
 - Avg block time: {fundamentals.get('block_time_min', 'N/A')} min (target: 10 min)
 """
 
-    prompt = f"""Analyze {ticker} for this week's decision.
+    prompt = f"""Analyze {ticker} for today's decision.
 
 Technical signals:
 {json.dumps(signals, indent=2)}

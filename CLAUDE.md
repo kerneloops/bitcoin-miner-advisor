@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-Weekly buy/sell/hold decision tool for Bitcoin miner ETFs and stocks (WGMI, MARA, RIOT, BITX). Fetches price data, computes technical signals, and uses Claude AI to generate structured recommendations.
+Daily buy/sell/hold decision tool for Bitcoin miner ETFs and stocks (WGMI, MARA, RIOT, BITX). Fetches price data, computes technical signals, and uses Claude AI to generate structured recommendations.
 
 ## Setup
 
@@ -40,7 +40,7 @@ uvicorn main:app --reload
 
 - **Caching strategy**: First run fetches 365 days of history; subsequent runs fetch only new candles. This avoids Polygon rate limits entirely.
 - **BTC data**: Fetched from CoinGecko (free, no key required) and stored in the same `prices` table under ticker `"BTC"`.
-- **AI model**: Uses Haiku (fast, cheap) not Sonnet — each weekly run is ~4 AI calls.
+- **AI model**: Uses Haiku (fast, cheap) not Sonnet — each daily run is ~4 AI calls.
 - **Tickers**: Defined in `app/data.py::TICKERS`. Edit there to add/remove instruments.
 
 ## Pending features
