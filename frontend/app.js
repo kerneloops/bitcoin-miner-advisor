@@ -142,7 +142,7 @@ async function loadHistory(ticker) {
   el.innerHTML = `
     <table class="history-table">
       <thead>
-        <tr><th>Date</th><th>Rec</th><th>Price</th><th>RSI</th><th>1W%</th><th>Reasoning</th></tr>
+        <tr><th>Date</th><th>Rec</th><th>Price</th><th>RSI</th><th>1W%</th><th>2W%</th><th>Outcome</th><th>Reasoning</th></tr>
       </thead>
       <tbody>
         ${rows.map(r => `
@@ -152,6 +152,8 @@ async function loadHistory(ticker) {
             <td>${r.signals.current_price ? "$" + fmt(r.signals.current_price) : "—"}</td>
             <td>${r.signals.rsi ?? "—"}</td>
             <td class="${pctColor(r.signals.week_return_pct)}">${pct(r.signals.week_return_pct)}</td>
+            <td class="${pctColor(r.outcome_return_pct)}">${pct(r.outcome_return_pct)}</td>
+            <td class="outcome-${r.outcome ?? 'pending'}">${outcomeIcon(r.outcome)}</td>
             <td>${r.reasoning || "—"}</td>
           </tr>
         `).join("")}
@@ -238,4 +240,10 @@ function rsiColor(rsi) {
   if (rsi >= 70) return "neg";
   if (rsi <= 30) return "pos";
   return "";
+}
+
+function outcomeIcon(outcome) {
+  if (outcome === "correct")   return "✓ correct";
+  if (outcome === "incorrect") return "✗ incorrect";
+  return "— pending";
 }

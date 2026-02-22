@@ -288,3 +288,7 @@ main {
 .rec-BUY  { color: var(--buy);  font-weight: 700; }
 .rec-SELL { color: var(--sell); font-weight: 700; }
 .rec-HOLD { color: var(--hold); font-weight: 700; }
+
+.outcome-correct   { color: var(--buy);  font-weight: 600; }
+.outcome-incorrect { color: var(--sell); font-weight: 600; }
+.outcome-pending   { color: var(--muted); }
