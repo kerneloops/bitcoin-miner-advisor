@@ -31,7 +31,8 @@ uvicorn main:app --reload
 | `app/data.py` | HTTP clients for Polygon.io (stock OHLCV) and CoinGecko (BTC). Incremental fetch — only pulls candles newer than the latest cached date. |
 | `app/technicals.py` | Computes RSI(14), SMA20, SMA50, 1W/1M returns, BTC rolling correlation from cached data. |
 | `app/advisor.py` | Sends signals to `claude-haiku-4-5-20251001` and parses a structured JSON recommendation (BUY/SELL/HOLD + confidence + reasoning + key risk). |
-| `app/routes.py` | Three endpoints: `POST /api/analyze` (full pipeline), `GET /api/signals` (signals only, no API calls), `GET /api/history/{ticker}` |
+| `app/routes.py` | Five endpoints: `POST /api/analyze` (full pipeline), `GET /api/signals` (signals only, no API calls), `GET /api/history/{ticker}`, `GET /api/export/status`, `POST /api/export` (append to Google Sheet) |
+| `app/google_workspace.py` | Google Sheets export via service account. Appends one row per ticker; auto-creates header on first run. Requires `GOOGLE_SERVICE_ACCOUNT_JSON` and `GOOGLE_SHEET_ID` env vars. |
 
 **Frontend** — Vanilla JS/CSS served as static files from `frontend/`. No build step.
 
@@ -50,4 +51,4 @@ uvicorn main:app --reload
 | 2 | Trade log | Record actual buys/sells with date, price, quantity |
 | 3 | Signal accuracy tracker | Compare past recommendations against actual price moves |
 | 4 | Signal tuning | Adjustable weights/thresholds for technical signals |
-| 5 | Google Workspace integration | Scope TBD — Sheets, Calendar, Gmail/Drive |
+| 5 | Google Sheets export | ✅ Implemented — appends one row per ticker after each analysis run |
