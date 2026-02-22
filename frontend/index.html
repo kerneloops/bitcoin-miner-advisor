@@ -12,7 +12,11 @@
       <h1>Bitcoin Miner Weekly Advisor</h1>
       <div class="controls">
         <button id="analyzeBtn" onclick="runAnalysis()">Run Weekly Analysis</button>
+        <button id="exportBtn" class="export-btn" onclick="exportToGoogle()" style="display:none">
+          Export to Sheets &amp; Drive
+        </button>
         <span id="status" class="status"></span>
+        <span id="exportStatus" class="status export-status"></span>
       </div>
     </div>
   </header>

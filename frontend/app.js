@@ -1,5 +1,6 @@
 const TICKERS = ["WGMI", "MARA", "RIOT", "BITX"];
 let activeHistoryTicker = TICKERS[0];
+let lastAnalysisData = null;
 
 async function runAnalysis() {
   const btn = document.getElementById("analyzeBtn");
@@ -15,6 +16,8 @@ async function runAnalysis() {
       throw new Error(err.detail || "Request failed");
     }
     const data = await resp.json();
+    lastAnalysisData = data;
+    document.getElementById("exportBtn").style.display = "";
     renderFundamentals(data.fundamentals);
     renderDashboard(data.tickers);
     await loadHistory(activeHistoryTicker);
@@ -163,6 +166,64 @@ function updateHistoryTabs() {
     <button class="tab-btn ${t === activeHistoryTicker ? "active" : ""}" onclick="loadHistory('${t}')">${t}</button>
   `).join("");
 }
+
+async function checkExportStatus() {
+  try {
+    const resp = await fetch("/api/export/status");
+    const data = await resp.json();
+    if (!data.configured) {
+      document.getElementById("exportBtn").style.display = "none";
+    }
+  } catch (e) {
+    // Silently ignore — export is non-critical
+  }
+}
+
+async function exportToGoogle() {
+  if (!lastAnalysisData) {
+    document.getElementById("exportStatus").textContent = "Run analysis first.";
+    return;
+  }
+
+  const btn = document.getElementById("exportBtn");
+  const status = document.getElementById("exportStatus");
+
+  btn.disabled = true;
+  status.textContent = "Exporting…";
+  status.className = "status export-status";
+
+  try {
+    const resp = await fetch("/api/export", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(lastAnalysisData),
+    });
+    const result = await resp.json();
+    if (!resp.ok) throw new Error(result.detail || "Export failed");
+
+    const parts = [];
+    if (result.sheet === "ok" && result.sheet_url) {
+      parts.push(`<a href="${result.sheet_url}" target="_blank">Sheet</a>`);
+    } else {
+      parts.push(`Sheets: ${result.sheet}`);
+    }
+    if (result.drive === "ok" && result.drive_url) {
+      parts.push(`<a href="${result.drive_url}" target="_blank">Drive</a>`);
+    } else {
+      parts.push(`Drive: ${result.drive}`);
+    }
+
+    status.innerHTML = "Exported — " + parts.join(" · ");
+    status.className = "status export-status export-ok";
+  } catch (e) {
+    status.textContent = `Export error: ${e.message}`;
+    status.className = "status export-status export-error";
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+checkExportStatus();
 
 // Formatting helpers
 function fmt(n) {

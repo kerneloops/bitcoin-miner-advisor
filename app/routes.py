@@ -6,7 +6,7 @@ from .advisor import run_analysis
 from .data import TICKERS, fetch_btc_prices, refresh_all
 from .miners import fetch_miner_fundamentals
 from .technicals import compute_signals
-from . import cache
+from . import cache, google_workspace
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -51,3 +51,39 @@ async def get_history(ticker: str):
     if ticker.upper() not in TICKERS:
         raise HTTPException(404, f"Unknown ticker: {ticker}")
     return cache.get_analysis_history(ticker.upper())
+
+
+@router.get("/api/export/status")
+async def export_status():
+    configured = google_workspace.is_configured()
+    return {
+        "configured": configured,
+        "missing": google_workspace._get_missing() if not configured else [],
+    }
+
+
+@router.post("/api/export")
+async def export_to_google(analysis_data: dict):
+    if not google_workspace.is_configured():
+        raise HTTPException(
+            400,
+            f"Google not configured. Missing: {', '.join(google_workspace._get_missing())}",
+        )
+
+    result = {"sheet": "error", "drive": "error", "sheet_url": None, "drive_url": None}
+
+    try:
+        result["sheet_url"] = google_workspace.append_to_sheet(analysis_data)
+        result["sheet"] = "ok"
+    except Exception as e:
+        logger.error(f"Sheets export failed: {e}")
+        result["sheet"] = f"error: {e}"
+
+    try:
+        result["drive_url"] = google_workspace.upload_to_drive(analysis_data)
+        result["drive"] = "ok"
+    except Exception as e:
+        logger.error(f"Drive upload failed: {e}")
+        result["drive"] = f"error: {e}"
+
+    return result
