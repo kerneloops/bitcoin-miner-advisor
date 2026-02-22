@@ -41,3 +41,13 @@ uvicorn main:app --reload
 - **BTC data**: Fetched from CoinGecko (free, no key required) and stored in the same `prices` table under ticker `"BTC"`.
 - **AI model**: Uses Haiku (fast, cheap) not Sonnet — each weekly run is ~4 AI calls.
 - **Tickers**: Defined in `app/data.py::TICKERS`. Edit there to add/remove instruments.
+
+## Pending features
+
+| # | Feature | Description |
+|---|---------|-------------|
+| 1 | Portfolio tracker | Track holdings and cost basis per ticker |
+| 2 | Trade log | Record actual buys/sells with date, price, quantity |
+| 3 | Signal accuracy tracker | Compare past recommendations against actual price moves |
+| 4 | Signal tuning | Adjustable weights/thresholds for technical signals |
+| 5 | Google Workspace integration | Scope TBD — Sheets, Calendar, Gmail/Drive |
