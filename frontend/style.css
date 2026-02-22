@@ -292,3 +292,41 @@ main {
 .outcome-correct   { color: var(--buy);  font-weight: 600; }
 .outcome-incorrect { color: var(--sell); font-weight: 600; }
 .outcome-pending   { color: var(--muted); }
+
+/* Portfolio */
+.holding-form {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.holding-form select,
+.holding-form input[type="number"] {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 0.45rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+}
+
+.holding-form input[type="number"] { width: 130px; }
+
+.delete-btn {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  padding: 0.2rem 0.5rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  opacity: 1;
+}
+.delete-btn:hover { color: var(--sell); }
+
+.history-table tfoot td {
+  border-top: 2px solid var(--border);
+  font-weight: 600;
+  padding-top: 0.75rem;
+}

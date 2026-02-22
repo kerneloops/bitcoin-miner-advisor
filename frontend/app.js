@@ -22,6 +22,8 @@ async function runAnalysis() {
     renderDashboard(data.tickers);
     await loadHistory(activeHistoryTicker);
     document.getElementById("historySection").style.display = "block";
+    await loadPortfolio();
+    await loadTrades();
     status.textContent = `Updated ${new Date().toLocaleDateString()}`;
   } catch (e) {
     status.textContent = `Error: ${e.message}`;
@@ -218,6 +220,137 @@ async function exportToGoogle() {
 }
 
 checkExportStatus();
+
+async function loadPortfolio() {
+  document.getElementById("holdingTicker").innerHTML =
+    TICKERS.map(t => `<option value="${t}">${t}</option>`).join("");
+
+  const resp = await fetch("/api/portfolio");
+  const rows = await resp.json();
+  const el = document.getElementById("portfolioContent");
+
+  if (!rows.length) {
+    el.innerHTML = "<p style='color:var(--muted);font-size:.85rem;margin-bottom:1rem'>No positions yet.</p>";
+    return;
+  }
+
+  const totalCost   = rows.reduce((s, r) => s + (r.cost_value   ?? 0), 0);
+  const totalMarket = rows.reduce((s, r) => s + (r.market_value ?? 0), 0);
+  const totalGainPct = totalCost > 0 ? (totalMarket / totalCost - 1) * 100 : null;
+
+  el.innerHTML = `
+    <table class="history-table">
+      <thead>
+        <tr><th>Ticker</th><th>Shares</th><th>Avg Cost</th><th>Price</th><th>Market Value</th><th>P&amp;L%</th><th>Rec</th><th></th></tr>
+      </thead>
+      <tbody>
+        ${rows.map(r => `
+          <tr>
+            <td style="font-weight:600">${r.ticker}</td>
+            <td>${r.shares}</td>
+            <td>$${fmt(r.avg_cost)}</td>
+            <td>${r.current_price ? "$" + fmt(r.current_price) : "—"}</td>
+            <td>${r.market_value ? "$" + fmt(r.market_value) : "—"}</td>
+            <td class="${pctColor(r.gain_loss_pct)}">${pct(r.gain_loss_pct)}</td>
+            <td class="rec-${r.recommendation ?? ''}">${r.recommendation ?? "—"}</td>
+            <td><button class="delete-btn" onclick="deleteHolding('${r.ticker}')">✕</button></td>
+          </tr>
+        `).join("")}
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="4" style="color:var(--muted);font-size:.8rem">Total</td>
+          <td>$${fmt(totalMarket)}</td>
+          <td class="${pctColor(totalGainPct)}">${pct(totalGainPct)}</td>
+          <td colspan="2"></td>
+        </tr>
+      </tfoot>
+    </table>
+  `;
+}
+
+async function deleteHolding(ticker) {
+  await fetch(`/api/portfolio/${ticker}`, { method: "DELETE" });
+  loadPortfolio();
+}
+
+async function loadTrades() {
+  document.getElementById("tradeTicker").innerHTML =
+    TICKERS.map(t => `<option value="${t}">${t}</option>`).join("");
+
+  const resp = await fetch("/api/trades");
+  const rows = await resp.json();
+  const el = document.getElementById("tradeLogContent");
+
+  if (!rows.length) {
+    el.innerHTML = "<p style='color:var(--muted);font-size:.85rem;margin-bottom:1rem'>No trades recorded yet.</p>";
+    return;
+  }
+
+  el.innerHTML = `
+    <table class="history-table">
+      <thead>
+        <tr><th>Date</th><th>Ticker</th><th>Type</th><th>Price</th><th>Quantity</th><th>Total</th><th>Notes</th><th></th></tr>
+      </thead>
+      <tbody>
+        ${rows.map(r => `
+          <tr>
+            <td>${r.date}</td>
+            <td style="font-weight:600">${r.ticker}</td>
+            <td class="${r.trade_type === 'BUY' ? 'rec-BUY' : 'rec-SELL'}">${r.trade_type}</td>
+            <td>$${fmt(r.price)}</td>
+            <td>${r.quantity}</td>
+            <td>$${fmt(r.price * r.quantity)}</td>
+            <td style="color:var(--muted);font-size:.8rem">${r.notes || ""}</td>
+            <td><button class="delete-btn" onclick="deleteTrade(${r.id})">✕</button></td>
+          </tr>
+        `).join("")}
+      </tbody>
+    </table>
+  `;
+}
+
+async function deleteTrade(tradeId) {
+  await fetch(`/api/trades/${tradeId}`, { method: "DELETE" });
+  loadTrades();
+  loadPortfolio();
+}
+
+document.getElementById("tradeForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const ticker   = document.getElementById("tradeTicker").value;
+  const date     = document.getElementById("tradeDate").value;
+  const type     = document.getElementById("tradeType").value;
+  const price    = parseFloat(document.getElementById("tradePrice").value);
+  const quantity = parseFloat(document.getElementById("tradeQuantity").value);
+  if (!ticker || !date || isNaN(price) || isNaN(quantity)) return;
+  await fetch("/api/trades", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ticker, date, trade_type: type, price, quantity }),
+  });
+  e.target.reset();
+  loadTrades();
+  loadPortfolio();
+});
+
+document.getElementById("holdingForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const ticker   = document.getElementById("holdingTicker").value;
+  const shares   = parseFloat(document.getElementById("holdingShares").value);
+  const avg_cost = parseFloat(document.getElementById("holdingCost").value);
+  if (!ticker || isNaN(shares) || isNaN(avg_cost)) return;
+  await fetch("/api/portfolio", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ticker, shares, avg_cost }),
+  });
+  e.target.reset();
+  loadPortfolio();
+});
+
+loadPortfolio();
+loadTrades();
 
 // Formatting helpers
 function fmt(n) {

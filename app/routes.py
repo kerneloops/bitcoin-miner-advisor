@@ -1,6 +1,7 @@
 import logging
 
 from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
 
 from .advisor import run_analysis
 from .data import TICKERS, fetch_btc_prices, refresh_all
@@ -10,6 +11,21 @@ from . import cache, google_workspace
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+
+
+class HoldingIn(BaseModel):
+    ticker: str
+    shares: float
+    avg_cost: float
+
+
+class TradeIn(BaseModel):
+    ticker: str
+    date: str
+    trade_type: str
+    price: float
+    quantity: float
+    notes: str = ""
 
 
 @router.post("/api/analyze")
@@ -60,6 +76,63 @@ async def export_status():
         "configured": configured,
         "missing": google_workspace._get_missing() if not configured else [],
     }
+
+
+@router.get("/api/portfolio")
+def get_portfolio():
+    holdings = cache.get_holdings()
+    result = []
+    for h in holdings:
+        ticker = h["ticker"]
+        prices = cache.get_prices(ticker, limit=1)
+        current_price = prices[-1]["close"] if prices else None
+        history = cache.get_analysis_history(ticker, limit=1)
+        latest_rec = history[0]["recommendation"] if history else None
+
+        cost_value   = round(h["avg_cost"] * h["shares"], 2)
+        market_value = round(current_price * h["shares"], 2) if current_price else None
+        gain_loss_pct = round((current_price / h["avg_cost"] - 1) * 100, 2) if current_price else None
+
+        result.append({
+            "ticker": ticker,
+            "shares": h["shares"],
+            "avg_cost": h["avg_cost"],
+            "current_price": current_price,
+            "cost_value": cost_value,
+            "market_value": market_value,
+            "gain_loss_pct": gain_loss_pct,
+            "recommendation": latest_rec,
+        })
+    return result
+
+
+@router.post("/api/portfolio")
+def save_holding(body: HoldingIn):
+    cache.upsert_holding(body.ticker, body.shares, body.avg_cost)
+    return {"ok": True}
+
+
+@router.delete("/api/portfolio/{ticker}")
+def remove_holding(ticker: str):
+    cache.delete_holding(ticker)
+    return {"ok": True}
+
+
+@router.get("/api/trades")
+def list_trades():
+    return cache.get_trades()
+
+
+@router.post("/api/trades")
+def create_trade(body: TradeIn):
+    cache.add_trade(body.ticker, body.date, body.trade_type, body.price, body.quantity, body.notes)
+    return {"ok": True}
+
+
+@router.delete("/api/trades/{trade_id}")
+def remove_trade(trade_id: int):
+    cache.delete_trade(trade_id)
+    return {"ok": True}
 
 
 @router.post("/api/export")

@@ -24,6 +24,33 @@
   <main>
     <div id="fundamentals" class="fundamentals" style="display:none"></div>
 
+    <div id="portfolioSection" class="history-section">
+      <h2>Portfolio</h2>
+      <div id="portfolioContent"></div>
+      <form id="holdingForm" class="holding-form">
+        <select id="holdingTicker"></select>
+        <input id="holdingShares" type="number" step="any" min="0" placeholder="Shares">
+        <input id="holdingCost"   type="number" step="any" min="0" placeholder="Avg cost ($)">
+        <button type="submit">Save</button>
+      </form>
+    </div>
+
+    <div id="tradeLogSection" class="history-section">
+      <h2>Trade Log</h2>
+      <div id="tradeLogContent"></div>
+      <form id="tradeForm" class="holding-form">
+        <input id="tradeDate"     type="date">
+        <select id="tradeTicker"></select>
+        <select id="tradeType">
+          <option value="BUY">Buy</option>
+          <option value="SELL">Sell</option>
+        </select>
+        <input id="tradePrice"    type="number" step="any" min="0" placeholder="Price ($)">
+        <input id="tradeQuantity" type="number" step="any" min="0" placeholder="Quantity">
+        <button type="submit">Record Trade</button>
+      </form>
+    </div>
+
     <div id="dashboard" class="dashboard">
       <div class="placeholder">
         <p>Click <strong>Run Weekly Analysis</strong> to fetch the latest data and get AI recommendations.</p>

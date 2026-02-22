@@ -37,6 +37,24 @@ def init_db():
                 reasoning TEXT
             )
         """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS holdings (
+                ticker TEXT PRIMARY KEY,
+                shares REAL NOT NULL,
+                avg_cost REAL NOT NULL
+            )
+        """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS trades (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                ticker TEXT NOT NULL,
+                date TEXT NOT NULL,
+                trade_type TEXT NOT NULL,
+                price REAL NOT NULL,
+                quantity REAL NOT NULL,
+                notes TEXT DEFAULT ''
+            )
+        """)
 
 
 def upsert_prices(ticker: str, rows: list[dict]):
@@ -82,6 +100,80 @@ def get_price_on_or_after(ticker: str, target_date: str) -> float | None:
             (ticker, target_date),
         ).fetchone()
     return float(row["close"]) if row else None
+
+
+def upsert_holding(ticker: str, shares: float, avg_cost: float):
+    with get_conn() as conn:
+        conn.execute(
+            """INSERT INTO holdings (ticker, shares, avg_cost)
+               VALUES (?, ?, ?)
+               ON CONFLICT(ticker) DO UPDATE SET shares=excluded.shares, avg_cost=excluded.avg_cost""",
+            (ticker, shares, avg_cost),
+        )
+
+
+def delete_holding(ticker: str):
+    with get_conn() as conn:
+        conn.execute("DELETE FROM holdings WHERE ticker = ?", (ticker,))
+
+
+def get_holdings() -> list[dict]:
+    with get_conn() as conn:
+        rows = conn.execute("SELECT * FROM holdings ORDER BY ticker").fetchall()
+    return [dict(r) for r in rows]
+
+
+def _recompute_holding(conn, ticker: str):
+    trades = conn.execute(
+        "SELECT * FROM trades WHERE ticker = ? ORDER BY date ASC, id ASC",
+        (ticker,)
+    ).fetchall()
+
+    shares = 0.0
+    avg_cost = 0.0
+    for t in trades:
+        if t["trade_type"] == "BUY":
+            total_cost = shares * avg_cost + t["quantity"] * t["price"]
+            shares += t["quantity"]
+            avg_cost = total_cost / shares
+        elif t["trade_type"] == "SELL":
+            shares = max(0.0, shares - t["quantity"])
+
+    if shares <= 0:
+        conn.execute("DELETE FROM holdings WHERE ticker = ?", (ticker,))
+    else:
+        conn.execute(
+            """INSERT INTO holdings (ticker, shares, avg_cost)
+               VALUES (?, ?, ?)
+               ON CONFLICT(ticker) DO UPDATE SET shares=excluded.shares, avg_cost=excluded.avg_cost""",
+            (ticker, round(shares, 8), round(avg_cost, 4)),
+        )
+
+
+def add_trade(ticker: str, date: str, trade_type: str, price: float, quantity: float, notes: str = ""):
+    with get_conn() as conn:
+        conn.execute(
+            "INSERT INTO trades (ticker, date, trade_type, price, quantity, notes) VALUES (?, ?, ?, ?, ?, ?)",
+            (ticker, date, trade_type, price, quantity, notes),
+        )
+        _recompute_holding(conn, ticker)
+
+
+def delete_trade(trade_id: int):
+    with get_conn() as conn:
+        row = conn.execute("SELECT ticker FROM trades WHERE id = ?", (trade_id,)).fetchone()
+        if row:
+            ticker = row["ticker"]
+            conn.execute("DELETE FROM trades WHERE id = ?", (trade_id,))
+            _recompute_holding(conn, ticker)
+
+
+def get_trades() -> list[dict]:
+    with get_conn() as conn:
+        rows = conn.execute(
+            "SELECT * FROM trades ORDER BY date DESC, id DESC"
+        ).fetchall()
+    return [dict(r) for r in rows]
 
 
 def get_analysis_history(ticker: str, limit: int = 12) -> list[dict]:
