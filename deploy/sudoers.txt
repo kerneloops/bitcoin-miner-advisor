@@ -1,0 +1,4 @@
+# Add this to /etc/sudoers.d/miner (run: visudo -f /etc/sudoers.d/miner)
+# Allows the miner user to restart/status the service without a password.
+
+miner ALL=(ALL) NOPASSWD: /bin/systemctl restart miner-advisor, /bin/systemctl status miner-advisor
