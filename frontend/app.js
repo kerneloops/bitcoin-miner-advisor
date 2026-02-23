@@ -126,7 +126,7 @@ function renderMacro(m) {
   if (!m || !Object.keys(m).length) { el.style.display = "none"; return; }
 
   const fgColor = m.fear_greed_value != null
-    ? (m.fear_greed_value < 30 ? "pos" : m.fear_greed_value > 70 ? "neg" : "")
+    ? (m.fear_greed_value < 25 || m.fear_greed_value > 75 ? "rec-HOLD" : "")
     : "";
   const fundingColor = m.btc_funding_rate_pct != null
     ? (m.btc_funding_rate_pct > 0.03 ? "neg" : m.btc_funding_rate_pct < -0.01 ? "pos" : "")
