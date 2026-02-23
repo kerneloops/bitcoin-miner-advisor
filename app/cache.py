@@ -151,10 +151,15 @@ def delete_holding(ticker: str):
 
 
 def delete_ticker_trades(ticker: str):
-    """Remove all trades and the holding for a ticker (full position close)."""
+    """Remove all trades and the holding for a ticker; reverse their cash effects."""
     with get_conn() as conn:
+        trades = conn.execute(
+            "SELECT trade_type, price, quantity FROM trades WHERE ticker = ?", (ticker,)
+        ).fetchall()
         conn.execute("DELETE FROM trades WHERE ticker = ?", (ticker,))
         conn.execute("DELETE FROM holdings WHERE ticker = ?", (ticker,))
+        for t in trades:
+            _adjust_cash(conn, t["trade_type"], t["price"], t["quantity"], sign=-1)
 
 
 def get_holdings() -> list[dict]:

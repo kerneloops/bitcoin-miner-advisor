@@ -470,9 +470,9 @@ async function adjustCash(action) {
 
 async function deleteHolding(ticker) {
   if (!confirm(`Remove ${ticker} and delete all its trades?`)) return;
-  await fetch(`/api/portfolio/${ticker}`, { method: "DELETE" });
-  loadPortfolio();
-  loadTrades();
+  const resp = await fetch(`/api/portfolio/${ticker}`, { method: "DELETE" });
+  if (!resp.ok) { const err = await resp.json().catch(() => ({})); alert(err.detail || `Failed to remove ${ticker}.`); return; }
+  await Promise.all([loadPortfolio(), loadTrades()]);
 }
 
 async function loadTrades() {
@@ -513,9 +513,9 @@ async function loadTrades() {
 
 async function deleteTrade(tradeId) {
   if (!confirm("Delete this trade? Holdings will be recomputed.")) return;
-  await fetch(`/api/trades/${tradeId}`, { method: "DELETE" });
-  loadTrades();
-  loadPortfolio();
+  const resp = await fetch(`/api/trades/${tradeId}`, { method: "DELETE" });
+  if (!resp.ok) { const err = await resp.json().catch(() => ({})); alert(err.detail || "Failed to delete trade."); return; }
+  await Promise.all([loadTrades(), loadPortfolio()]);
 }
 
 document.getElementById("tradeForm").addEventListener("submit", async (e) => {
