@@ -392,6 +392,16 @@ loadTrades();
 // Load cached macro on page load (no API calls)
 fetch("/api/macro").then(r => r.json()).then(renderMacro).catch(() => {});
 
+// Live UTC clock
+function updateClock() {
+  const now = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  const el = document.getElementById('liveClock');
+  if (el) el.textContent = `[LIVE] ${pad(now.getUTCHours())}:${pad(now.getUTCMinutes())}:${pad(now.getUTCSeconds())} UTC`;
+}
+setInterval(updateClock, 1000);
+updateClock();
+
 // Formatting helpers
 function fmt(n) {
   if (n == null) return "—";
