@@ -22,8 +22,8 @@ from app.routes import router
 class AuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         path = request.url.path
-        # Always allow login page, login POST, and static assets
-        if path in ("/login", "/logout") or path.startswith("/static/"):
+        # Always allow login page, login POST, static assets, and Telegram webhook
+        if path in ("/login", "/logout", "/api/telegram/webhook") or path.startswith("/static/"):
             return await call_next(request)
         if not verify_token(request.cookies.get("session")):
             return RedirectResponse(url="/login", status_code=302)
@@ -116,6 +116,12 @@ async def lifespan(app: FastAPI):
             logger.info(f"Daily analysis scheduled at {schedule_time}")
         except Exception as e:
             logger.warning(f"Failed to start scheduler: {e}")
+
+    from app.telegram import setup_webhook
+    try:
+        await setup_webhook()
+    except Exception as e:
+        logger.warning(f"Telegram webhook setup failed (non-fatal): {e}")
 
     yield
 

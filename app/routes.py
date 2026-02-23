@@ -48,6 +48,17 @@ def logout():
     return response
 
 
+@router.post("/api/telegram/webhook")
+async def telegram_webhook(request: Request):
+    secret = os.getenv("SESSION_SECRET", "")[:64]
+    incoming = request.headers.get("X-Telegram-Bot-Api-Secret-Token", "")
+    if secret and incoming != secret:
+        raise HTTPException(403, "Forbidden")
+    update = await request.json()
+    await telegram.handle_update(update)
+    return {"ok": True}
+
+
 class HoldingIn(BaseModel):
     ticker: str
     shares: float

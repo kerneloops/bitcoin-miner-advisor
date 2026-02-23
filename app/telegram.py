@@ -1,7 +1,124 @@
+import logging
 import os
 from datetime import date
 
 import httpx
+from anthropic import AsyncAnthropic
+
+logger = logging.getLogger(__name__)
+_claude = AsyncAnthropic()
+
+BOT_SYSTEM = """You are LAPIO, a sharp AI trading assistant for Bitcoin miner stocks and ETFs (WGMI, MARA, RIOT, BITX, RIOX, CIFU, BMNU, MSTX).
+You have been given the user's current portfolio, live technical signals, and macro conditions.
+Answer concisely and specifically. This is a personal decision-support tool — skip disclaimers.
+Use plain text only — no markdown, no asterisks. Telegram HTML tags (<b>, <i>) are fine sparingly."""
+
+
+async def _build_context() -> str:
+    from . import cache
+    from .data import TICKERS
+    from .technicals import add_relative_strength, compute_signals
+
+    lines = []
+
+    holdings = cache.get_holdings()
+    if holdings:
+        lines.append("<b>Portfolio</b>")
+        for h in holdings:
+            lines.append(f"  {h['ticker']}: {h['shares']} shares @ ${h['avg_cost']:.2f}")
+        lines.append(f"  Cash: ${cache.get_cash():.2f}")
+
+    try:
+        signals = add_relative_strength({t: compute_signals(t) for t in TICKERS})
+        lines.append("\n<b>Current signals</b>")
+        for ticker, s in signals.items():
+            if "error" in s:
+                continue
+            history = cache.get_analysis_history(ticker, limit=1)
+            rec = history[0]["recommendation"] if history else "—"
+            price = s.get("current_price") or "—"
+            rsi = s.get("rsi") or "—"
+            lines.append(f"  {ticker}: ${price}  RSI {rsi}  Last rec: {rec}")
+    except Exception:
+        pass
+
+    macro = cache.get_latest_macro()
+    if macro:
+        lines.append("\n<b>Macro</b>")
+        if "fear_greed_value" in macro:
+            lines.append(f"  Fear & Greed: {macro['fear_greed_value']}/100 ({macro.get('fear_greed_label', '')})")
+        if "btc_dvol" in macro:
+            lines.append(f"  BTC DVOL: {macro['btc_dvol']}")
+        if "btc_funding_rate_pct" in macro:
+            lines.append(f"  Funding rate: {macro['btc_funding_rate_pct']:+.4f}%")
+
+    bias = cache.get_setting("macro_bias")
+    if bias:
+        lines.append(f"\n{bias}")
+
+    return "\n".join(lines) if lines else "No cached data available yet — run an analysis first."
+
+
+async def handle_update(update: dict):
+    """Process an incoming Telegram update and reply via Claude."""
+    message = update.get("message") or update.get("edited_message")
+    if not message:
+        return
+
+    chat_id = str(message.get("chat", {}).get("id", ""))
+    if chat_id != os.getenv("TELEGRAM_CHAT_ID", ""):
+        return  # ignore messages from unknown chats
+
+    text = (message.get("text") or "").strip()
+    if not text:
+        return
+
+    if text in ("/start", "/help"):
+        await send_message(
+            "<b>LAPIO Bot</b>\n\n"
+            "Ask me anything about your miner positions, signals, or market conditions.\n\n"
+            "Examples:\n"
+            "• Should I add to WGMI?\n"
+            "• How is the macro looking?\n"
+            "• What's my portfolio value?\n"
+            "• Summarise today's signals"
+        )
+        return
+
+    context = await _build_context()
+    try:
+        resp = await _claude.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=500,
+            system=BOT_SYSTEM + f"\n\nCurrent data:\n{context}",
+            messages=[{"role": "user", "content": text}],
+        )
+        reply = resp.content[0].text.strip()
+    except Exception as e:
+        reply = f"Sorry, I hit an error: {e}"
+
+    await send_message(reply)
+
+
+async def setup_webhook():
+    token = os.getenv("TELEGRAM_BOT_TOKEN", "")
+    base_url = os.getenv("APP_BASE_URL", "").rstrip("/")
+    if not token or not base_url:
+        return
+    secret = os.getenv("SESSION_SECRET", "")[:64]
+    async with httpx.AsyncClient(timeout=10) as client:
+        r = await client.post(
+            f"https://api.telegram.org/bot{token}/setWebhook",
+            json={
+                "url": f"{base_url}/api/telegram/webhook",
+                "secret_token": secret,
+                "allowed_updates": ["message"],
+            },
+        )
+        if r.status_code == 200 and r.json().get("ok"):
+            logger.info("Telegram webhook registered at %s/api/telegram/webhook", base_url)
+        else:
+            logger.warning("Telegram webhook setup failed: %s", r.text)
 
 
 async def send_message(text: str) -> tuple[bool, str]:
