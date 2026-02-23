@@ -437,8 +437,7 @@ function renderSettings(s) {
   const telegramRow = s.telegram_configured
     ? `<div class="settings-row">
         <span class="settings-label">Telegram</span>
-        <button onclick="testTelegram()">Test Notification</button>
-        <span id="telegramStatus" class="settings-status"></span>
+        <span style="color:var(--buy)">✓ connected</span>
        </div>`
     : `<div class="telegram-setup">
         <strong style="color:var(--text)">Telegram Setup</strong> — get BUY/SELL alerts on your phone:
@@ -447,7 +446,7 @@ function renderSettings(s) {
           <li>Message your new bot once to activate it</li>
           <li>Visit <code>https://api.telegram.org/bot{TOKEN}/getUpdates</code> → copy <code>id</code> from result</li>
           <li>SSH to server and add to .env:<br><code>TELEGRAM_BOT_TOKEN=…</code><br><code>TELEGRAM_CHAT_ID=…</code></li>
-          <li>Restart service, then click "Test Notification" here</li>
+          <li>Restart service — Telegram will show ✓ connected here</li>
         </ol>
       </div>`;
 
@@ -499,19 +498,6 @@ async function saveSettings(body) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-}
-
-async function testTelegram() {
-  const el = document.getElementById("telegramStatus");
-  if (el) el.textContent = "Sending…";
-  try {
-    const resp = await fetch("/api/notifications/test", { method: "POST" });
-    const data = await resp.json();
-    if (!resp.ok) throw new Error(data.detail || "Failed");
-    if (el) { el.textContent = "✓ Message sent!"; el.style.color = "var(--buy)"; }
-  } catch (e) {
-    if (el) { el.textContent = `✗ ${e.message}`; el.style.color = "var(--sell)"; }
-  }
 }
 
 // ── Boot sequence ──
