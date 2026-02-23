@@ -536,6 +536,36 @@ main {
 
 .history-table tr:last-child td { border-bottom: none; }
 
+/* ── Cash controls ── */
+.cash-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin-top: 0.6rem;
+  padding: 0.5rem 0.6rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.cash-balance-display {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--green);
+  min-width: 80px;
+}
+
+.cash-controls input[type="number"] {
+  background: var(--bg);
+  border: 1px solid var(--border2);
+  color: var(--text);
+  padding: 0.28rem 0.55rem;
+  font-family: inherit;
+  font-size: 0.7rem;
+  outline: none;
+}
+.cash-controls input[type="number"]:focus { border-color: var(--green-dim); }
+
 /* ── Outcome ── */
 .outcome-correct   { color: var(--buy);  font-weight: 600; }
 .outcome-incorrect { color: var(--sell); font-weight: 600; }

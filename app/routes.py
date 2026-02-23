@@ -35,6 +35,11 @@ class SettingsIn(BaseModel):
     total_capital: float | None = None
 
 
+class CashIn(BaseModel):
+    action: str   # "set" | "deposit" | "withdraw"
+    amount: float
+
+
 @router.post("/api/analyze")
 async def analyze():
     """Fetch latest data and run AI analysis for all tickers."""
@@ -237,6 +242,27 @@ def create_trade(body: TradeIn):
 def remove_trade(trade_id: int):
     cache.delete_trade(trade_id)
     return {"ok": True}
+
+
+@router.get("/api/cash")
+def get_cash():
+    return {"balance": cache.get_cash()}
+
+
+@router.post("/api/cash")
+def update_cash(body: CashIn):
+    if body.amount < 0:
+        raise HTTPException(400, "Amount must be non-negative.")
+    current = cache.get_cash()
+    if body.action == "set":
+        cache.set_cash(body.amount)
+    elif body.action == "deposit":
+        cache.set_cash(current + body.amount)
+    elif body.action == "withdraw":
+        cache.set_cash(current - body.amount)
+    else:
+        raise HTTPException(400, f"Unknown action '{body.action}'. Use set/deposit/withdraw.")
+    return {"balance": cache.get_cash()}
 
 
 @router.post("/api/export")

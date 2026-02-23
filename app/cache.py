@@ -143,6 +143,32 @@ def get_holdings() -> list[dict]:
 
 
 def _recompute_holding(conn, ticker: str):
+    # If this ticker has no BUY trades but a holding exists (legacy position entered
+    # before the trade log was the source of truth), auto-migrate by inserting a
+    # synthetic initial BUY trade so that subsequent SELLs reduce shares correctly.
+    has_buy = conn.execute(
+        "SELECT 1 FROM trades WHERE ticker = ? AND trade_type = 'BUY' LIMIT 1",
+        (ticker,),
+    ).fetchone()
+    if not has_buy:
+        existing = conn.execute(
+            "SELECT shares, avg_cost FROM holdings WHERE ticker = ?", (ticker,)
+        ).fetchone()
+        if existing and existing["shares"] > 0:
+            from datetime import date as _date, timedelta
+            first_trade = conn.execute(
+                "SELECT MIN(date) as d FROM trades WHERE ticker = ?", (ticker,)
+            ).fetchone()
+            if first_trade and first_trade["d"]:
+                deposit_date = (_date.fromisoformat(first_trade["d"]) - timedelta(days=1)).isoformat()
+            else:
+                deposit_date = _date.today().isoformat()
+            conn.execute(
+                "INSERT INTO trades (ticker, date, trade_type, price, quantity, notes)"
+                " VALUES (?, ?, 'BUY', ?, ?, 'initial position (auto-migrated)')",
+                (ticker, deposit_date, existing["avg_cost"], existing["shares"]),
+            )
+
     trades = conn.execute(
         "SELECT * FROM trades WHERE ticker = ? ORDER BY date ASC, id ASC",
         (ticker,)
@@ -169,6 +195,33 @@ def _recompute_holding(conn, ticker: str):
         )
 
 
+def get_cash() -> float:
+    val = get_setting("cash_balance", "0")
+    try:
+        return float(val)
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def set_cash(amount: float) -> None:
+    set_setting("cash_balance", str(round(amount, 2)))
+
+
+def _adjust_cash(conn, trade_type: str, price: float, quantity: float, sign: int = 1):
+    """Update cash_balance: +proceeds for SELL, -cost for BUY (sign=1). Reverse with sign=-1."""
+    row = conn.execute("SELECT value FROM settings WHERE key = 'cash_balance'").fetchone()
+    current = float(row["value"]) if row else 0.0
+    if trade_type == "BUY":
+        current -= sign * price * quantity
+    elif trade_type == "SELL":
+        current += sign * price * quantity
+    conn.execute(
+        "INSERT INTO settings (key, value) VALUES ('cash_balance', ?)"
+        " ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+        (str(round(current, 2)),),
+    )
+
+
 def add_trade(ticker: str, date: str, trade_type: str, price: float, quantity: float, notes: str = ""):
     with get_conn() as conn:
         conn.execute(
@@ -176,15 +229,19 @@ def add_trade(ticker: str, date: str, trade_type: str, price: float, quantity: f
             (ticker, date, trade_type, price, quantity, notes),
         )
         _recompute_holding(conn, ticker)
+        _adjust_cash(conn, trade_type, price, quantity, sign=1)
 
 
 def delete_trade(trade_id: int):
     with get_conn() as conn:
-        row = conn.execute("SELECT ticker FROM trades WHERE id = ?", (trade_id,)).fetchone()
+        row = conn.execute(
+            "SELECT ticker, trade_type, price, quantity FROM trades WHERE id = ?", (trade_id,)
+        ).fetchone()
         if row:
             ticker = row["ticker"]
             conn.execute("DELETE FROM trades WHERE id = ?", (trade_id,))
             _recompute_holding(conn, ticker)
+            _adjust_cash(conn, row["trade_type"], row["price"], row["quantity"], sign=-1)
 
 
 def get_trades() -> list[dict]:

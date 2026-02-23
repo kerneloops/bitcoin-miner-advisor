@@ -378,18 +378,15 @@ async function exportToGoogle() {
 checkExportStatus();
 
 async function loadPortfolio() {
-  const resp = await fetch("/api/portfolio");
+  const [resp, cashResp] = await Promise.all([fetch("/api/portfolio"), fetch("/api/cash")]);
   const rows = await resp.json();
+  const { balance: cashBalance } = await cashResp.json();
   const el = document.getElementById("portfolioContent");
-
-  if (!rows.length) {
-    el.innerHTML = "<p style='color:var(--muted);font-size:.85rem;margin-bottom:1rem'>No positions yet.</p>";
-    return;
-  }
 
   const totalCost   = rows.reduce((s, r) => s + (r.cost_value   ?? 0), 0);
   const totalMarket = rows.reduce((s, r) => s + (r.market_value ?? 0), 0);
   const totalGainPct = totalCost > 0 ? (totalMarket / totalCost - 1) * 100 : null;
+  const grandTotal  = totalMarket + cashBalance;
 
   const totalSinceRunValue = rows.reduce((s, r) => s + (r.since_run_value ?? 0), 0);
   const prevTotalMarket    = totalMarket - totalSinceRunValue;
@@ -405,36 +402,70 @@ async function loadPortfolio() {
     h2.textContent = "Portfolio";
   }
 
+  const positionsHtml = rows.length ? `
+    <tbody>
+      ${rows.map(r => `
+        <tr>
+          <td style="font-weight:600">${r.ticker}</td>
+          <td>${r.shares}</td>
+          <td>$${fmt(r.avg_cost)}</td>
+          <td>${r.current_price ? "$" + fmt(r.current_price) : "—"}</td>
+          <td>${r.market_value ? "$" + fmt(r.market_value) : "—"}</td>
+          <td class="${pctColor(r.gain_loss_pct)}">${pct(r.gain_loss_pct)}</td>
+          <td class="${pctColor(r.since_run_pct)}">${sinceRun(r.since_run_value, r.since_run_pct)}</td>
+          <td class="rec-${r.recommendation ?? ''}">${r.recommendation ?? "—"}</td>
+          <td><button class="delete-btn" onclick="deleteHolding('${r.ticker}')">✕</button></td>
+        </tr>
+      `).join("")}
+    </tbody>` : `<tbody><tr><td colspan="9" style="color:var(--muted);font-size:.85rem;padding:.6rem 0">No positions yet.</td></tr></tbody>`;
+
   el.innerHTML = `
     <table class="history-table">
       <thead>
         <tr><th>Ticker</th><th>Shares</th><th>Avg Cost</th><th>Price</th><th>Market Value</th><th>P&amp;L%</th><th>Since Last Run</th><th>Rec</th><th></th></tr>
       </thead>
-      <tbody>
-        ${rows.map(r => `
-          <tr>
-            <td style="font-weight:600">${r.ticker}</td>
-            <td>${r.shares}</td>
-            <td>$${fmt(r.avg_cost)}</td>
-            <td>${r.current_price ? "$" + fmt(r.current_price) : "—"}</td>
-            <td>${r.market_value ? "$" + fmt(r.market_value) : "—"}</td>
-            <td class="${pctColor(r.gain_loss_pct)}">${pct(r.gain_loss_pct)}</td>
-            <td class="${pctColor(r.since_run_pct)}">${sinceRun(r.since_run_value, r.since_run_pct)}</td>
-            <td class="rec-${r.recommendation ?? ''}">${r.recommendation ?? "—"}</td>
-            <td><button class="delete-btn" onclick="deleteHolding('${r.ticker}')">✕</button></td>
-          </tr>
-        `).join("")}
-      </tbody>
+      ${positionsHtml}
       <tfoot>
         <tr>
-          <td colspan="4" style="color:var(--muted);font-size:.8rem">Total</td>
+          <td colspan="4" style="color:var(--muted);font-size:.8rem">Positions</td>
           <td>$${fmt(totalMarket)}</td>
           <td class="${pctColor(totalGainPct)}">${pct(totalGainPct)}</td>
           <td colspan="3"></td>
         </tr>
+        <tr>
+          <td colspan="4" style="color:var(--muted);font-size:.8rem">Cash</td>
+          <td class="${cashBalance < 0 ? 'neg' : ''}">$${fmt(cashBalance)}</td>
+          <td colspan="4"></td>
+        </tr>
+        <tr style="border-top:1px solid var(--border);font-weight:600">
+          <td colspan="4" style="font-size:.85rem">Total</td>
+          <td>$${fmt(grandTotal)}</td>
+          <td colspan="4"></td>
+        </tr>
       </tfoot>
     </table>
+    <div class="cash-controls">
+      <span class="settings-label">CASH</span>
+      <span class="cash-balance-display">$${fmt(cashBalance)}</span>
+      <input id="cashAmount" type="number" step="any" min="0" placeholder="Amount ($)" style="width:120px">
+      <button class="tier-btn" onclick="adjustCash('deposit')">Deposit</button>
+      <button class="tier-btn" onclick="adjustCash('withdraw')">Withdraw</button>
+      <button class="tier-btn" onclick="adjustCash('set')">Set</button>
+    </div>
   `;
+}
+
+async function adjustCash(action) {
+  const amount = parseFloat(document.getElementById("cashAmount").value);
+  if (isNaN(amount) || amount < 0) { alert("Enter a valid amount."); return; }
+  const resp = await fetch("/api/cash", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action, amount }),
+  });
+  if (!resp.ok) { const err = await resp.json(); alert(err.detail || "Failed."); return; }
+  document.getElementById("cashAmount").value = "";
+  loadPortfolio();
 }
 
 async function deleteHolding(ticker) {
