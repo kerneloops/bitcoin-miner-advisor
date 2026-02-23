@@ -94,7 +94,8 @@ async def analyze():
     except Exception as e:
         logger.warning(f"Telegram notification failed (non-fatal): {e}")
 
-    return {"tickers": results, "fundamentals": fundamentals, "macro": macro}
+    macro_bias = cache.get_setting("macro_bias")
+    return {"tickers": results, "fundamentals": fundamentals, "macro": macro, "macro_bias": macro_bias}
 
 
 @router.get("/api/signals")
@@ -137,8 +138,12 @@ async def test_notification():
 
 @router.get("/api/macro")
 def get_macro():
-    """Return latest cached macro signals."""
-    return cache.get_latest_macro()
+    """Return latest cached macro signals plus macro bias."""
+    data = cache.get_latest_macro()
+    bias = cache.get_setting("macro_bias")
+    if bias:
+        data["macro_bias"] = bias
+    return data
 
 
 @router.get("/api/history/{ticker}")

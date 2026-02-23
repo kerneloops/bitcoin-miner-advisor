@@ -92,6 +92,36 @@ Respond ONLY with valid JSON (no markdown):
     return json.loads(text.strip())
 
 
+async def generate_macro_bias(macro: dict, results: dict) -> str:
+    """One-sentence synthesis of macro environment vs ticker recommendations."""
+    rec_counts = {}
+    for d in results.values():
+        r = d.get("recommendation")
+        if r:
+            rec_counts[r] = rec_counts.get(r, 0) + 1
+
+    rec_summary = ", ".join(f"{k}: {v}" for k, v in sorted(rec_counts.items()))
+    macro_section = _macro_summary(macro)
+
+    prompt = f"""Given these macro signals:
+{macro_section}
+
+And these ticker recommendations today: {rec_summary}
+
+Write exactly ONE sentence (max 30 words) for a "Macro environment" summary line.
+Explain the overall macro picture and, if there's tension between macro sentiment and the technical recommendations, name it directly.
+Start with "Macro environment:" and be specific — no vague language.
+Respond with only the sentence, no JSON, no markdown."""
+
+    message = await client.messages.create(
+        model="claude-haiku-4-5-20251001",
+        max_tokens=80,
+        system=SYSTEM_PROMPT,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    return message.content[0].text.strip()
+
+
 async def run_analysis(all_signals: dict, fundamentals: dict | None = None, macro: dict | None = None) -> dict:
     from datetime import date
 
@@ -109,5 +139,12 @@ async def run_analysis(all_signals: dict, fundamentals: dict | None = None, macr
             run_date, ticker, signals, rec["recommendation"], rec.get("reasoning", "")
         )
         results[ticker] = {**signals, **rec, "btc_trend": btc_trend}
+
+    if macro:
+        try:
+            bias = await generate_macro_bias(macro, results)
+            cache.set_setting("macro_bias", bias)
+        except Exception:
+            pass
 
     return results

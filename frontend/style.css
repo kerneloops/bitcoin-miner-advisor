@@ -209,6 +209,19 @@ main {
   line-height: 1.4;
 }
 
+/* ── Macro bias banner ── */
+.macro-bias {
+  border: 1px solid var(--border2);
+  border-left: 3px solid var(--green-dim);
+  background: var(--surface);
+  padding: 0.55rem 1rem;
+  margin-bottom: 1.5rem;
+  font-size: 0.7rem;
+  color: var(--text);
+  opacity: 0.85;
+  letter-spacing: 0.03em;
+}
+
 /* ── Dashboard ── */
 .dashboard {
   display: grid;

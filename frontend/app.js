@@ -20,7 +20,7 @@ async function runAnalysis() {
     lastAnalysisData = data;
     document.getElementById("exportBtn").style.display = "";
     renderFundamentals(data.fundamentals);
-    renderMacro(data.macro);
+    renderMacro({...data.macro, macro_bias: data.macro_bias});
     renderDashboard(data.tickers);
     await loadHistory(activeHistoryTicker);
     document.getElementById("historySection").style.display = "block";
@@ -124,6 +124,14 @@ function eli5Macro(key, value) {
 function renderMacro(m) {
   const el = document.getElementById("macroPanel");
   if (!m || !Object.keys(m).length) { el.style.display = "none"; return; }
+
+  const biasEl = document.getElementById("macroBias");
+  if (m.macro_bias) {
+    biasEl.textContent = m.macro_bias;
+    biasEl.style.display = "";
+  } else {
+    biasEl.style.display = "none";
+  }
 
   const fgColor = m.fear_greed_value != null
     ? (m.fear_greed_value < 25 || m.fear_greed_value > 75 ? "rec-HOLD" : "")
