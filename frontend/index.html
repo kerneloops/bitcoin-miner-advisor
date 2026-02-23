@@ -6,7 +6,7 @@
   <title>Hash &amp; Burn</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="/static/style.css?v=14" />
+  <link rel="stylesheet" href="/static/style.css?v=15" />
 </head>
 <body>
   <header>
@@ -24,6 +24,14 @@
       </div>
     </div>
   </header>
+
+  <!-- Patience modal -->
+  <div id="patienceModal" style="display:none;position:fixed;inset:0;z-index:1000;align-items:center;justify-content:center;pointer-events:none;">
+    <div style="background:var(--surface);border:1px solid var(--border2);padding:1.25rem 1.75rem;text-align:center;pointer-events:auto;max-width:340px;">
+      <div style="font-size:0.6rem;color:var(--muted);letter-spacing:0.15em;text-transform:uppercase;margin-bottom:0.5rem">⏳ cooldown active</div>
+      <div style="font-size:0.9rem;font-weight:700;color:var(--text);">Patience please, I'm still gathering data<span id="patienceTime" style="color:var(--green)"></span></div>
+    </div>
+  </div>
 
   <main>
     <div id="fundamentals" class="fundamentals" style="display:none"></div>
@@ -94,6 +102,6 @@
     </div>
   </div>
 
-  <script src="/static/app.js?v=14"></script>
+  <script src="/static/app.js?v=15"></script>
 </body>
 </html>

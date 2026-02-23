@@ -10,31 +10,41 @@ function localDateStr() {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
+function cooldownRemaining() {
+  const lastRunAt = localStorage.getItem("lastRunAt");
+  if (!lastRunAt) return 0;
+  return Math.max(0, COOLDOWN_MS - (Date.now() - new Date(lastRunAt).getTime()));
+}
+
 function updateRunTimer() {
   const el = document.getElementById("runTimer");
-  const lastRunAt   = localStorage.getItem("lastRunAt");
-  const lastRunDate = localStorage.getItem("lastRunDate");
-  if (!lastRunAt) { el.textContent = ""; return; }
-
-  if (lastRunDate === localDateStr()) {
-    el.textContent = "ready";
-    el.className = "run-timer rdy";
-    return;
-  }
-
-  const remaining = COOLDOWN_MS - (Date.now() - new Date(lastRunAt).getTime());
-  if (remaining <= 0) {
-    el.textContent = "ready for today's run";
-    el.className = "run-timer rdy";
-  } else {
+  const remaining = cooldownRemaining();
+  if (remaining > 0) {
     const m = Math.floor(remaining / 60000);
     const s = Math.floor((remaining % 60000) / 1000);
-    el.textContent = `new day — ready in ${m}:${String(s).padStart(2, "0")}`;
+    el.textContent = `ready in ${m}:${String(s).padStart(2, "0")}`;
     el.className = "run-timer waiting";
+  } else {
+    const lastRunDate = localStorage.getItem("lastRunDate");
+    if (!lastRunDate) { el.textContent = ""; return; }
+    el.textContent = lastRunDate === localDateStr() ? "ready" : "ready for today's run";
+    el.className = "run-timer rdy";
   }
 }
 
+function showPatienceModal() {
+  const remaining = cooldownRemaining();
+  const m = Math.floor(remaining / 60000);
+  const s = Math.floor((remaining % 60000) / 1000);
+  const timeStr = remaining > 0 ? ` — ready in ${m}:${String(s).padStart(2, "0")}` : "";
+  document.getElementById("patienceTime").textContent = timeStr;
+  document.getElementById("patienceModal").style.display = "flex";
+  setTimeout(() => document.getElementById("patienceModal").style.display = "none", 3000);
+}
+
 async function runAnalysis() {
+  if (cooldownRemaining() > 0) { showPatienceModal(); return; }
+
   const btn = document.getElementById("analyzeBtn");
   const status = document.getElementById("status");
 
