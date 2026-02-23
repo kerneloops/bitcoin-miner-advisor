@@ -1,6 +1,7 @@
 const TICKERS = ["WGMI", "MARA", "RIOT", "BITX", "RIOX", "CIFU", "BMNU", "MSTX"];
 let activeHistoryTicker = TICKERS[0];
 let lastAnalysisData = null;
+let currentSettings = { risk_tier: "neutral", total_capital: 0 };
 
 async function runAnalysis() {
   const btn = document.getElementById("analyzeBtn");
@@ -160,8 +161,32 @@ function buildCard(d) {
     ${conf ? `<div class="confidence">Confidence: ${conf}</div>` : ""}
     ${d.reasoning ? `<div class="reasoning">${d.reasoning}</div>` : ""}
     ${d.key_risk ? `<div class="key-risk">Risk: ${d.key_risk}</div>` : ""}
+    ${buildGuidance(d.position_guidance, currentSettings.risk_tier)}
   `;
   return card;
+}
+
+function buildGuidance(g, tierName) {
+  if (!g) return "";
+  const tierLabel = (tierName || "neutral").toUpperCase();
+  if (g.shares > 0) {
+    const detail = g.action === "BUY"
+      ? `${g.shares} shares · ~$${Math.round(g.amount)} · ${g.pct_of_capital}% of capital`
+      : `${g.shares} shares · ~$${Math.round(g.amount)} · ${g.pct_of_holding}% of holding`;
+    return `
+      <div class="position-guidance">
+        <div class="guidance-label">Position Guidance · ${tierLabel}</div>
+        <span class="guidance-action ${g.action}">${g.action}</span> ${detail}
+      </div>`;
+  }
+  if (g.note) {
+    return `
+      <div class="position-guidance">
+        <div class="guidance-label">Position Guidance · ${tierLabel}</div>
+        <span class="guidance-note">${g.note}</span>
+      </div>`;
+  }
+  return "";
 }
 
 async function loadHistory(ticker) {
@@ -389,6 +414,106 @@ document.getElementById("tradeForm").addEventListener("submit", async (e) => {
 
 document.getElementById("tradeDate").valueAsDate = new Date();
 
+// ── Settings ──
+
+async function loadSettings() {
+  try {
+    const resp = await fetch("/api/settings");
+    const s = await resp.json();
+    currentSettings = s;
+    renderSettings(s);
+  } catch (e) {
+    // non-critical
+  }
+}
+
+function renderSettings(s) {
+  const el = document.getElementById("settingsContent");
+  const tiers = ["conservative", "neutral", "aggressive"];
+  const tierBtns = tiers.map(t => `
+    <button class="tier-btn ${t === s.risk_tier ? 'active' : ''}" onclick="setTier('${t}')">${t}</button>
+  `).join("");
+
+  const telegramRow = s.telegram_configured
+    ? `<div class="settings-row">
+        <span class="settings-label">Telegram</span>
+        <button onclick="testTelegram()">Test Notification</button>
+        <span id="telegramStatus" class="settings-status"></span>
+       </div>`
+    : `<div class="telegram-setup">
+        <strong style="color:var(--text)">Telegram Setup</strong> — get BUY/SELL alerts on your phone:
+        <ol>
+          <li>Message <strong>@BotFather</strong> → /newbot → copy token</li>
+          <li>Message your new bot once to activate it</li>
+          <li>Visit <code>https://api.telegram.org/bot{TOKEN}/getUpdates</code> → copy <code>id</code> from result</li>
+          <li>SSH to server and add to .env:<br><code>TELEGRAM_BOT_TOKEN=…</code><br><code>TELEGRAM_CHAT_ID=…</code></li>
+          <li>Restart service, then click "Test Notification" here</li>
+        </ol>
+      </div>`;
+
+  el.innerHTML = `
+    <div class="settings-row">
+      <span class="settings-label">Risk Tier</span>
+      <div class="tier-buttons">${tierBtns}</div>
+      <span id="tierStatus" class="settings-status"></span>
+    </div>
+    <div class="settings-row">
+      <span class="settings-label">Total Capital</span>
+      <input class="settings-capital-input" id="capitalInput" type="number" min="0" step="100"
+             placeholder="e.g. 10000" value="${s.total_capital > 0 ? s.total_capital : ''}">
+      <span style="font-size:.65rem;color:var(--muted)">USD (used for position sizing)</span>
+      <span id="capitalStatus" class="settings-status"></span>
+    </div>
+    ${telegramRow}
+  `;
+
+  document.getElementById("capitalInput").addEventListener("blur", saveCapital);
+  document.getElementById("capitalInput").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") saveCapital();
+  });
+}
+
+async function setTier(tier) {
+  currentSettings.risk_tier = tier;
+  await saveSettings({ risk_tier: tier });
+  document.querySelectorAll(".tier-btn").forEach(b => {
+    b.classList.toggle("active", b.textContent.trim() === tier);
+  });
+  const el = document.getElementById("tierStatus");
+  if (el) { el.textContent = "Saved."; setTimeout(() => { el.textContent = ""; }, 1500); }
+}
+
+function saveCapital() {
+  const val = parseFloat(document.getElementById("capitalInput").value);
+  if (isNaN(val) || val < 0) return;
+  currentSettings.total_capital = val;
+  saveSettings({ total_capital: val }).then(() => {
+    const el = document.getElementById("capitalStatus");
+    if (el) { el.textContent = "Saved."; setTimeout(() => { el.textContent = ""; }, 1500); }
+  });
+}
+
+async function saveSettings(body) {
+  await fetch("/api/settings", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+async function testTelegram() {
+  const el = document.getElementById("telegramStatus");
+  if (el) el.textContent = "Sending…";
+  try {
+    const resp = await fetch("/api/notifications/test", { method: "POST" });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.detail || "Failed");
+    if (el) { el.textContent = "✓ Message sent!"; el.style.color = "var(--buy)"; }
+  } catch (e) {
+    if (el) { el.textContent = `✗ ${e.message}`; el.style.color = "var(--sell)"; }
+  }
+}
+
 // ── Boot sequence ──
 const _statusEl = document.getElementById("status");
 const _bootMsgs = [
@@ -406,6 +531,7 @@ const _bootSeq = setInterval(() => {
   }
 }, 480);
 
+loadSettings();
 loadPortfolio();
 loadTrades();
 

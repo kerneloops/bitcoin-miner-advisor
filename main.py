@@ -50,7 +50,35 @@ async def _scheduled_analysis():
         logger.warning(f"Scheduled macro fetch failed (non-fatal): {e}")
 
     try:
-        await run_analysis(signals, fundamentals, macro)
+        from app import cache, sizing, telegram
+
+        results = await run_analysis(signals, fundamentals, macro)
+
+        # Attach position guidance
+        tier_name = cache.get_setting("risk_tier", "neutral")
+        cap_str = cache.get_setting("total_capital")
+        total_capital = float(cap_str) if cap_str else None
+        holdings = cache.get_all_holdings()
+        for ticker, d in results.items():
+            try:
+                d["position_guidance"] = sizing.compute_guidance(
+                    ticker=ticker,
+                    rec=d.get("recommendation"),
+                    confidence=d.get("confidence"),
+                    price=d.get("current_price"),
+                    shares_held=holdings.get(ticker, 0),
+                    tier_name=tier_name,
+                    total_capital=total_capital,
+                )
+            except Exception:
+                d["position_guidance"] = None
+
+        # Send Telegram notifications
+        try:
+            await telegram.notify_signals(results)
+        except Exception as e:
+            logger.warning(f"Scheduled Telegram notification failed (non-fatal): {e}")
+
         logger.info("Scheduled analysis complete.")
     except Exception as e:
         logger.error(f"Scheduled AI analysis failed: {e}")

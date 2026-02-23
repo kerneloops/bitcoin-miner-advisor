@@ -61,6 +61,12 @@ def init_db():
                 data TEXT NOT NULL
             )
         """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS settings (
+                key   TEXT PRIMARY KEY,
+                value TEXT
+            )
+        """)
 
 
 def upsert_prices(ticker: str, rows: list[dict]):
@@ -204,6 +210,27 @@ def get_latest_macro() -> dict:
             "SELECT data FROM macro_signals ORDER BY date DESC LIMIT 1"
         ).fetchone()
     return json.loads(row["data"]) if row else {}
+
+
+def get_setting(key: str, default: str | None = None) -> str | None:
+    with get_conn() as conn:
+        row = conn.execute("SELECT value FROM settings WHERE key = ?", (key,)).fetchone()
+    return row["value"] if row else default
+
+
+def set_setting(key: str, value: str) -> None:
+    with get_conn() as conn:
+        conn.execute(
+            "INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+            (key, value),
+        )
+
+
+def get_all_holdings() -> dict:
+    """Return holdings keyed by ticker: {ticker: shares}."""
+    with get_conn() as conn:
+        rows = conn.execute("SELECT ticker, shares FROM holdings").fetchall()
+    return {r["ticker"]: r["shares"] for r in rows}
 
 
 def get_analysis_history(ticker: str, limit: int = 12) -> list[dict]:

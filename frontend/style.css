@@ -303,6 +303,105 @@ main {
   opacity: 0.85;
 }
 
+/* ── Position guidance (card) ── */
+.position-guidance {
+  border-top: 1px solid var(--border2);
+  margin-top: 0.55rem;
+  padding-top: 0.45rem;
+  font-size: 0.66rem;
+}
+
+.guidance-label {
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  margin-bottom: 0.2rem;
+  font-size: 0.58rem;
+}
+
+.guidance-action {
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.guidance-action.BUY  { color: var(--buy); }
+.guidance-action.SELL { color: var(--sell); }
+
+.guidance-note {
+  color: var(--muted);
+  font-style: italic;
+  font-size: 0.63rem;
+}
+
+/* ── Settings panel ── */
+.settings-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--dim);
+}
+
+.settings-label {
+  font-size: 0.62rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.13em;
+  min-width: 90px;
+}
+
+.tier-buttons {
+  display: flex;
+  gap: 1px;
+  background: var(--border2);
+}
+
+.tier-btn {
+  border: none;
+  background: var(--surface);
+  color: var(--muted);
+  padding: 0.28rem 0.8rem;
+  font-family: inherit;
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.tier-btn:hover  { background: var(--surface2); color: var(--text); }
+.tier-btn.active { background: var(--green); color: var(--bg); font-weight: 700; text-shadow: none; }
+
+.settings-capital-input {
+  background: var(--bg);
+  border: 1px solid var(--border2);
+  color: var(--text);
+  padding: 0.28rem 0.55rem;
+  font-family: inherit;
+  font-size: 0.7rem;
+  outline: none;
+  width: 130px;
+}
+.settings-capital-input:focus { border-color: var(--green-dim); }
+
+.settings-status {
+  font-size: 0.65rem;
+  color: var(--muted);
+  margin-left: 0.4rem;
+}
+
+.telegram-setup {
+  font-size: 0.66rem;
+  color: var(--muted);
+  line-height: 1.7;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--dim);
+}
+
+.telegram-setup ol {
+  padding-left: 1.2rem;
+  margin-top: 0.3rem;
+}
+
 /* ── Colors ── */
 .pos { color: var(--buy); }
 .neg { color: var(--sell); }

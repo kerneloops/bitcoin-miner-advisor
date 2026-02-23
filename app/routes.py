@@ -1,4 +1,5 @@
 import logging
+import os
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
@@ -8,7 +9,7 @@ from .data import TICKERS, fetch_btc_prices, refresh_all
 from .macro import fetch_all_macro
 from .miners import fetch_miner_fundamentals
 from .technicals import add_relative_strength, compute_signals
-from . import cache, google_workspace
+from . import cache, google_workspace, sizing, telegram
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -27,6 +28,11 @@ class TradeIn(BaseModel):
     price: float
     quantity: float
     notes: str = ""
+
+
+class SettingsIn(BaseModel):
+    risk_tier: str | None = None
+    total_capital: float | None = None
 
 
 @router.post("/api/analyze")
@@ -60,6 +66,34 @@ async def analyze():
     except Exception as e:
         raise HTTPException(502, f"AI analysis failed: {e}")
 
+    # Attach position guidance to each ticker result
+    tier_name = cache.get_setting("risk_tier", "neutral")
+    cap_str = cache.get_setting("total_capital")
+    total_capital = float(cap_str) if cap_str else None
+    holdings = cache.get_all_holdings()
+
+    for ticker, d in results.items():
+        try:
+            guidance = sizing.compute_guidance(
+                ticker=ticker,
+                rec=d.get("recommendation"),
+                confidence=d.get("confidence"),
+                price=d.get("current_price"),
+                shares_held=holdings.get(ticker, 0),
+                tier_name=tier_name,
+                total_capital=total_capital,
+            )
+            d["position_guidance"] = guidance
+        except Exception as e:
+            logger.warning(f"Sizing guidance failed for {ticker} (non-fatal): {e}")
+            d["position_guidance"] = None
+
+    # Send Telegram notifications — non-fatal
+    try:
+        await telegram.notify_signals(results)
+    except Exception as e:
+        logger.warning(f"Telegram notification failed (non-fatal): {e}")
+
     return {"tickers": results, "fundamentals": fundamentals, "macro": macro}
 
 
@@ -67,6 +101,38 @@ async def analyze():
 async def get_signals():
     """Return current computed signals from cached data (no API calls)."""
     return add_relative_strength({ticker: compute_signals(ticker) for ticker in TICKERS})
+
+
+@router.get("/api/settings")
+def get_settings():
+    return {
+        "risk_tier": cache.get_setting("risk_tier", "neutral"),
+        "total_capital": float(cache.get_setting("total_capital", "0") or "0"),
+        "telegram_configured": bool(os.getenv("TELEGRAM_BOT_TOKEN") and os.getenv("TELEGRAM_CHAT_ID")),
+    }
+
+
+@router.post("/api/settings")
+def save_settings(body: SettingsIn):
+    if body.risk_tier is not None:
+        if body.risk_tier not in sizing.TIERS:
+            raise HTTPException(400, f"Invalid risk_tier. Must be one of: {list(sizing.TIERS)}")
+        cache.set_setting("risk_tier", body.risk_tier)
+    if body.total_capital is not None:
+        cache.set_setting("total_capital", str(body.total_capital))
+    return {"ok": True}
+
+
+@router.post("/api/notifications/test")
+async def test_notification():
+    if not os.getenv("TELEGRAM_BOT_TOKEN") or not os.getenv("TELEGRAM_CHAT_ID"):
+        raise HTTPException(400, "TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID not configured in .env")
+    ok, err = await telegram.send_message(
+        "✅ <b>LAPIO TEST</b>\n\nTelegram notifications are working correctly.\n\nlapio.dev"
+    )
+    if not ok:
+        raise HTTPException(502, f"Telegram error: {err}")
+    return {"ok": True}
 
 
 @router.get("/api/macro")
