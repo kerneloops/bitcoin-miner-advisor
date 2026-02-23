@@ -662,6 +662,7 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "F8") { e.preventDefault(); document.getElementById("tradeLogSection").scrollIntoView({ behavior: "smooth" }); }
   if (e.key === "F9") { e.preventDefault(); document.getElementById("historySection").scrollIntoView({ behavior: "smooth" }); }
   if (e.key === "F10") { e.preventDefault(); window.scrollTo({ top: 0, behavior: "smooth" }); }
+  if (e.key === "F12") { e.preventDefault(); window.location = "/logout"; }
 });
 
 // Live UTC clock
