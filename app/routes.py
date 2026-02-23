@@ -60,6 +60,8 @@ async def analyze():
         macro = await fetch_all_macro()
     except Exception as e:
         logger.warning(f"Macro fetch failed (non-fatal): {e}")
+    if not macro:
+        macro = cache.get_latest_macro() or None
 
     try:
         results = await run_analysis(signals, fundamentals, macro)
