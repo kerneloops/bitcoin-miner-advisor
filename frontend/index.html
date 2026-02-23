@@ -6,7 +6,8 @@
   <title>Hash &amp; Burn</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="/static/style.css?v=15" />
+  <link rel="icon" href="/static/favicon.ico" type="image/x-icon" />
+  <link rel="stylesheet" href="/static/style.css?v=20" />
 </head>
 <body>
   <header>
@@ -16,7 +17,7 @@
         <button id="analyzeBtn" onclick="runAnalysis()">Run Analysis</button>
         <span id="runTimer" class="run-timer"></span>
         <button id="exportBtn" class="export-btn" onclick="exportToGoogle()" style="display:none">
-          Export to Sheets &amp; Drive
+          Export to Sheets
         </button>
         <span id="status" class="status"></span>
         <span id="exportStatus" class="status export-status"></span>
@@ -102,6 +103,7 @@
     </div>
   </div>
 
-  <script src="/static/app.js?v=15"></script>
+  <div id="tipPopup" class="tip-popup"></div>
+  <script src="/static/app.js?v=20"></script>
 </body>
 </html>

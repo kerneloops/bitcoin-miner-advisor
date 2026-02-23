@@ -226,6 +226,37 @@ main {
   line-height: 1.4;
 }
 
+/* ── Info tooltips ── */
+.tip {
+  cursor: help;
+}
+.tip::after {
+  content: " ⓘ";
+  font-size: 0.7em;
+  color: var(--green-dim);
+  font-style: normal;
+  vertical-align: middle;
+  opacity: 0.8;
+}
+
+/* JS-driven tooltip — appended to body, never clipped by overflow */
+.tip-popup {
+  position: fixed;
+  display: none;
+  background: #040d04;
+  border: 1px solid var(--green-dim);
+  color: var(--text);
+  padding: 0.5rem 0.75rem;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+  font-size: 0.62rem;
+  line-height: 1.7;
+  white-space: pre-line;
+  max-width: 230px;
+  z-index: 9000;
+  pointer-events: none;
+  box-shadow: 0 6px 28px rgba(0,0,0,0.92);
+}
+
 /* ── Macro bias banner ── */
 .macro-bias {
   border: 1px solid var(--border2);
@@ -343,7 +374,6 @@ main {
 
 .key-risk {
   font-size: 0.67rem;
-  color: var(--sell);
   margin-top: 0.3rem;
   opacity: 0.85;
 }
@@ -578,6 +608,46 @@ main {
   outline: none;
 }
 .cash-controls input[type="number"]:focus { border-color: var(--green-dim); }
+
+/* ── Benchmark ── */
+.benchmark-section {
+  margin-top: 0.9rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+.benchmark-table {
+  width: auto;
+  border-collapse: collapse;
+  font-size: 0.75rem;
+  margin-top: 0.4rem;
+}
+
+.benchmark-table th {
+  color: var(--muted);
+  font-weight: 600;
+  text-align: right;
+  padding: 0.1rem 1rem 0.1rem 0;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.benchmark-table th:first-child { text-align: left; }
+
+.benchmark-table td {
+  padding: 0.1rem 1rem 0.1rem 0;
+  text-align: right;
+  color: var(--fg);
+}
+
+.benchmark-table td:first-child {
+  color: var(--muted);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  text-align: left;
+  min-width: 3rem;
+}
 
 /* ── Outcome ── */
 .outcome-correct   { color: var(--buy);  font-weight: 600; }

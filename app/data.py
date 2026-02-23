@@ -14,6 +14,17 @@ COINGECKO_BASE = "https://api.coingecko.com/api/v3"
 
 TICKERS = ["WGMI", "MARA", "RIOT", "BITX", "RIOX", "CIFU", "BMNU", "MSTX"]
 
+# Expanded universe the user can opt into via the trade form dropdown.
+# Grouped by category for the frontend optgroups.
+TICKER_UNIVERSE: dict[str, list[str]] = {
+    "Bitcoin Miners": ["WGMI", "MARA", "RIOT", "RIOX", "CIFU", "BMNU", "CLSK", "HUT", "IREN", "CORZ", "BTBT"],
+    "Bitcoin ETFs": ["BITX", "MSTX", "IBIT", "FBTC"],
+}
+# Flat list for membership checks
+TICKER_UNIVERSE_FLAT: list[str] = [t for tickers in TICKER_UNIVERSE.values() for t in tickers]
+
+BENCHMARK_TICKER = "SPY"
+
 
 async def fetch_polygon(ticker: str, from_date: str, to_date: str) -> list[dict]:
     api_key = os.environ["POLYGON_API_KEY"]
@@ -64,9 +75,13 @@ async def refresh_ticker(ticker: str):
         raise
 
 
-async def refresh_all():
-    for ticker in TICKERS:
+async def refresh_all(tickers: list[str] | None = None):
+    for ticker in (tickers or TICKERS):
         await refresh_ticker(ticker)
+
+
+async def refresh_benchmark():
+    await refresh_ticker(BENCHMARK_TICKER)
 
 
 async def fetch_btc_prices(days: int = 90):

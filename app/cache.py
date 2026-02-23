@@ -309,6 +309,23 @@ def set_setting(key: str, value: str) -> None:
         )
 
 
+def get_active_tickers(default: list[str]) -> list[str]:
+    val = get_setting("active_tickers")
+    if val:
+        try:
+            return json.loads(val)
+        except Exception:
+            pass
+    return list(default)
+
+
+def add_active_ticker(ticker: str, default: list[str]) -> None:
+    current = get_active_tickers(default)
+    if ticker not in current:
+        current.append(ticker)
+        set_setting("active_tickers", json.dumps(current))
+
+
 def get_all_holdings() -> dict:
     """Return holdings keyed by ticker: {ticker: shares}."""
     with get_conn() as conn:

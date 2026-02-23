@@ -7,7 +7,10 @@ from fastapi.responses import FileResponse, RedirectResponse
 from pydantic import BaseModel
 
 from .advisor import run_analysis
-from .data import TICKERS, fetch_btc_prices, refresh_all
+from .data import (
+    TICKERS, TICKER_UNIVERSE, TICKER_UNIVERSE_FLAT,
+    BENCHMARK_TICKER, fetch_btc_prices, refresh_all, refresh_benchmark,
+)
 from .macro import fetch_all_macro
 from .miners import fetch_miner_fundamentals
 from .technicals import add_relative_strength, compute_signals
@@ -87,16 +90,17 @@ class CashIn(BaseModel):
 @router.post("/api/analyze")
 async def analyze():
     """Fetch latest data and run AI analysis for all tickers."""
+    active_tickers = cache.get_active_tickers(TICKERS)
     try:
         await fetch_btc_prices()
     except Exception as e:
         logger.warning(f"BTC price fetch failed, using cache (non-fatal): {e}")
     try:
-        await refresh_all()
+        await refresh_all(active_tickers)
     except Exception as e:
         logger.warning(f"Stock price fetch failed, using cache (non-fatal): {e}")
 
-    signals = add_relative_strength({ticker: compute_signals(ticker) for ticker in TICKERS})
+    signals = add_relative_strength({ticker: compute_signals(ticker) for ticker in active_tickers})
 
     # Fetch miner fundamentals and macro signals — non-fatal if unavailable
     fundamentals = None
@@ -155,7 +159,8 @@ async def analyze():
 @router.get("/api/signals")
 async def get_signals():
     """Return current computed signals from cached data (no API calls)."""
-    return add_relative_strength({ticker: compute_signals(ticker) for ticker in TICKERS})
+    active_tickers = cache.get_active_tickers(TICKERS)
+    return add_relative_strength({ticker: compute_signals(ticker) for ticker in active_tickers})
 
 
 @router.get("/api/settings")
@@ -200,9 +205,48 @@ def get_macro():
     return data
 
 
+@router.get("/api/ticker-universe")
+def get_ticker_universe():
+    """Return the full ticker universe grouped by category and the current active list."""
+    active = cache.get_active_tickers(TICKERS)
+    return {"universe": TICKER_UNIVERSE, "active": active}
+
+
+@router.get("/api/benchmark")
+async def get_benchmark():
+    """Return SPY (S&P 500) performance as a benchmark."""
+    from datetime import date, timedelta
+    try:
+        await refresh_benchmark()
+    except Exception as e:
+        logger.warning(f"SPY benchmark fetch failed (non-fatal): {e}")
+
+    rows = cache.get_prices(BENCHMARK_TICKER, limit=365)
+    if not rows or len(rows) < 2:
+        return {"ticker": BENCHMARK_TICKER, "available": False}
+
+    today_price = float(rows[-1]["close"])
+    today_date = rows[-1]["date"]
+    result: dict = {"ticker": BENCHMARK_TICKER, "current_price": today_price, "available": True}
+
+    for key, days in [("week_return_pct", 7), ("month_return_pct", 30)]:
+        cutoff = (date.fromisoformat(today_date) - timedelta(days=days)).isoformat()
+        ref = next((r for r in reversed(rows[:-1]) if r["date"] <= cutoff), None)
+        if ref:
+            result[key] = round((today_price / float(ref["close"]) - 1) * 100, 2)
+
+    ytd_start = f"{date.today().year}-01-01"
+    ytd_row = next((r for r in rows if r["date"] >= ytd_start), None)
+    if ytd_row:
+        result["ytd_return_pct"] = round((today_price / float(ytd_row["close"]) - 1) * 100, 2)
+
+    return result
+
+
 @router.get("/api/history/{ticker}")
 async def get_history(ticker: str):
-    if ticker.upper() not in TICKERS:
+    active_tickers = cache.get_active_tickers(TICKERS)
+    if ticker.upper() not in active_tickers:
         raise HTTPException(404, f"Unknown ticker: {ticker}")
     return cache.get_analysis_history(ticker.upper())
 
@@ -235,6 +279,14 @@ def get_portfolio():
         since_run_pct  = round((current_price / last_run_price - 1) * 100, 2) if (current_price and last_run_price) else None
         since_run_value = round((current_price - last_run_price) * h["shares"], 2) if (current_price and last_run_price) else None
 
+        week_return_pct = month_return_pct = None
+        try:
+            sigs = compute_signals(ticker)
+            week_return_pct = sigs.get("week_return_pct")
+            month_return_pct = sigs.get("month_return_pct")
+        except Exception:
+            pass
+
         result.append({
             "ticker": ticker,
             "shares": h["shares"],
@@ -246,6 +298,8 @@ def get_portfolio():
             "since_run_pct": since_run_pct,
             "since_run_value": since_run_value,
             "recommendation": latest_rec,
+            "week_return_pct": week_return_pct,
+            "month_return_pct": month_return_pct,
         })
     return result
 
@@ -268,7 +322,7 @@ def list_trades():
 
 
 @router.post("/api/trades")
-def create_trade(body: TradeIn):
+async def create_trade(body: TradeIn):
     if body.trade_type == "SELL":
         holding = cache.get_holdings()
         held = next((h["shares"] for h in holding if h["ticker"] == body.ticker), 0.0)
@@ -278,6 +332,15 @@ def create_trade(body: TradeIn):
                 f"Cannot sell {body.quantity} shares of {body.ticker} — only {held} held. "
                 "Record a BUY trade first if you have an existing position with no purchase history."
             )
+    # Auto-add new tickers from the universe to active tracking and fetch their price history
+    active = cache.get_active_tickers(TICKERS)
+    if body.ticker not in active and body.ticker in TICKER_UNIVERSE_FLAT:
+        cache.add_active_ticker(body.ticker, TICKERS)
+        try:
+            from .data import refresh_ticker
+            await refresh_ticker(body.ticker)
+        except Exception as e:
+            logger.warning(f"Price fetch for new ticker {body.ticker} (non-fatal): {e}")
     cache.add_trade(body.ticker, body.date, body.trade_type, body.price, body.quantity, body.notes)
     return {"ok": True}
 

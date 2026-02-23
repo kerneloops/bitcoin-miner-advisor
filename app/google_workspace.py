@@ -19,7 +19,8 @@ SHEET_HEADERS = [
 
 
 def is_configured() -> bool:
-    return bool(os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON") and os.getenv("GOOGLE_SHEET_ID"))
+    path = os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON", "")
+    return bool(path and os.path.isfile(path) and os.getenv("GOOGLE_SHEET_ID"))
 
 
 def _get_missing() -> list[str]:

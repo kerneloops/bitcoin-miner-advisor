@@ -90,21 +90,21 @@ function renderFundamentals(f) {
     <div class="panel-header">MINING FUNDAMENTALS</div>
     <div class="fund-grid">
       <div class="fund-item">
-        <div class="fund-label">Hashprice</div>
+        <div class="fund-label tip" data-tip="Daily miner revenue per petahash/s&#10;(excludes transaction fees)&#10;Scale: $0–200+/PH/day&#10;< $50  tight margins&#10;$50–100  moderate&#10;> $100  comfortable profitability">Hashprice</div>
         <div class="fund-value">$${f.hashprice_usd_per_ph_day ?? "—"}<span class="fund-unit">/PH/day</span></div>
         <div class="fund-sub">excl. tx fees</div>
       </div>
       <div class="fund-item">
-        <div class="fund-label">Network Hashrate</div>
+        <div class="fund-label tip" data-tip="Total Bitcoin network mining power&#10;Measured in exahashes per second&#10;Rising = more competition, harder blocks&#10;Falling = miners capitulating / leaving&#10;Currently ~700–900 EH/s globally">Network Hashrate</div>
         <div class="fund-value">${f.network_hashrate_eh ?? "—"}<span class="fund-unit"> EH/s</span></div>
       </div>
       <div class="fund-item">
-        <div class="fund-label">Next Difficulty</div>
+        <div class="fund-label tip" data-tip="Upcoming network difficulty adjustment&#10;Happens every ~2 weeks (2016 blocks)&#10;+ = harder to mine (more competition)&#10;− = easier (miners left the network)&#10;Larger + adjustments squeeze margins">Next Difficulty</div>
         <div class="fund-value ${diffDir}">${retargetSign}${f.difficulty_change_pct ?? "—"}%</div>
         <div class="fund-sub">in ${f.days_until_retarget} days · ${f.difficulty_progress_pct}% through epoch</div>
       </div>
       <div class="fund-item">
-        <div class="fund-label">Prev Retarget</div>
+        <div class="fund-label tip" data-tip="Previous difficulty adjustment result&#10;Shows recent miner competition trend&#10;Block target: 10 minutes&#10;> 10 min avg = network under-powered&#10;< 10 min avg = excess hash power">Prev Retarget</div>
         <div class="fund-value ${f.previous_retarget_pct > 0 ? "neg" : "pos"}">${f.previous_retarget_pct > 0 ? "+" : ""}${f.previous_retarget_pct ?? "—"}%</div>
         <div class="fund-sub">avg block: ${f.block_time_min} min</div>
       </div>
@@ -189,14 +189,14 @@ function renderMacro(m) {
   const vixColor = m.vix != null ? (m.vix > 30 ? "neg" : m.vix < 20 ? "pos" : "") : "";
 
   const items = [
-    m.btc_dvol       != null ? `<div class="fund-item"><div class="fund-label">BTC IV (DVOL)</div><div class="fund-value">${m.btc_dvol}</div><div class="fund-sub">30-day implied vol</div><div class="fund-eli5">${eli5Macro("dvol", m.btc_dvol)}</div></div>` : "",
-    m.btc_funding_rate_pct != null ? `<div class="fund-item"><div class="fund-label">Funding Rate</div><div class="fund-value ${fundingColor}">${m.btc_funding_rate_pct > 0 ? "+" : ""}${m.btc_funding_rate_pct}%</div><div class="fund-sub">BTC perp 8h rate</div><div class="fund-eli5">${eli5Macro("funding", m.btc_funding_rate_pct)}</div></div>` : "",
-    m.fear_greed_value != null ? `<div class="fund-item"><div class="fund-label">Fear & Greed</div><div class="fund-value ${fgColor}">${m.fear_greed_value}</div><div class="fund-sub">${m.fear_greed_label ?? ""}</div><div class="fund-eli5">${eli5Macro("fg", m.fear_greed_value)}</div></div>` : "",
-    m.puell_multiple  != null ? `<div class="fund-item"><div class="fund-label">Puell Multiple</div><div class="fund-value ${puellColor}">${m.puell_multiple}</div><div class="fund-sub">miner revenue vs 365d avg</div><div class="fund-eli5">${eli5Macro("puell", m.puell_multiple)}</div></div>` : "",
-    m.vix             != null ? `<div class="fund-item"><div class="fund-label">VIX</div><div class="fund-value ${vixColor}">${m.vix}</div><div class="fund-eli5">${eli5Macro("vix", m.vix)}</div></div>` : "",
-    m.us_2y_yield     != null ? `<div class="fund-item"><div class="fund-label">US 2Y Yield</div><div class="fund-value">${m.us_2y_yield}%</div><div class="fund-eli5">${eli5Macro("yield", m.us_2y_yield)}</div></div>` : "",
-    m.dxy             != null ? `<div class="fund-item"><div class="fund-label">DXY</div><div class="fund-value">${m.dxy}</div><div class="fund-eli5">${eli5Macro("dxy", m.dxy)}</div></div>` : "",
-    m.hy_spread       != null ? `<div class="fund-item"><div class="fund-label">HY Spread</div><div class="fund-value">${m.hy_spread}%</div><div class="fund-eli5">${eli5Macro("hy", m.hy_spread)}</div></div>` : "",
+    m.btc_dvol       != null ? `<div class="fund-item"><div class="fund-label tip" data-tip="BTC 30-day Implied Volatility (Deribit DVOL)&#10;Scale: ~30–150&#10;< 40  very calm — quiet market&#10;40–60  normal crypto vol&#10;60–80  elevated uncertainty&#10;> 80  extreme — big moves expected">BTC IV (DVOL)</div><div class="fund-value">${m.btc_dvol}</div><div class="fund-sub">30-day implied vol</div><div class="fund-eli5">${eli5Macro("dvol", m.btc_dvol)}</div></div>` : "",
+    m.btc_funding_rate_pct != null ? `<div class="fund-item"><div class="fund-label tip" data-tip="BTC perpetual futures 8h funding rate&#10;+ = longs pay shorts (market is bullish)&#10;− = shorts pay longs (market is bearish)&#10;&#10;> 0.05%  longs crowded → watch pullback&#10;< −0.01%  shorts dominate → squeeze risk">Funding Rate</div><div class="fund-value ${fundingColor}">${m.btc_funding_rate_pct > 0 ? "+" : ""}${m.btc_funding_rate_pct}%</div><div class="fund-sub">BTC perp 8h rate</div><div class="fund-eli5">${eli5Macro("funding", m.btc_funding_rate_pct)}</div></div>` : "",
+    m.fear_greed_value != null ? `<div class="fund-item"><div class="fund-label tip" data-tip="Crypto market sentiment composite index&#10;Scale: 1–100&#10;  1 = extreme fear (max pessimism)&#10;100 = extreme greed (max optimism)&#10;&#10;< 25  extreme fear → historically bullish&#10;> 75  extreme greed → historically bearish">Fear &amp; Greed</div><div class="fund-value ${fgColor}">${m.fear_greed_value}</div><div class="fund-sub">${m.fear_greed_label ?? ""}</div><div class="fund-eli5">${eli5Macro("fg", m.fear_greed_value)}</div></div>` : "",
+    m.puell_multiple  != null ? `<div class="fund-item"><div class="fund-label tip" data-tip="Daily miner revenue ÷ 365-day moving avg&#10;Scale: 0–5+&#10;&#10;< 0.5  miner stress — cycle bottom zone&#10;0.5–1.5  normal range&#10;1.5–2.0  miners thriving&#10;> 2.0  historically near cycle tops">Puell Multiple</div><div class="fund-value ${puellColor}">${m.puell_multiple}</div><div class="fund-sub">miner revenue vs 365d avg</div><div class="fund-eli5">${eli5Macro("puell", m.puell_multiple)}</div></div>` : "",
+    m.vix             != null ? `<div class="fund-item"><div class="fund-label tip" data-tip="S&amp;P 500 30-day Implied Volatility&#10;Scale: 10–80+&#10;< 15  very calm — risk-on&#10;15–20  normal equity vol&#10;20–30  elevated — caution&#10;> 30  equity fear → crypto headwind&#10;> 40  panic — extreme risk-off">VIX</div><div class="fund-value ${vixColor}">${m.vix}</div><div class="fund-eli5">${eli5Macro("vix", m.vix)}</div></div>` : "",
+    m.us_2y_yield     != null ? `<div class="fund-item"><div class="fund-label tip" data-tip="US 2-Year Treasury Yield (%)&#10;Reflects short-term rate expectations&#10;Higher = tighter monetary policy&#10;&#10;< 3.5%  neutral for risk assets&#10;3.5–4.5%  elevated pressure&#10;> 4.5%  significant headwind for crypto">US 2Y Yield</div><div class="fund-value">${m.us_2y_yield}%</div><div class="fund-eli5">${eli5Macro("yield", m.us_2y_yield)}</div></div>` : "",
+    m.dxy             != null ? `<div class="fund-item"><div class="fund-label tip" data-tip="US Dollar Index vs basket of 6 currencies&#10;Scale: ~85–115&#10;&#10;< 95  weak dollar → bullish for BTC&#10;95–105  neutral range&#10;> 105  strong dollar → headwind for BTC&#10;Rising DXY = risk-off pressure">DXY</div><div class="fund-value">${m.dxy}</div><div class="fund-eli5">${eli5Macro("dxy", m.dxy)}</div></div>` : "",
+    m.hy_spread       != null ? `<div class="fund-item"><div class="fund-label tip" data-tip="High-yield credit spread over Treasuries (%)&#10;Measures credit market stress&#10;&#10;< 3%  calm — risk-on environment&#10;3–5%  normal — neutral&#10;5–7%  stress building — caution&#10;> 7%  credit crunch → strong risk-off">HY Spread</div><div class="fund-value">${m.hy_spread}%</div><div class="fund-eli5">${eli5Macro("hy", m.hy_spread)}</div></div>` : "",
   ].filter(Boolean).join("");
 
   el.style.display = "";
@@ -208,7 +208,8 @@ function renderDashboard(data) {
   el.innerHTML = "";
   el.className = "dashboard";
 
-  for (const ticker of TICKERS) {
+  // Use active tickers order from the server response (preserves backend ordering)
+  for (const ticker of Object.keys(data)) {
     const d = data[ticker];
     if (!d) continue;
     el.appendChild(buildCard(d));
@@ -231,41 +232,41 @@ function buildCard(d) {
 
     <div class="signals">
       <div class="signal-row">
-        <span>RSI</span>
+        <span class="tip" data-tip="14-period Relative Strength Index&#10;Scale: 0–100&#10;< 30  oversold (potential buy)&#10;> 70  overbought (potential sell)">RSI</span>
         <span class="signal-val ${rsiColor(d.rsi)}">${d.rsi ?? "—"}</span>
       </div>
       <div class="signal-row">
-        <span>SMA20</span>
+        <span class="tip" data-tip="20-day Simple Moving Average&#10;Short-term trend price level&#10;Acts as dynamic support / resistance">SMA20</span>
         <span class="signal-val">${d.sma20 ? "$" + fmt(d.sma20) : "—"}</span>
       </div>
       <div class="signal-row">
-        <span>vs SMA20</span>
+        <span class="tip" data-tip="Price vs 20-day moving average&#10;Above = short-term uptrend&#10;Below = short-term downtrend&#10;Crossovers are short-term signals">vs SMA20</span>
         <span class="signal-val ${d.above_sma20 ? "pos" : "neg"}">${d.above_sma20 != null ? (d.above_sma20 ? "Above" : "Below") : "—"}</span>
       </div>
       <div class="signal-row">
-        <span>vs SMA50</span>
+        <span class="tip" data-tip="Price vs 50-day moving average&#10;Above = medium-term uptrend&#10;Below = medium-term downtrend&#10;Stronger trend signal than SMA20">vs SMA50</span>
         <span class="signal-val ${d.above_sma50 ? "pos" : "neg"}">${d.above_sma50 != null ? (d.above_sma50 ? "Above" : "Below") : "—"}</span>
       </div>
       <div class="signal-row">
-        <span>1W return</span>
+        <span class="tip" data-tip="Price change over the past 7 days&#10;+ green = price gained&#10;− red = price declined">1W return</span>
         <span class="signal-val ${pctColor(d.week_return_pct)}">${pct(d.week_return_pct)}</span>
       </div>
       <div class="signal-row">
-        <span>1M return</span>
+        <span class="tip" data-tip="Price change over the past 30 days&#10;+ green = price gained&#10;− red = price declined">1M return</span>
         <span class="signal-val ${pctColor(d.month_return_pct)}">${pct(d.month_return_pct)}</span>
       </div>
       <div class="signal-row">
-        <span>BTC corr</span>
+        <span class="tip" data-tip="30-day rolling correlation with Bitcoin&#10;+1.0 = moves in lockstep with BTC&#10; 0.0 = independent movement&#10;−1.0 = moves opposite to BTC&#10;Miners typically 0.6–0.9">BTC corr</span>
         <span class="signal-val">${d.btc_correlation ?? "—"}</span>
       </div>
-      ${d.btc_trend ? `<div class="signal-row" style="grid-column:1/-1"><span>BTC 7d</span><span class="signal-val">${d.btc_trend}</span></div>` : ""}
-      ${d.vs_sector_1w != null ? `<div class="signal-row"><span>vs Sector 1W</span><span class="signal-val ${pctColor(d.vs_sector_1w)}">${pct(d.vs_sector_1w)}</span></div>` : ""}
-      ${d.vs_sector_1m != null ? `<div class="signal-row"><span>vs Sector 1M</span><span class="signal-val ${pctColor(d.vs_sector_1m)}">${pct(d.vs_sector_1m)}</span></div>` : ""}
+      ${d.btc_trend ? `<div class="signal-row" style="grid-column:1/-1"><span class="tip" data-tip="Bitcoin price change over past 7 days&#10;Context for miner stock moves&#10;Miners typically amplify BTC moves 2–4×">BTC 7d</span><span class="signal-val">${d.btc_trend}</span></div>` : ""}
+      ${d.vs_sector_1w != null ? `<div class="signal-row"><span class="tip" data-tip="This ticker's 1-week return&#10;minus the sector average 1-week return&#10;+ = outperforming peers this week&#10;− = lagging behind peers">vs Sector 1W</span><span class="signal-val ${pctColor(d.vs_sector_1w)}">${pct(d.vs_sector_1w)}</span></div>` : ""}
+      ${d.vs_sector_1m != null ? `<div class="signal-row"><span class="tip" data-tip="This ticker's 1-month return&#10;minus the sector average 1-month return&#10;+ = outperforming peers this month&#10;− = lagging behind peers">vs Sector 1M</span><span class="signal-val ${pctColor(d.vs_sector_1m)}">${pct(d.vs_sector_1m)}</span></div>` : ""}
     </div>
 
     ${conf ? `<div class="confidence">Confidence: ${conf}</div>` : ""}
     ${d.reasoning ? `<div class="reasoning">${d.reasoning}</div>` : ""}
-    ${d.key_risk ? `<div class="key-risk">Risk: ${d.key_risk}</div>` : ""}
+    ${d.key_risk ? `<div class="key-risk rec-${rec}">Risk: ${d.key_risk}</div>` : ""}
     ${buildGuidance(d.position_guidance, currentSettings.risk_tier)}
   `;
   return card;
@@ -388,15 +389,31 @@ async function exportToGoogle() {
 checkExportStatus();
 
 async function loadPortfolio() {
-  const [resp, cashResp] = await Promise.all([fetch("/api/portfolio"), fetch("/api/cash")]);
+  const [resp, cashResp, benchResp] = await Promise.all([
+    fetch("/api/portfolio"), fetch("/api/cash"), fetch("/api/benchmark"),
+  ]);
   const rows = await resp.json();
   const { balance: cashBalance } = await cashResp.json();
+  const bench = await benchResp.json().catch(() => ({}));
   const el = document.getElementById("portfolioContent");
 
   const totalCost   = rows.reduce((s, r) => s + (r.cost_value   ?? 0), 0);
   const totalMarket = rows.reduce((s, r) => s + (r.market_value ?? 0), 0);
   const totalGainPct = totalCost > 0 ? (totalMarket / totalCost - 1) * 100 : null;
   const grandTotal  = totalMarket + cashBalance;
+
+  // Weighted portfolio period returns for benchmark comparison
+  let port1w = null, port1m = null;
+  if (totalMarket > 0) {
+    let w1w = 0, w1m = 0;
+    for (const r of rows) {
+      const w = (r.market_value ?? 0) / totalMarket;
+      if (r.week_return_pct  != null) w1w += w * r.week_return_pct;
+      if (r.month_return_pct != null) w1m += w * r.month_return_pct;
+    }
+    if (rows.some(r => r.week_return_pct  != null)) port1w = w1w;
+    if (rows.some(r => r.month_return_pct != null)) port1m = w1m;
+  }
 
   const totalSinceRunValue = rows.reduce((s, r) => s + (r.since_run_value ?? 0), 0);
   const prevTotalMarket    = totalMarket - totalSinceRunValue;
@@ -462,6 +479,33 @@ async function loadPortfolio() {
       <button class="tier-btn" onclick="adjustCash('withdraw')">Withdraw</button>
       <button class="tier-btn" onclick="adjustCash('set')">Set</button>
     </div>
+    ${bench.available && (port1w != null || port1m != null) ? `
+    <div class="benchmark-section">
+      <span class="settings-label">vs S&amp;P 500 (SPY $${bench.current_price?.toFixed(2) ?? "—"})</span>
+      <table class="benchmark-table">
+        <thead><tr><th></th><th>Portfolio</th><th>SPY</th></tr></thead>
+        <tbody>
+          ${port1w != null || bench.week_return_pct != null ? `
+          <tr>
+            <td>1W</td>
+            <td class="${port1w != null ? pctColor(port1w) : ''}">${port1w != null ? pct(port1w) : "—"}</td>
+            <td class="${bench.week_return_pct != null ? pctColor(bench.week_return_pct) : ''}">${bench.week_return_pct != null ? pct(bench.week_return_pct) : "—"}</td>
+          </tr>` : ""}
+          ${port1m != null || bench.month_return_pct != null ? `
+          <tr>
+            <td>1M</td>
+            <td class="${port1m != null ? pctColor(port1m) : ''}">${port1m != null ? pct(port1m) : "—"}</td>
+            <td class="${bench.month_return_pct != null ? pctColor(bench.month_return_pct) : ''}">${bench.month_return_pct != null ? pct(bench.month_return_pct) : "—"}</td>
+          </tr>` : ""}
+          ${bench.ytd_return_pct != null ? `
+          <tr>
+            <td>YTD</td>
+            <td>—</td>
+            <td class="${pctColor(bench.ytd_return_pct)}">${pct(bench.ytd_return_pct)}</td>
+          </tr>` : ""}
+        </tbody>
+      </table>
+    </div>` : ""}
   `;
 }
 
@@ -485,8 +529,27 @@ async function deleteHolding(ticker) {
 }
 
 async function loadTrades() {
-  document.getElementById("tradeTicker").innerHTML =
-    TICKERS.map(t => `<option value="${t}">${t}</option>`).join("");
+  try {
+    const uResp = await fetch("/api/ticker-universe");
+    const { universe, active } = await uResp.json();
+    const activeSet = new Set(active);
+    let opts = `<optgroup label="Active">` +
+      active.map(t => `<option value="${t}">${t}</option>`).join("") +
+      `</optgroup>`;
+    for (const [category, tickers] of Object.entries(universe)) {
+      const available = tickers.filter(t => !activeSet.has(t));
+      if (available.length) {
+        opts += `<optgroup label="${category} – add to tracking">` +
+          available.map(t => `<option value="${t}">${t}</option>`).join("") +
+          `</optgroup>`;
+      }
+    }
+    document.getElementById("tradeTicker").innerHTML = opts;
+  } catch {
+    // fallback: static list
+    document.getElementById("tradeTicker").innerHTML =
+      TICKERS.map(t => `<option value="${t}">${t}</option>`).join("");
+  }
 
   const resp = await fetch("/api/trades");
   const rows = await resp.json();
@@ -719,3 +782,48 @@ function outcomeIcon(outcome) {
   if (outcome === "incorrect") return "✗ incorrect";
   return "— pending";
 }
+
+// ── Tooltip manager ──
+// Single fixed-position element appended to body — never clipped by parent overflow
+(function () {
+  const popup = document.getElementById("tipPopup");
+  if (!popup) return;
+
+  function show(target) {
+    const tip = target.getAttribute("data-tip");
+    if (!tip) return;
+    popup.textContent = tip;
+    popup.style.display = "block";
+    position(target);
+  }
+
+  function position(target) {
+    const r = target.getBoundingClientRect();
+    const gap = 8;
+    let top = r.top - popup.offsetHeight - gap;
+    let left = r.left;
+
+    // Flip below if not enough space above
+    if (top < 4) top = r.bottom + gap;
+
+    // Keep within right edge of viewport
+    const maxLeft = window.innerWidth - popup.offsetWidth - 8;
+    if (left > maxLeft) left = maxLeft;
+    if (left < 4) left = 4;
+
+    popup.style.top  = top  + "px";
+    popup.style.left = left + "px";
+  }
+
+  function hide() {
+    popup.style.display = "none";
+  }
+
+  document.addEventListener("mouseover", (e) => {
+    const el = e.target.closest("[data-tip]");
+    el ? show(el) : hide();
+  });
+
+  document.addEventListener("mouseleave", hide, true);
+  document.addEventListener("scroll", hide, true);
+})();

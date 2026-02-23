@@ -40,14 +40,15 @@ async def _scheduled_analysis():
     from app.technicals import add_relative_strength, compute_signals
 
     logger.info("Scheduled analysis starting…")
+    active_tickers = cache.get_active_tickers(TICKERS)
     try:
         await fetch_btc_prices()
-        await refresh_all()
+        await refresh_all(active_tickers)
     except Exception as e:
         logger.error(f"Scheduled fetch failed: {e}")
         return
 
-    signals = add_relative_strength({ticker: compute_signals(ticker) for ticker in TICKERS})
+    signals = add_relative_strength({ticker: compute_signals(ticker) for ticker in active_tickers})
 
     fundamentals = None
     try:
