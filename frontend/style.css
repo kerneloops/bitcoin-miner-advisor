@@ -121,6 +121,10 @@ button:disabled:hover { background: transparent; color: var(--green); }
 
 /* ── Status ── */
 .status { font-size: 0.68rem; color: var(--muted); letter-spacing: 0.05em; }
+
+.run-timer { font-size: 0.65rem; letter-spacing: 0.06em; }
+.run-timer.rdy     { color: var(--green-dim); }
+.run-timer.waiting { color: var(--hold); }
 .export-status { color: var(--muted); font-size: 0.68rem; }
 .export-status.export-ok    { color: var(--buy); }
 .export-status.export-error { color: var(--sell); }

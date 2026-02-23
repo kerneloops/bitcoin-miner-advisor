@@ -3,6 +3,37 @@ let activeHistoryTicker = TICKERS[0];
 let lastAnalysisData = null;
 let currentSettings = { risk_tier: "neutral", total_capital: 0 };
 
+const COOLDOWN_MS = 2 * 60 * 1000;
+
+function localDateStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function updateRunTimer() {
+  const el = document.getElementById("runTimer");
+  const lastRunAt   = localStorage.getItem("lastRunAt");
+  const lastRunDate = localStorage.getItem("lastRunDate");
+  if (!lastRunAt) { el.textContent = ""; return; }
+
+  if (lastRunDate === localDateStr()) {
+    el.textContent = "ready";
+    el.className = "run-timer rdy";
+    return;
+  }
+
+  const remaining = COOLDOWN_MS - (Date.now() - new Date(lastRunAt).getTime());
+  if (remaining <= 0) {
+    el.textContent = "ready for today's run";
+    el.className = "run-timer rdy";
+  } else {
+    const m = Math.floor(remaining / 60000);
+    const s = Math.floor((remaining % 60000) / 1000);
+    el.textContent = `new day — ready in ${m}:${String(s).padStart(2, "0")}`;
+    el.className = "run-timer waiting";
+  }
+}
+
 async function runAnalysis() {
   const btn = document.getElementById("analyzeBtn");
   const status = document.getElementById("status");
@@ -26,6 +57,9 @@ async function runAnalysis() {
     document.getElementById("historySection").style.display = "block";
     await loadPortfolio();
     await loadTrades();
+    localStorage.setItem("lastRunAt", new Date().toISOString());
+    localStorage.setItem("lastRunDate", localDateStr());
+    updateRunTimer();
     status.textContent = `Updated ${new Date().toLocaleDateString()}`;
   } catch (e) {
     status.textContent = `Error: ${e.message}`;
@@ -586,6 +620,8 @@ const _bootSeq = setInterval(() => {
 loadSettings();
 loadPortfolio();
 loadTrades();
+updateRunTimer();
+setInterval(updateRunTimer, 1000);
 
 // Load cached macro on page load (no API calls)
 fetch("/api/macro").then(r => r.json()).then(renderMacro).catch(() => {});
