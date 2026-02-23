@@ -1,5 +1,5 @@
 #!/bin/bash
-# One-time server setup for Ubuntu 22.04 on DigitalOcean.
+# One-time server setup for Ubuntu 22.04/24.04 (Linode/DigitalOcean/Hetzner).
 # Run as root on a fresh droplet:
 #   bash setup.sh
 
@@ -7,7 +7,7 @@ set -e
 
 echo "=== Installing system packages ==="
 apt-get update -q && apt-get upgrade -y -q
-apt-get install -y -q python3.11 python3.11-venv python3-pip git
+apt-get install -y -q python3 python3-venv python3-pip git
 
 echo "=== Creating app user ==="
 if ! id "miner" &>/dev/null; then
@@ -19,7 +19,7 @@ sudo -u miner bash -c '
     cd ~
     git clone https://github.com/kerneloops/bitcoin-miner-advisor.git
     cd bitcoin-miner-advisor
-    python3.11 -m venv .venv
+    python3 -m venv .venv
     source .venv/bin/activate
     pip install -r requirements.txt -q
     cp .env.example .env
@@ -44,6 +44,6 @@ echo "  3. Check it's running:"
 echo "     systemctl status miner-advisor"
 echo "     curl http://localhost:8000"
 echo ""
-echo "  4. Open port 8000 in your DigitalOcean firewall,"
+echo "  4. Open port 8000 in your Linode firewall,"
 echo "     then visit http://<your-droplet-ip>:8000"
 echo "======================================================"
