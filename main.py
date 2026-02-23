@@ -109,7 +109,7 @@ async def lifespan(app: FastAPI):
         scheduler.shutdown(wait=False)
 
 
-app = FastAPI(title="Bitcoin Miner Advisor", lifespan=lifespan)
+app = FastAPI(title="Hash & Burn", lifespan=lifespan)
 
 cache.init_db()
 app.include_router(router)
