@@ -68,6 +68,27 @@ def init_db():
             )
         """)
 
+        # One-time migration: backfill cash_balance from all existing trades.
+        # Only runs if cash_balance has never been set.
+        has_cash = conn.execute(
+            "SELECT 1 FROM settings WHERE key = 'cash_balance'"
+        ).fetchone()
+        if not has_cash:
+            rows = conn.execute(
+                "SELECT trade_type, price, quantity FROM trades"
+            ).fetchall()
+            balance = 0.0
+            for r in rows:
+                if r["trade_type"] == "SELL":
+                    balance += r["price"] * r["quantity"]
+                elif r["trade_type"] == "BUY":
+                    balance -= r["price"] * r["quantity"]
+            conn.execute(
+                "INSERT INTO settings (key, value) VALUES ('cash_balance', ?)"
+                " ON CONFLICT(key) DO NOTHING",
+                (str(round(balance, 2)),),
+            )
+
 
 def upsert_prices(ticker: str, rows: list[dict]):
     with get_conn() as conn:
