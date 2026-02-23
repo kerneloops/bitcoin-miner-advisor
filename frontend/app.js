@@ -68,6 +68,59 @@ function renderFundamentals(f) {
   `;
 }
 
+function eli5Macro(key, value) {
+  const v = parseFloat(value);
+  if (isNaN(v)) return "";
+  switch (key) {
+    case "dvol":
+      if (v < 40)  return "very calm — market expects quiet";
+      if (v < 60)  return "normal crypto volatility — no alarm";
+      if (v < 80)  return "elevated — options pricing in uncertainty";
+      if (v < 100) return "high stress — big moves expected";
+      return "extreme — panic mode";
+    case "funding":
+      if (v < -0.05) return "shorts dominate — squeeze risk rising";
+      if (v < -0.01) return "mild bearish lean — slight shorting pressure";
+      if (v <  0.01) return "neutral — balanced market";
+      if (v <  0.05) return "bulls paying — healthy optimism";
+      return "longs overheating — watch for pullback";
+    case "fg":
+      if (v < 25) return "extreme fear — historically a buy zone";
+      if (v < 45) return "fear — crowd is pessimistic";
+      if (v < 55) return "neutral";
+      if (v < 75) return "greed — crowd is optimistic";
+      return "extreme greed — historically a sell zone";
+    case "puell":
+      if (v < 0.5) return "miners under extreme stress — cycle bottom territory";
+      if (v < 0.8) return "miners squeezed — undervalued zone";
+      if (v < 1.5) return "fair value — normal conditions";
+      if (v < 2.0) return "miners thriving — elevated but ok";
+      return "miners printing — historically near cycle tops";
+    case "vix":
+      if (v < 15) return "stocks calm — risk-on environment";
+      if (v < 20) return "normal equity vol — no concern";
+      if (v < 30) return "stocks nervous — watch crypto correlation";
+      if (v < 40) return "equity fear — likely crypto headwind";
+      return "stock market panic — extreme risk-off";
+    case "yield":
+      if (v < 2.0) return "easy money — friendly for risk assets";
+      if (v < 3.5) return "moderate rates — neutral";
+      if (v < 4.5) return "tight money — headwind for crypto";
+      return "high rates — significant pressure on risk assets";
+    case "dxy":
+      if (v < 95)  return "weak dollar — historically bullish for crypto";
+      if (v < 100) return "moderate dollar — neutral";
+      if (v < 105) return "strong dollar — headwind for crypto";
+      return "very strong dollar — significant crypto headwind";
+    case "hy":
+      if (v < 3.0) return "credit calm — risk-on";
+      if (v < 5.0) return "normal spreads — neutral";
+      if (v < 7.0) return "credit stress building — risk-off signal";
+      return "credit crunch — high risk-off";
+    default: return "";
+  }
+}
+
 function renderMacro(m) {
   const el = document.getElementById("macroPanel");
   if (!m || !Object.keys(m).length) { el.style.display = "none"; return; }
@@ -84,14 +137,14 @@ function renderMacro(m) {
   const vixColor = m.vix != null ? (m.vix > 30 ? "neg" : m.vix < 20 ? "pos" : "") : "";
 
   const items = [
-    m.btc_dvol       != null ? `<div class="fund-item"><div class="fund-label">BTC IV (DVOL)</div><div class="fund-value">${m.btc_dvol}</div><div class="fund-sub">30-day implied vol</div></div>` : "",
-    m.btc_funding_rate_pct != null ? `<div class="fund-item"><div class="fund-label">Funding Rate</div><div class="fund-value ${fundingColor}">${m.btc_funding_rate_pct > 0 ? "+" : ""}${m.btc_funding_rate_pct}%</div><div class="fund-sub">BTC perp 8h rate</div></div>` : "",
-    m.fear_greed_value != null ? `<div class="fund-item"><div class="fund-label">Fear & Greed</div><div class="fund-value ${fgColor}">${m.fear_greed_value}</div><div class="fund-sub">${m.fear_greed_label ?? ""}</div></div>` : "",
-    m.puell_multiple  != null ? `<div class="fund-item"><div class="fund-label">Puell Multiple</div><div class="fund-value ${puellColor}">${m.puell_multiple}</div><div class="fund-sub">miner revenue vs 365d avg</div></div>` : "",
-    m.vix             != null ? `<div class="fund-item"><div class="fund-label">VIX</div><div class="fund-value ${vixColor}">${m.vix}</div></div>` : "",
-    m.us_2y_yield     != null ? `<div class="fund-item"><div class="fund-label">US 2Y Yield</div><div class="fund-value">${m.us_2y_yield}%</div></div>` : "",
-    m.dxy             != null ? `<div class="fund-item"><div class="fund-label">DXY</div><div class="fund-value">${m.dxy}</div></div>` : "",
-    m.hy_spread       != null ? `<div class="fund-item"><div class="fund-label">HY Spread</div><div class="fund-value">${m.hy_spread}%</div></div>` : "",
+    m.btc_dvol       != null ? `<div class="fund-item"><div class="fund-label">BTC IV (DVOL)</div><div class="fund-value">${m.btc_dvol}</div><div class="fund-sub">30-day implied vol</div><div class="fund-eli5">${eli5Macro("dvol", m.btc_dvol)}</div></div>` : "",
+    m.btc_funding_rate_pct != null ? `<div class="fund-item"><div class="fund-label">Funding Rate</div><div class="fund-value ${fundingColor}">${m.btc_funding_rate_pct > 0 ? "+" : ""}${m.btc_funding_rate_pct}%</div><div class="fund-sub">BTC perp 8h rate</div><div class="fund-eli5">${eli5Macro("funding", m.btc_funding_rate_pct)}</div></div>` : "",
+    m.fear_greed_value != null ? `<div class="fund-item"><div class="fund-label">Fear & Greed</div><div class="fund-value ${fgColor}">${m.fear_greed_value}</div><div class="fund-sub">${m.fear_greed_label ?? ""}</div><div class="fund-eli5">${eli5Macro("fg", m.fear_greed_value)}</div></div>` : "",
+    m.puell_multiple  != null ? `<div class="fund-item"><div class="fund-label">Puell Multiple</div><div class="fund-value ${puellColor}">${m.puell_multiple}</div><div class="fund-sub">miner revenue vs 365d avg</div><div class="fund-eli5">${eli5Macro("puell", m.puell_multiple)}</div></div>` : "",
+    m.vix             != null ? `<div class="fund-item"><div class="fund-label">VIX</div><div class="fund-value ${vixColor}">${m.vix}</div><div class="fund-eli5">${eli5Macro("vix", m.vix)}</div></div>` : "",
+    m.us_2y_yield     != null ? `<div class="fund-item"><div class="fund-label">US 2Y Yield</div><div class="fund-value">${m.us_2y_yield}%</div><div class="fund-eli5">${eli5Macro("yield", m.us_2y_yield)}</div></div>` : "",
+    m.dxy             != null ? `<div class="fund-item"><div class="fund-label">DXY</div><div class="fund-value">${m.dxy}</div><div class="fund-eli5">${eli5Macro("dxy", m.dxy)}</div></div>` : "",
+    m.hy_spread       != null ? `<div class="fund-item"><div class="fund-label">HY Spread</div><div class="fund-value">${m.hy_spread}%</div><div class="fund-eli5">${eli5Macro("hy", m.hy_spread)}</div></div>` : "",
   ].filter(Boolean).join("");
 
   el.style.display = "";

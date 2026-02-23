@@ -166,6 +166,9 @@ main {
 .fund-item {
   background: var(--surface);
   padding: 0.7rem 0.9rem;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .fund-label {
@@ -194,6 +197,16 @@ main {
   color: var(--muted);
   margin-top: 0.15rem;
   letter-spacing: 0.04em;
+}
+
+.fund-eli5 {
+  font-size: 0.58rem;
+  color: var(--muted);
+  margin-top: auto;
+  padding: 0.3rem 0.4rem;
+  background: var(--dim);
+  border-left: 2px solid var(--border2);
+  line-height: 1.4;
 }
 
 /* ── Dashboard ── */
