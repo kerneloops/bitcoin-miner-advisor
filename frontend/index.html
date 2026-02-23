@@ -64,6 +64,26 @@
     </section>
   </main>
 
+  <div id="fkeyBar">
+    <div class="fkey" onclick="runAnalysis()">
+      <span class="fkey-num">F2</span><span class="fkey-label">ANALYZE</span>
+    </div>
+    <div class="fkey" onclick="exportToGoogle()">
+      <span class="fkey-num">F5</span><span class="fkey-label">EXPORT</span>
+    </div>
+    <div class="fkey" onclick="document.getElementById('tradeLogSection').scrollIntoView({behavior:'smooth'})">
+      <span class="fkey-num">F8</span><span class="fkey-label">TRADE LOG</span>
+    </div>
+    <div class="fkey" onclick="document.getElementById('historySection').scrollIntoView({behavior:'smooth'})">
+      <span class="fkey-num">F9</span><span class="fkey-label">HISTORY</span>
+    </div>
+    <div class="fkey" onclick="window.scrollTo({top:0,behavior:'smooth'})">
+      <span class="fkey-num">F10</span><span class="fkey-label">TOP</span>
+    </div>
+    <span id="fkeySep"></span>
+    <span id="fkeySystem">LAPIO TRADING TERMINAL v2.0 &nbsp;|&nbsp; SESSION: ACTIVE</span>
+  </div>
+
   <script src="/static/app.js"></script>
 </body>
 </html>

@@ -128,17 +128,37 @@ button:disabled:hover { background: transparent; color: var(--green); }
 main {
   max-width: 1400px;
   margin: 0 auto;
-  padding: 1.5rem;
+  padding: 1.5rem 1.5rem 3rem;
 }
 
 /* ── Fundamentals / Macro panel ── */
 .fundamentals {
+  display: block;
+  border: 1px solid var(--border2);
+  border-top: 2px solid var(--green-dim);
+  margin-bottom: 1.5rem;
+  background: var(--border2);
+}
+
+.panel-header {
+  background: var(--surface);
+  padding: 0.22rem 0.8rem;
+  font-size: 0.6rem;
+  color: var(--green-dim);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--border2);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.panel-header::before { content: '─['; color: var(--border2); margin-right: 0.15rem; }
+.panel-header::after  { content: ']─'; color: var(--border2); margin-left: 0.15rem; }
+
+.fund-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
   gap: 1px;
-  background: var(--border2);
-  border: 1px solid var(--border2);
-  margin-bottom: 1.5rem;
 }
 
 .fund-item {
@@ -204,9 +224,10 @@ main {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 0.5rem;
-  padding-bottom: 0.4rem;
-  border-bottom: 1px solid var(--border);
+  margin: -1rem -1rem 0.5rem;
+  padding: 0.3rem 1rem;
+  border-bottom: 1px solid var(--border2);
+  background: var(--dim);
 }
 
 .ticker-name {
@@ -305,6 +326,16 @@ main {
   display: flex;
   align-items: baseline;
   gap: 0.75rem;
+  border-bottom: 1px solid var(--border2);
+  padding-bottom: 0.45rem;
+}
+
+.history-section h2::before {
+  content: '┌─[';
+  color: var(--green-dim);
+  font-weight: 400;
+  letter-spacing: 0;
+  margin-right: -0.3rem;
 }
 
 .portfolio-since-run {
@@ -419,3 +450,96 @@ main {
 
 a { color: var(--green-dim); text-decoration: none; }
 a:hover { color: var(--green); text-decoration: underline; }
+
+/* ═══════════════════════════════════════════════════════
+   90s TRADING TERMINAL ENHANCEMENTS
+   ═══════════════════════════════════════════════════════ */
+
+/* ── Phosphor CRT glow ── */
+h1           { text-shadow: 0 0 14px var(--green), 0 0 4px var(--green); }
+.ticker-name { text-shadow: 0 0 10px var(--green), 0 0 3px var(--green); }
+.badge.BUY   { text-shadow: 0 0 7px var(--buy);  box-shadow: inset 0 0 6px rgba(0,255,110,.12); }
+.badge.SELL  { text-shadow: 0 0 7px var(--sell); box-shadow: inset 0 0 6px rgba(255,68,85,.12); }
+.badge.HOLD  { text-shadow: 0 0 7px var(--hold); box-shadow: inset 0 0 6px rgba(255,170,0,.12); }
+.pos         { color: var(--buy);  text-shadow: 0 0 6px rgba(0,255,110,.55); }
+.neg         { color: var(--sell); text-shadow: 0 0 6px rgba(255,68,85,.55); }
+#liveClock   { text-shadow: 0 0 5px var(--muted); }
+.fund-value  { text-shadow: 0 0 4px rgba(200,216,192,.2); }
+.price       { text-shadow: 0 0 6px rgba(200,216,192,.25); }
+
+/* ── Subtle CRT phosphor flicker ── */
+@keyframes crtflicker {
+  0%, 87%, 90.5%, 93.5%, 97%, 100% { opacity: 1; }
+  88.5%  { opacity: 0.965; }
+  92%    { opacity: 0.97; }
+  95.5%  { opacity: 0.96; }
+}
+body { animation: crtflicker 20s infinite; }
+
+/* ── Scanline override — slightly more visible ── */
+body::after {
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.06) 2px,
+    rgba(0, 0, 0, 0.06) 3px
+  );
+}
+
+/* ── Header — terminal system bar ── */
+header {
+  border-bottom: 2px solid var(--green-dim);
+}
+
+/* ── F-key bar (bottom) ── */
+#fkeyBar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 22px;
+  background: var(--green);
+  color: var(--bg);
+  display: flex;
+  align-items: center;
+  padding: 0 0.75rem;
+  z-index: 300;
+  font-size: 0.6rem;
+  letter-spacing: 0.05em;
+  user-select: none;
+}
+
+.fkey { display: flex; align-items: stretch; cursor: pointer; }
+.fkey:hover .fkey-label { text-decoration: underline; }
+
+.fkey-num {
+  background: var(--bg);
+  color: var(--green);
+  padding: 0 0.3rem;
+  font-weight: 700;
+  font-size: 0.58rem;
+  display: flex;
+  align-items: center;
+}
+
+.fkey-label {
+  padding: 0 0.75rem 0 0.2rem;
+  font-weight: 600;
+  font-size: 0.6rem;
+}
+
+#fkeySep { flex: 1; }
+
+#fkeySystem {
+  font-size: 0.58rem;
+  opacity: 0.75;
+  letter-spacing: 0.1em;
+}
+
+/* ── Prompt indicator on status ── */
+.status-prompt::before {
+  content: '>_ ';
+  color: var(--green-dim);
+  opacity: 0.7;
+}

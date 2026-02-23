@@ -40,26 +40,29 @@ function renderFundamentals(f) {
   const diffDir = f.difficulty_change_pct > 0 ? "neg" : "pos"; // harder = worse for miners
   const retargetSign = f.difficulty_change_pct > 0 ? "+" : "";
 
-  el.style.display = "grid";
+  el.style.display = "";
   el.innerHTML = `
-    <div class="fund-item">
-      <div class="fund-label">Hashprice</div>
-      <div class="fund-value">$${f.hashprice_usd_per_ph_day ?? "—"}<span class="fund-unit">/PH/day</span></div>
-      <div class="fund-sub">excl. tx fees</div>
-    </div>
-    <div class="fund-item">
-      <div class="fund-label">Network Hashrate</div>
-      <div class="fund-value">${f.network_hashrate_eh ?? "—"}<span class="fund-unit"> EH/s</span></div>
-    </div>
-    <div class="fund-item">
-      <div class="fund-label">Next Difficulty</div>
-      <div class="fund-value ${diffDir}">${retargetSign}${f.difficulty_change_pct ?? "—"}%</div>
-      <div class="fund-sub">in ${f.days_until_retarget} days · ${f.difficulty_progress_pct}% through epoch</div>
-    </div>
-    <div class="fund-item">
-      <div class="fund-label">Prev Retarget</div>
-      <div class="fund-value ${f.previous_retarget_pct > 0 ? "neg" : "pos"}">${f.previous_retarget_pct > 0 ? "+" : ""}${f.previous_retarget_pct ?? "—"}%</div>
-      <div class="fund-sub">avg block: ${f.block_time_min} min</div>
+    <div class="panel-header">MINING FUNDAMENTALS</div>
+    <div class="fund-grid">
+      <div class="fund-item">
+        <div class="fund-label">Hashprice</div>
+        <div class="fund-value">$${f.hashprice_usd_per_ph_day ?? "—"}<span class="fund-unit">/PH/day</span></div>
+        <div class="fund-sub">excl. tx fees</div>
+      </div>
+      <div class="fund-item">
+        <div class="fund-label">Network Hashrate</div>
+        <div class="fund-value">${f.network_hashrate_eh ?? "—"}<span class="fund-unit"> EH/s</span></div>
+      </div>
+      <div class="fund-item">
+        <div class="fund-label">Next Difficulty</div>
+        <div class="fund-value ${diffDir}">${retargetSign}${f.difficulty_change_pct ?? "—"}%</div>
+        <div class="fund-sub">in ${f.days_until_retarget} days · ${f.difficulty_progress_pct}% through epoch</div>
+      </div>
+      <div class="fund-item">
+        <div class="fund-label">Prev Retarget</div>
+        <div class="fund-value ${f.previous_retarget_pct > 0 ? "neg" : "pos"}">${f.previous_retarget_pct > 0 ? "+" : ""}${f.previous_retarget_pct ?? "—"}%</div>
+        <div class="fund-sub">avg block: ${f.block_time_min} min</div>
+      </div>
     </div>
   `;
 }
@@ -90,8 +93,8 @@ function renderMacro(m) {
     m.hy_spread       != null ? `<div class="fund-item"><div class="fund-label">HY Spread</div><div class="fund-value">${m.hy_spread}%</div></div>` : "",
   ].filter(Boolean).join("");
 
-  el.style.display = "grid";
-  el.innerHTML = items;
+  el.style.display = "";
+  el.innerHTML = `<div class="panel-header">MACRO SIGNALS</div><div class="fund-grid">${items}</div>`;
 }
 
 function renderDashboard(data) {
@@ -386,11 +389,37 @@ document.getElementById("tradeForm").addEventListener("submit", async (e) => {
 
 document.getElementById("tradeDate").valueAsDate = new Date();
 
+// ── Boot sequence ──
+const _statusEl = document.getElementById("status");
+const _bootMsgs = [
+  "LAPIO TRADING TERMINAL v2.0",
+  "CONNECTING TO MARKET DATA...",
+  "LOADING PORTFOLIO...",
+  "SYSTEM READY.",
+];
+let _bi = 0;
+const _bootSeq = setInterval(() => {
+  _statusEl.textContent = _bootMsgs[_bi++];
+  if (_bi >= _bootMsgs.length) {
+    clearInterval(_bootSeq);
+    setTimeout(() => { if (_statusEl.textContent === "SYSTEM READY.") _statusEl.textContent = ""; }, 1800);
+  }
+}, 480);
+
 loadPortfolio();
 loadTrades();
 
 // Load cached macro on page load (no API calls)
 fetch("/api/macro").then(r => r.json()).then(renderMacro).catch(() => {});
+
+// ── Keyboard shortcuts ──
+document.addEventListener("keydown", (e) => {
+  if (e.key === "F2") { e.preventDefault(); runAnalysis(); }
+  if (e.key === "F5") { e.preventDefault(); exportToGoogle(); }
+  if (e.key === "F8") { e.preventDefault(); document.getElementById("tradeLogSection").scrollIntoView({ behavior: "smooth" }); }
+  if (e.key === "F9") { e.preventDefault(); document.getElementById("historySection").scrollIntoView({ behavior: "smooth" }); }
+  if (e.key === "F10") { e.preventDefault(); window.scrollTo({ top: 0, behavior: "smooth" }); }
+});
 
 // Live UTC clock
 function updateClock() {
