@@ -106,10 +106,10 @@ async def generate_macro_bias(macro: dict, results: dict) -> str:
     prompt = f"""Given these macro signals:
 {macro_section}
 
-And these ticker recommendations today: {rec_summary}
+And these recommendations for the user's held positions today: {rec_summary}
 
 Write exactly ONE sentence (max 30 words) for a "Macro environment" summary line.
-Explain the overall macro picture and, if there's tension between macro sentiment and the technical recommendations, name it directly.
+Explain the overall macro picture and, if there's tension between macro sentiment and the held-position recommendations, name it directly.
 Start with "Macro environment:" and be specific — no vague language.
 Respond with only the sentence, no JSON, no markdown."""
 
@@ -142,7 +142,9 @@ async def run_analysis(all_signals: dict, fundamentals: dict | None = None, macr
 
     if macro:
         try:
-            bias = await generate_macro_bias(macro, results)
+            holdings = cache.get_all_holdings()
+            held_results = {t: d for t, d in results.items() if t in holdings} if holdings else results
+            bias = await generate_macro_bias(macro, held_results)
             cache.set_setting("macro_bias", bias)
         except Exception:
             pass
