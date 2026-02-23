@@ -194,6 +194,7 @@ main {
   text-transform: uppercase;
   letter-spacing: 0.13em;
   margin-bottom: 0.2rem;
+  min-height: 2.4rem;
 }
 
 .fund-value {
