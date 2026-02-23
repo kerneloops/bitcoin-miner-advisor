@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hash &amp; Burn — Login</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="/static/style.css?v=12" />
+  <style>
+    body { display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+    .login-box {
+      width: 340px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 2.5rem 2rem;
+    }
+    .login-logo {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--green);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 0.25rem;
+    }
+    .login-sub {
+      font-size: 0.62rem;
+      color: var(--muted);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 2rem;
+    }
+    .login-box label {
+      display: block;
+      font-size: 0.62rem;
+      color: var(--muted);
+      letter-spacing: 0.13em;
+      text-transform: uppercase;
+      margin-bottom: 0.4rem;
+    }
+    .login-box input[type="password"] {
+      width: 100%;
+      box-sizing: border-box;
+      background: var(--bg);
+      border: 1px solid var(--border2);
+      color: var(--text);
+      padding: 0.55rem 0.7rem;
+      font-family: inherit;
+      font-size: 0.85rem;
+      outline: none;
+      margin-bottom: 1.2rem;
+    }
+    .login-box input[type="password"]:focus { border-color: var(--green-dim); }
+    .login-box button {
+      width: 100%;
+      background: var(--green);
+      color: var(--bg);
+      border: none;
+      padding: 0.55rem 1rem;
+      font-family: inherit;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+    .login-box button:hover { background: var(--green-dim); }
+    .login-error {
+      font-size: 0.7rem;
+      color: var(--sell);
+      margin-bottom: 1rem;
+      letter-spacing: 0.05em;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-box">
+    <div class="login-logo">Hash &amp; Burn</div>
+    <div class="login-sub">Lapio Trading Terminal</div>
+    <form method="POST" action="/login">
+      <label for="password">Access Code</label>
+      <input id="password" name="password" type="password" autofocus autocomplete="current-password" />
+      <button type="submit">Enter Terminal</button>
+    </form>
+  </div>
+</body>
+</html>

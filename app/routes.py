@@ -1,7 +1,9 @@
 import logging
 import os
+from pathlib import Path
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
+from fastapi.responses import FileResponse, RedirectResponse
 from pydantic import BaseModel
 
 from .advisor import run_analysis
@@ -10,9 +12,40 @@ from .macro import fetch_all_macro
 from .miners import fetch_miner_fundamentals
 from .technicals import add_relative_strength, compute_signals
 from . import cache, google_workspace, sizing, telegram
+from .auth import make_token, verify_token
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+
+_frontend = Path(__file__).parent.parent / "frontend"
+
+
+@router.get("/login")
+def login_page(error: int = 0):
+    return FileResponse(_frontend / "login.html")
+
+
+@router.post("/login")
+async def do_login(request: Request):
+    form = await request.form()
+    password = form.get("password", "")
+    app_password = os.getenv("APP_PASSWORD", "")
+    if app_password and password == app_password:
+        response = RedirectResponse(url="/", status_code=302)
+        response.set_cookie(
+            "session", make_token(),
+            httponly=True, samesite="strict",
+            max_age=30 * 24 * 3600,  # 30 days
+        )
+        return response
+    return RedirectResponse(url="/login?error=1", status_code=302)
+
+
+@router.get("/logout")
+def logout():
+    response = RedirectResponse(url="/login", status_code=302)
+    response.delete_cookie("session")
+    return response
 
 
 class HoldingIn(BaseModel):

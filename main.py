@@ -7,13 +7,27 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from dotenv import load_dotenv
 from fastapi import FastAPI
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
 
 load_dotenv()
 
 from app import cache
+from app.auth import verify_token
 from app.routes import router
+
+
+class AuthMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        path = request.url.path
+        # Always allow login page, login POST, and static assets
+        if path in ("/login", "/logout") or path.startswith("/static/"):
+            return await call_next(request)
+        if not verify_token(request.cookies.get("session")):
+            return RedirectResponse(url="/login", status_code=302)
+        return await call_next(request)
 
 logger = logging.getLogger(__name__)
 
@@ -110,6 +124,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Hash & Burn", lifespan=lifespan)
+app.add_middleware(AuthMiddleware)
 
 cache.init_db()
 app.include_router(router)
