@@ -401,11 +401,16 @@ document.getElementById("tradeForm").addEventListener("submit", async (e) => {
   const quantity = parseFloat(document.getElementById("tradeQuantity").value);
   const notes    = document.getElementById("tradeNotes").value.trim();
   if (!ticker || !date || isNaN(price) || isNaN(quantity)) return;
-  await fetch("/api/trades", {
+  const resp = await fetch("/api/trades", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ ticker, date, trade_type: type, price, quantity, notes }),
   });
+  if (!resp.ok) {
+    const err = await resp.json();
+    alert(err.detail || "Failed to save trade.");
+    return;
+  }
   e.target.reset();
   document.getElementById("tradeDate").valueAsDate = new Date();
   loadTrades();

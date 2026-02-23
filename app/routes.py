@@ -210,6 +210,15 @@ def list_trades():
 
 @router.post("/api/trades")
 def create_trade(body: TradeIn):
+    if body.trade_type == "SELL":
+        holding = cache.get_holdings()
+        held = next((h["shares"] for h in holding if h["ticker"] == body.ticker), 0.0)
+        if body.quantity > held:
+            raise HTTPException(
+                400,
+                f"Cannot sell {body.quantity} shares of {body.ticker} — only {held} held. "
+                "Record a BUY trade first if you have an existing position with no purchase history."
+            )
     cache.add_trade(body.ticker, body.date, body.trade_type, body.price, body.quantity, body.notes)
     return {"ok": True}
 
