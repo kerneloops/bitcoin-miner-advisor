@@ -51,6 +51,20 @@
       margin-bottom: 1.2rem;
     }
     .login-box input[type="password"]:focus { border-color: var(--green-dim); }
+    .input-cursor-wrap { position: relative; margin-bottom: 1.2rem; }
+    .input-cursor-wrap input[type="password"] { margin-bottom: 0; caret-color: transparent; }
+    .input-cursor-wrap::after {
+      content: '▋';
+      position: absolute;
+      right: 0.6rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--green);
+      font-size: 0.85rem;
+      pointer-events: none;
+      animation: blink 1s step-end infinite;
+    }
+    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
     .login-box button {
       width: 100%;
       background: var(--green);
@@ -80,7 +94,9 @@
     <div class="login-sub" style="margin-bottom:1.5rem;color:var(--sell);letter-spacing:0.08em">Enter Terminal At Your Own Risk</div>
     <form method="POST" action="/login">
       <label for="password">Access Code</label>
-      <input id="password" name="password" type="password" autofocus autocomplete="current-password" />
+      <div class="input-cursor-wrap">
+        <input id="password" name="password" type="password" autofocus autocomplete="current-password" />
+      </div>
       <button type="submit">Enter Terminal</button>
     </form>
   </div>
