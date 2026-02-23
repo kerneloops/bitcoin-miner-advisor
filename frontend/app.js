@@ -693,9 +693,14 @@ async function loadSettings() {
 
 function renderSettings(s) {
   const el = document.getElementById("settingsContent");
+  const tierTips = {
+    conservative: "HIGH confidence signals only&#10;Buy: deploy 3% of capital per signal&#10;Max position: 5% of total capital&#10;Sell: reduce 50% of holding",
+    neutral:      "MEDIUM or HIGH confidence signals&#10;Buy: deploy 6% of capital per signal&#10;Max position: 10% of total capital&#10;Sell: reduce 75% of holding",
+    aggressive:   "Any confidence (LOW, MEDIUM, HIGH)&#10;Buy: deploy 12% of capital per signal&#10;Max position: 20% of total capital&#10;Sell: sell entire holding (100%)",
+  };
   const tiers = ["conservative", "neutral", "aggressive"];
   const tierBtns = tiers.map(t => `
-    <button class="tier-btn ${t === s.risk_tier ? 'active' : ''}" onclick="setTier('${t}')">${t}</button>
+    <button class="tier-btn ${t === s.risk_tier ? 'active' : ''}" onclick="setTier('${t}')" data-tip="${tierTips[t]}">${t}</button>
   `).join("");
 
   const telegramRow = s.telegram_configured
@@ -716,7 +721,7 @@ function renderSettings(s) {
 
   el.innerHTML = `
     <div class="settings-row">
-      <span class="settings-label">Risk Tier</span>
+      <span class="settings-label tip" data-tip="Controls position sizing guidance shown on BUY/SELL cards.&#10;Requires Total Capital to be set.&#10;&#10;CONSERVATIVE — HIGH confidence only&#10;Buy 3% of capital · max 5% position · sell 50%&#10;&#10;NEUTRAL — MEDIUM confidence or higher&#10;Buy 6% of capital · max 10% position · sell 75%&#10;&#10;AGGRESSIVE — any confidence (LOW+)&#10;Buy 12% of capital · max 20% position · sell 100%">Risk Tier</span>
       <div class="tier-buttons">${tierBtns}</div>
       <span id="tierStatus" class="settings-status"></span>
     </div>

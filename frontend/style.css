@@ -445,6 +445,7 @@ main {
   cursor: pointer;
 }
 .tier-btn:hover  { background: var(--surface2); color: var(--text); }
+.tier-btn[data-tip] { cursor: help; }
 .tier-btn.active { background: var(--green); color: var(--bg); font-weight: 700; text-shadow: none; }
 
 .settings-capital-input {
