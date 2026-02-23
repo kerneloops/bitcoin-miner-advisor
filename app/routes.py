@@ -40,9 +40,12 @@ async def analyze():
     """Fetch latest data and run AI analysis for all tickers."""
     try:
         await fetch_btc_prices()
+    except Exception as e:
+        logger.warning(f"BTC price fetch failed, using cache (non-fatal): {e}")
+    try:
         await refresh_all()
     except Exception as e:
-        raise HTTPException(502, f"Data fetch failed: {e}")
+        logger.warning(f"Stock price fetch failed, using cache (non-fatal): {e}")
 
     signals = add_relative_strength({ticker: compute_signals(ticker) for ticker in TICKERS})
 
