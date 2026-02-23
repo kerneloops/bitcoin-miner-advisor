@@ -6,14 +6,30 @@
   <title>Hash &amp; Burn — Login</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="/static/style.css?v=12" />
+  <link rel="stylesheet" href="/static/style.css?v=13" />
   <style>
     body { display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+
+    /* Grain overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 999;
+      opacity: 0.045;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+      background-repeat: repeat;
+      background-size: 128px 128px;
+    }
+
     .login-box {
       width: 340px;
       background: var(--surface);
       border: 1px solid var(--border);
       padding: 2.5rem 2rem;
+      position: relative;
+      z-index: 1;
     }
     .login-logo {
       font-size: 1rem;
@@ -28,6 +44,13 @@
       color: var(--muted);
       letter-spacing: 0.1em;
       text-transform: uppercase;
+      margin-bottom: 0.4rem;
+    }
+    .login-warning {
+      font-size: 0.62rem;
+      color: var(--sell);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
       margin-bottom: 2rem;
     }
     .login-box label {
@@ -38,32 +61,35 @@
       text-transform: uppercase;
       margin-bottom: 0.4rem;
     }
-    .login-box input[type="password"] {
-      width: 100%;
-      box-sizing: border-box;
-      background: var(--bg);
-      border: 1px solid var(--border2);
-      color: var(--text);
-      padding: 0.55rem 0.7rem;
-      font-family: inherit;
-      font-size: 0.85rem;
-      outline: none;
+    .input-cursor-wrap {
+      position: relative;
       margin-bottom: 1.2rem;
     }
-    .login-box input[type="password"]:focus { border-color: var(--green-dim); }
-    .input-cursor-wrap { position: relative; margin-bottom: 1.2rem; }
-    .input-cursor-wrap input[type="password"] { margin-bottom: 0; caret-color: transparent; }
-    .input-cursor-wrap::after {
+    .input-cursor-wrap::before {
       content: '▋';
       position: absolute;
-      right: 0.6rem;
+      left: 0.6rem;
       top: 50%;
       transform: translateY(-50%);
       color: var(--green);
       font-size: 0.85rem;
       pointer-events: none;
       animation: blink 1s step-end infinite;
+      z-index: 1;
     }
+    .login-box input[type="password"] {
+      width: 100%;
+      box-sizing: border-box;
+      background: var(--bg);
+      border: 1px solid var(--border2);
+      color: var(--text);
+      padding: 0.55rem 0.7rem 0.55rem 1.6rem;
+      font-family: inherit;
+      font-size: 0.85rem;
+      outline: none;
+      caret-color: transparent;
+    }
+    .login-box input[type="password"]:focus { border-color: var(--green-dim); }
     @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
     .login-box button {
       width: 100%;
@@ -79,25 +105,19 @@
       cursor: pointer;
     }
     .login-box button:hover { background: var(--green-dim); }
-    .login-error {
-      font-size: 0.7rem;
-      color: var(--sell);
-      margin-bottom: 1rem;
-      letter-spacing: 0.05em;
-    }
   </style>
 </head>
 <body>
   <div class="login-box">
     <div class="login-logo">Hash &amp; Burn</div>
     <div class="login-sub">Lapio Trading Terminal</div>
-    <div class="login-sub" style="margin-bottom:1.5rem;color:var(--sell);letter-spacing:0.08em">Enter Terminal At Your Own Risk</div>
+    <div class="login-warning">Enter Terminal At Your Own Risk</div>
     <form method="POST" action="/login">
       <label for="password">Access Code</label>
       <div class="input-cursor-wrap">
         <input id="password" name="password" type="password" autofocus autocomplete="current-password" />
       </div>
-      <button type="submit">Enter Terminal</button>
+      <button type="submit">Enter at your own risk</button>
     </form>
   </div>
 </body>
