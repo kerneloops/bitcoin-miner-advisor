@@ -388,13 +388,72 @@ async function exportToGoogle() {
 
 checkExportStatus();
 
+function drawSparkline(spySeries, portfolioSeries) {
+  if (!spySeries || spySeries.length < 2) return "";
+  const W = 240, H = 68, PX = 6, PY = 6;
+
+  const allPcts = [
+    ...spySeries.map(d => d.pct),
+    ...(portfolioSeries || []).map(d => d.pct),
+  ];
+  const minV = Math.min(0, ...allPcts);
+  const maxV = Math.max(0, ...allPcts);
+  const range = maxV - minV || 1;
+
+  const sx = (i, n) => (PX + (i / Math.max(n - 1, 1)) * (W - 2 * PX)).toFixed(1);
+  const sy = v => (H - PY - ((v - minV) / range) * (H - 2 * PY)).toFixed(1);
+
+  // Zero reference line
+  const zy = sy(0);
+  const zero = `<line x1="${PX}" y1="${zy}" x2="${W - PX}" y2="${zy}" stroke="#1f2e1f" stroke-width="1" stroke-dasharray="4,3"/>`;
+
+  // SPY path
+  const spyD = spySeries.map((d, i) => `${i ? "L" : "M"}${sx(i, spySeries.length)},${sy(d.pct)}`).join("");
+
+  // Portfolio path + end-point colour
+  const lastPct = portfolioSeries?.length ? portfolioSeries[portfolioSeries.length - 1].pct : null;
+  const portColor = lastPct == null ? "#4a6644" : lastPct >= 0 ? "#00d26a" : "#ff4455";
+  let portLine = "";
+  if (portfolioSeries?.length >= 2) {
+    const portD = portfolioSeries.map((d, i) => `${i ? "L" : "M"}${sx(i, portfolioSeries.length)},${sy(d.pct)}`).join("");
+    portLine = `<path d="${portD}" fill="none" stroke="${portColor}" stroke-width="1.5" stroke-linejoin="round"/>`;
+  }
+
+  // End-point dots
+  const spyLast  = spySeries[spySeries.length - 1];
+  const spyDot   = `<circle cx="${sx(spySeries.length - 1, spySeries.length)}" cy="${sy(spyLast.pct)}" r="2" fill="#008f4a"/>`;
+  let portDot = "";
+  if (portfolioSeries?.length >= 2) {
+    const pl = portfolioSeries[portfolioSeries.length - 1];
+    portDot = `<circle cx="${sx(portfolioSeries.length - 1, portfolioSeries.length)}" cy="${sy(pl.pct)}" r="2" fill="${portColor}"/>`;
+  }
+
+  // Legend (top-right corner)
+  const lx = W - 52;
+  const legend = `
+    <line x1="${lx}" y1="9" x2="${lx + 10}" y2="9" stroke="#008f4a" stroke-width="1.5"/>
+    <text x="${lx + 13}" y="12" fill="#4a6644" font-size="7.5" font-family="JetBrains Mono,monospace">SPY</text>
+    ${portfolioSeries?.length >= 2 ? `
+    <line x1="${lx}" y1="20" x2="${lx + 10}" y2="20" stroke="${portColor}" stroke-width="1.5"/>
+    <text x="${lx + 13}" y="23" fill="#4a6644" font-size="7.5" font-family="JetBrains Mono,monospace">PORT</text>` : ""}`;
+
+  return `<svg class="benchmark-sparkline" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
+    ${zero}
+    <path d="${spyD}" fill="none" stroke="#008f4a" stroke-width="1.5" stroke-linejoin="round" opacity="0.75"/>
+    ${portLine}
+    ${spyDot}${portDot}
+    ${legend}
+  </svg>`;
+}
+
 async function loadPortfolio() {
-  const [resp, cashResp, benchResp] = await Promise.all([
-    fetch("/api/portfolio"), fetch("/api/cash"), fetch("/api/benchmark"),
+  const [resp, cashResp, benchResp, chartResp] = await Promise.all([
+    fetch("/api/portfolio"), fetch("/api/cash"), fetch("/api/benchmark"), fetch("/api/benchmark-chart"),
   ]);
   const rows = await resp.json();
   const { balance: cashBalance } = await cashResp.json();
   const bench = await benchResp.json().catch(() => ({}));
+  const chart = await chartResp.json().catch(() => ({}));
   const el = document.getElementById("portfolioContent");
 
   const totalCost   = rows.reduce((s, r) => s + (r.cost_value   ?? 0), 0);
@@ -482,29 +541,32 @@ async function loadPortfolio() {
     ${bench.available && (port1w != null || port1m != null) ? `
     <div class="benchmark-section">
       <span class="settings-label">vs S&amp;P 500 (SPY $${bench.current_price?.toFixed(2) ?? "—"})</span>
-      <table class="benchmark-table">
-        <thead><tr><th></th><th>Portfolio</th><th>SPY</th></tr></thead>
-        <tbody>
-          ${port1w != null || bench.week_return_pct != null ? `
-          <tr>
-            <td>1W</td>
-            <td class="${port1w != null ? pctColor(port1w) : ''}">${port1w != null ? pct(port1w) : "—"}</td>
-            <td class="${bench.week_return_pct != null ? pctColor(bench.week_return_pct) : ''}">${bench.week_return_pct != null ? pct(bench.week_return_pct) : "—"}</td>
-          </tr>` : ""}
-          ${port1m != null || bench.month_return_pct != null ? `
-          <tr>
-            <td>1M</td>
-            <td class="${port1m != null ? pctColor(port1m) : ''}">${port1m != null ? pct(port1m) : "—"}</td>
-            <td class="${bench.month_return_pct != null ? pctColor(bench.month_return_pct) : ''}">${bench.month_return_pct != null ? pct(bench.month_return_pct) : "—"}</td>
-          </tr>` : ""}
-          ${bench.ytd_return_pct != null ? `
-          <tr>
-            <td>YTD</td>
-            <td>—</td>
-            <td class="${pctColor(bench.ytd_return_pct)}">${pct(bench.ytd_return_pct)}</td>
-          </tr>` : ""}
-        </tbody>
-      </table>
+      <div class="benchmark-body">
+        <table class="benchmark-table">
+          <thead><tr><th></th><th>Portfolio</th><th>SPY</th></tr></thead>
+          <tbody>
+            ${port1w != null || bench.week_return_pct != null ? `
+            <tr>
+              <td>1W</td>
+              <td class="${port1w != null ? pctColor(port1w) : ''}">${port1w != null ? pct(port1w) : "—"}</td>
+              <td class="${bench.week_return_pct != null ? pctColor(bench.week_return_pct) : ''}">${bench.week_return_pct != null ? pct(bench.week_return_pct) : "—"}</td>
+            </tr>` : ""}
+            ${port1m != null || bench.month_return_pct != null ? `
+            <tr>
+              <td>1M</td>
+              <td class="${port1m != null ? pctColor(port1m) : ''}">${port1m != null ? pct(port1m) : "—"}</td>
+              <td class="${bench.month_return_pct != null ? pctColor(bench.month_return_pct) : ''}">${bench.month_return_pct != null ? pct(bench.month_return_pct) : "—"}</td>
+            </tr>` : ""}
+            ${bench.ytd_return_pct != null ? `
+            <tr>
+              <td>YTD</td>
+              <td>—</td>
+              <td class="${pctColor(bench.ytd_return_pct)}">${pct(bench.ytd_return_pct)}</td>
+            </tr>` : ""}
+          </tbody>
+        </table>
+        ${chart.available ? drawSparkline(chart.spy, chart.portfolio) : ""}
+      </div>
     </div>` : ""}
   `;
 }

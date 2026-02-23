@@ -243,6 +243,58 @@ async def get_benchmark():
     return result
 
 
+@router.get("/api/benchmark-chart")
+def get_benchmark_chart():
+    """Return 30-day normalised % series for SPY and the current portfolio."""
+    spy_rows = cache.get_prices(BENCHMARK_TICKER, limit=35)
+    if len(spy_rows) < 2:
+        return {"available": False}
+
+    spy_rows = spy_rows[-30:]
+    spy_base = float(spy_rows[0]["close"])
+    spy_series = [
+        {"date": r["date"], "pct": round((float(r["close"]) / spy_base - 1) * 100, 2)}
+        for r in spy_rows
+    ]
+    dates = [r["date"] for r in spy_rows]
+
+    holdings = cache.get_all_holdings()
+    if not holdings:
+        return {"available": True, "spy": spy_series, "portfolio": None}
+
+    # For each date, sum (shares × closing price) across all holdings
+    port_by_date: dict[str, float] = {}
+    for ticker, shares in holdings.items():
+        prices = cache.get_prices(ticker, limit=35)
+        if not prices:
+            continue
+        price_map = {r["date"]: float(r["close"]) for r in prices}
+        sorted_dates_avail = sorted(price_map)
+        for d in dates:
+            price = price_map.get(d)
+            if price is None:
+                # Use the most recent price on or before this date
+                candidates = [k for k in sorted_dates_avail if k <= d]
+                if candidates:
+                    price = price_map[candidates[-1]]
+            if price is not None:
+                port_by_date[d] = port_by_date.get(d, 0.0) + shares * price
+
+    if not port_by_date:
+        return {"available": True, "spy": spy_series, "portfolio": None}
+
+    first = next((d for d in dates if d in port_by_date), None)
+    if not first or port_by_date[first] == 0:
+        return {"available": True, "spy": spy_series, "portfolio": None}
+
+    base = port_by_date[first]
+    portfolio_series = [
+        {"date": d, "pct": round((port_by_date[d] / base - 1) * 100, 2)}
+        for d in dates if d in port_by_date
+    ]
+    return {"available": True, "spy": spy_series, "portfolio": portfolio_series}
+
+
 @router.get("/api/history/{ticker}")
 async def get_history(ticker: str):
     active_tickers = cache.get_active_tickers(TICKERS)

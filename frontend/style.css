@@ -617,6 +617,20 @@ main {
   border-top: 1px solid var(--border);
 }
 
+.benchmark-body {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.benchmark-sparkline {
+  display: block;
+  margin-top: 0.3rem;
+  border: 1px solid var(--border2);
+  background: var(--surface);
+}
+
 .benchmark-table {
   width: auto;
   border-collapse: collapse;
