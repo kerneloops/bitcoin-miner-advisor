@@ -390,7 +390,7 @@ checkExportStatus();
 
 function drawSparkline(spySeries, portfolioSeries) {
   if (!spySeries || spySeries.length < 2) return "";
-  const W = 240, H = 68, PX = 6, PY = 6;
+  const W = 600, H = 100, PX = 8, PY = 10;
 
   const allPcts = [
     ...spySeries.map(d => d.pct),
@@ -437,7 +437,7 @@ function drawSparkline(spySeries, portfolioSeries) {
     <line x1="${lx}" y1="20" x2="${lx + 10}" y2="20" stroke="${portColor}" stroke-width="1.5"/>
     <text x="${lx + 13}" y="23" fill="#4a6644" font-size="7.5" font-family="JetBrains Mono,monospace">PORT</text>` : ""}`;
 
-  return `<svg class="benchmark-sparkline" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
+  return `<svg class="benchmark-sparkline" width="100%" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
     ${zero}
     <path d="${spyD}" fill="none" stroke="#008f4a" stroke-width="1.5" stroke-linejoin="round" opacity="0.75"/>
     ${portLine}

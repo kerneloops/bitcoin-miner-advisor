@@ -626,7 +626,9 @@ main {
 
 .benchmark-sparkline {
   display: block;
-  margin-top: 0.3rem;
+  flex: 1;
+  min-width: 0;
+  height: 90px;
   border: 1px solid var(--border2);
   background: var(--surface);
 }
