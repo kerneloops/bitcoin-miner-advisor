@@ -891,10 +891,11 @@ header {
 
 .chat-bubble {
   max-width: 72%;
-  padding: 0.55rem 0.85rem;
+  padding: 0.6rem 0.95rem;
   font-size: 0.82rem;
-  line-height: 1.5;
-  border: 1px solid var(--border2);
+  line-height: 1.65;
+  border: 1px solid transparent;
+  border-radius: 6px;
   white-space: pre-wrap;
   word-break: break-word;
 }
@@ -903,12 +904,15 @@ header {
   background: var(--green-dim);
   color: var(--bg);
   border-color: var(--green-dim);
+  border-bottom-right-radius: 2px;
 }
 .chat-bubble.assistant {
   align-self: flex-start;
   background: var(--surface);
   color: var(--text);
+  border-color: var(--border2);
   border-left: 2px solid var(--green-dim);
+  border-bottom-left-radius: 2px;
 }
 .chat-bubble-time {
   font-size: 0.58rem;
