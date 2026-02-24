@@ -102,7 +102,7 @@ async def api_login(body: AuthLoginIn, request: Request):
 
 @router.post("/api/auth/register")
 async def api_register(body: AuthRegisterIn, request: Request):
-    max_users = int(os.getenv("MAX_USERS", "5"))
+    max_users = int(os.getenv("MAX_USERS", "20"))
     was_first = user_store.is_first_user()
     try:
         result = user_store.create_user(body.username, body.password, max_users)
@@ -715,6 +715,49 @@ def update_cash(body: CashIn):
     else:
         raise HTTPException(400, f"Unknown action '{body.action}'. Use set/deposit/withdraw.")
     return {"balance": cache.get_cash()}
+
+
+# ── Admin ─────────────────────────────────────────────────────────────────────
+
+@router.get("/admin")
+def admin_page():
+    return FileResponse(_frontend / "admin.html", headers=_NO_CACHE)
+
+
+@router.get("/api/admin/users")
+def admin_list_users():
+    primary_id = user_store.get_primary_user_id()
+    current_uid = cache.get_current_user_id()
+    if current_uid != primary_id:
+        raise HTTPException(403, "Admin only")
+    return {
+        "users": user_store.list_users(),
+        "primary_id": primary_id,
+        "max_users": int(os.getenv("MAX_USERS", "20")),
+    }
+
+
+@router.post("/api/admin/users/{user_id}/active")
+async def admin_set_active(user_id: str, request: Request):
+    primary_id = user_store.get_primary_user_id()
+    current_uid = cache.get_current_user_id()
+    if current_uid != primary_id:
+        raise HTTPException(403, "Admin only")
+    if user_id == primary_id:
+        raise HTTPException(400, "Cannot deactivate your own account")
+    body = await request.json()
+    user_store.set_user_active(user_id, bool(body.get("is_active", True)))
+    return {"ok": True}
+
+
+@router.post("/api/admin/users/{user_id}/revoke")
+def admin_revoke_sessions(user_id: str):
+    primary_id = user_store.get_primary_user_id()
+    current_uid = cache.get_current_user_id()
+    if current_uid != primary_id:
+        raise HTTPException(403, "Admin only")
+    user_store.revoke_sessions(user_id)
+    return {"ok": True}
 
 
 # ── Google Sheets export ──────────────────────────────────────────────────────

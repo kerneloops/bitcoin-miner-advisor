@@ -153,6 +153,35 @@ def delete_session(token: str | None) -> None:
         conn.execute("DELETE FROM sessions WHERE token = ?", (token,))
 
 
+def list_users() -> list[dict]:
+    """Return all users with session count and latest last_seen."""
+    with _get_conn() as conn:
+        rows = conn.execute("""
+            SELECT u.id, u.username, u.created_at, u.is_active,
+                   COUNT(s.token)  AS session_count,
+                   MAX(s.last_seen) AS last_seen
+            FROM users u
+            LEFT JOIN sessions s ON s.user_id = u.id
+            GROUP BY u.id
+            ORDER BY u.created_at ASC
+        """).fetchall()
+    return [dict(r) for r in rows]
+
+
+def set_user_active(user_id: str, is_active: bool) -> None:
+    with _get_conn() as conn:
+        conn.execute(
+            "UPDATE users SET is_active = ? WHERE id = ?",
+            (1 if is_active else 0, user_id),
+        )
+
+
+def revoke_sessions(user_id: str) -> None:
+    """Delete all sessions for a user (forces re-login on next request)."""
+    with _get_conn() as conn:
+        conn.execute("DELETE FROM sessions WHERE user_id = ?", (user_id,))
+
+
 def claim_legacy_data(user_id: str) -> None:
     """Assign all rows with user_id='' in cache.db to this user."""
     from .cache import get_conn as _cache_conn

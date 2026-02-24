@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hash &amp; Burn — Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="icon" href="/static/favicon.ico" type="image/x-icon" />
+  <link rel="stylesheet" href="/static/style.css?v=52" />
+  <style>
+    .admin-wrap {
+      max-width: 860px;
+      margin: 2.5rem auto;
+      padding: 0 1rem;
+    }
+    .admin-header {
+      margin-bottom: 2rem;
+    }
+    .admin-logo {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--green);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+    .admin-sub {
+      font-size: 0.6rem;
+      color: var(--muted);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-top: 0.2rem;
+    }
+    .admin-title {
+      font-size: 0.6rem;
+      color: var(--sell);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-top: 0.25rem;
+    }
+    .admin-stats {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      margin: 1.5rem 0 1rem;
+      padding: 0.6rem 0.9rem;
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      font-size: 0.65rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+    .admin-stat-val {
+      color: var(--green);
+      font-weight: 700;
+      font-size: 0.85rem;
+    }
+    .admin-stat-label { color: var(--muted); }
+    .admin-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.72rem;
+    }
+    .admin-table th {
+      text-align: left;
+      font-size: 0.58rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border2);
+      padding: 0.4rem 0.7rem;
+    }
+    .admin-table td {
+      padding: 0.55rem 0.7rem;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+      color: var(--text);
+    }
+    .admin-table tr:last-child td { border-bottom: none; }
+    .admin-table tr.inactive td { opacity: 0.45; }
+    .badge {
+      display: inline-block;
+      font-size: 0.55rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 0.15rem 0.45rem;
+      font-weight: 700;
+    }
+    .badge-active  { color: var(--green);  border: 1px solid var(--green-dim);  }
+    .badge-inactive{ color: var(--sell);   border: 1px solid var(--sell);       }
+    .badge-you     { color: var(--muted);  border: 1px solid var(--border2);    margin-left: 0.4rem; }
+    .btn-sm {
+      font-family: inherit;
+      font-size: 0.58rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 0.25rem 0.6rem;
+      border: 1px solid var(--border2);
+      background: none;
+      color: var(--muted);
+      cursor: pointer;
+      margin-right: 0.3rem;
+    }
+    .btn-sm:hover:not(:disabled) { border-color: var(--text); color: var(--text); }
+    .btn-sm.danger:hover:not(:disabled) { border-color: var(--sell); color: var(--sell); }
+    .btn-sm:disabled { opacity: 0.35; cursor: default; }
+    .admin-error {
+      font-size: 0.65rem;
+      color: var(--sell);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin: 1rem 0;
+      display: none;
+    }
+    .admin-back {
+      display: inline-block;
+      margin-top: 2rem;
+      font-size: 0.6rem;
+      color: var(--muted);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      text-decoration: none;
+    }
+    .admin-back:hover { color: var(--text); }
+    .toast {
+      position: fixed;
+      bottom: 3rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--surface);
+      border: 1px solid var(--green-dim);
+      color: var(--green);
+      font-size: 0.65rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 0.5rem 1.2rem;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.2s;
+      z-index: 100;
+    }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body style="background:var(--bg)">
+  <div class="admin-wrap">
+    <div class="admin-header">
+      <div class="admin-logo">Hash &amp; Burn</div>
+      <div class="admin-sub">Lapio Trading Terminal</div>
+      <div class="admin-title">User Management</div>
+    </div>
+
+    <div class="admin-error" id="adminError"></div>
+
+    <div class="admin-stats" id="adminStats" style="display:none">
+      <span><span class="admin-stat-val" id="statActive">—</span> <span class="admin-stat-label">active</span></span>
+      <span><span class="admin-stat-val" id="statTotal">—</span> <span class="admin-stat-label">total registered</span></span>
+      <span><span class="admin-stat-val" id="statSlots">—</span> <span class="admin-stat-label">slots remaining</span></span>
+    </div>
+
+    <table class="admin-table" id="userTable" style="display:none">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Username</th>
+          <th>Joined</th>
+          <th>Last seen</th>
+          <th>Sessions</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="userTableBody"></tbody>
+    </table>
+
+    <a href="/" class="admin-back">← Back to terminal</a>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    let _primaryId = null;
+
+    function relativeTime(iso) {
+      if (!iso) return '—';
+      const diff = Date.now() - new Date(iso).getTime();
+      const m = Math.floor(diff / 60000);
+      if (m < 2)  return 'just now';
+      if (m < 60) return m + 'm ago';
+      const h = Math.floor(m / 60);
+      if (h < 24) return h + 'h ago';
+      const d = Math.floor(h / 24);
+      return d + 'd ago';
+    }
+
+    function shortDate(iso) {
+      if (!iso) return '—';
+      return iso.slice(0, 10);
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2000);
+    }
+
+    async function load() {
+      const errEl = document.getElementById('adminError');
+      try {
+        const r = await fetch('/api/admin/users');
+        if (r.status === 403) {
+          errEl.textContent = 'Access restricted to the primary account.';
+          errEl.style.display = 'block';
+          return;
+        }
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        const data = await r.json();
+        _primaryId = data.primary_id;
+        render(data);
+      } catch (e) {
+        errEl.textContent = 'Failed to load users: ' + e.message;
+        errEl.style.display = 'block';
+      }
+    }
+
+    function render(data) {
+      const { users, primary_id, max_users } = data;
+      const active = users.filter(u => u.is_active).length;
+
+      document.getElementById('statActive').textContent = active;
+      document.getElementById('statTotal').textContent = users.length;
+      document.getElementById('statSlots').textContent = Math.max(0, max_users - active);
+      document.getElementById('adminStats').style.display = 'flex';
+
+      const tbody = document.getElementById('userTableBody');
+      tbody.innerHTML = '';
+
+      users.forEach((u, i) => {
+        const isYou = u.id === primary_id;
+        const tr = document.createElement('tr');
+        if (!u.is_active) tr.classList.add('inactive');
+
+        const statusBadge = u.is_active
+          ? '<span class="badge badge-active">Active</span>'
+          : '<span class="badge badge-inactive">Inactive</span>';
+        const youBadge = isYou ? '<span class="badge badge-you">You</span>' : '';
+
+        const toggleLabel = u.is_active ? 'Deactivate' : 'Activate';
+        const toggleDisabled = isYou ? 'disabled title="Cannot deactivate your own account"' : '';
+
+        tr.innerHTML = `
+          <td style="color:var(--muted)">${i + 1}</td>
+          <td><strong>${escHtml(u.username)}</strong>${youBadge}</td>
+          <td style="color:var(--muted)">${shortDate(u.created_at)}</td>
+          <td style="color:var(--muted)">${relativeTime(u.last_seen)}</td>
+          <td style="color:var(--muted)">${u.session_count}</td>
+          <td>${statusBadge}</td>
+          <td>
+            <button class="btn-sm" onclick="revokeSession('${u.id}')" ${u.session_count === 0 ? 'disabled' : ''}>Revoke sessions</button>
+            <button class="btn-sm danger" onclick="toggleActive('${u.id}', ${!u.is_active})" ${toggleDisabled}>${toggleLabel}</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      document.getElementById('userTable').style.display = 'table';
+    }
+
+    function escHtml(s) {
+      return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    async function revokeSession(userId) {
+      const r = await fetch(`/api/admin/users/${userId}/revoke`, { method: 'POST' });
+      if (r.ok) { showToast('Sessions revoked'); load(); }
+    }
+
+    async function toggleActive(userId, newState) {
+      const r = await fetch(`/api/admin/users/${userId}/active`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_active: newState }),
+      });
+      if (r.ok) { showToast(newState ? 'User activated' : 'User deactivated'); load(); }
+    }
+
+    load();
+  </script>
+</body>
+</html>
