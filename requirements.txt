@@ -1,6 +1,6 @@
 fastapi
 uvicorn[standard]
-httpx
+httpx[http2]
 anthropic
 pandas
 numpy
@@ -10,3 +10,4 @@ google-auth-httplib2
 google-api-python-client
 apscheduler
 python-multipart
+PyJWT[crypto]

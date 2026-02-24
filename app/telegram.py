@@ -59,6 +59,25 @@ async def _build_context() -> str:
     return "\n".join(lines) if lines else "No cached data available yet — run an analysis first."
 
 
+async def generate_reply(user_text: str) -> str:
+    """Generate a Claude reply for the given user text. Stores both messages in chat history."""
+    from . import cache
+    cache.add_chat_message("user", user_text)
+    context = await _build_context()
+    try:
+        resp = await _claude.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=500,
+            system=BOT_SYSTEM + f"\n\nCurrent data:\n{context}",
+            messages=[{"role": "user", "content": user_text}],
+        )
+        reply = resp.content[0].text.strip()
+    except Exception as e:
+        reply = f"Sorry, I hit an error: {e}"
+    cache.add_chat_message("bot", reply)
+    return reply
+
+
 async def handle_update(update: dict):
     """Process an incoming Telegram update and reply via Claude."""
     message = update.get("message") or update.get("edited_message")
@@ -85,18 +104,7 @@ async def handle_update(update: dict):
         )
         return
 
-    context = await _build_context()
-    try:
-        resp = await _claude.messages.create(
-            model="claude-haiku-4-5-20251001",
-            max_tokens=500,
-            system=BOT_SYSTEM + f"\n\nCurrent data:\n{context}",
-            messages=[{"role": "user", "content": text}],
-        )
-        reply = resp.content[0].text.strip()
-    except Exception as e:
-        reply = f"Sorry, I hit an error: {e}"
-
+    reply = await generate_reply(text)
     await send_message(reply)
 
 
@@ -143,6 +151,7 @@ async def send_message(text: str) -> tuple[bool, str]:
 
 async def notify_signals(tickers_data: dict):
     """Send alert for any BUY/SELL signals. tickers_data is the routes response dict."""
+    from . import cache, push
     alerts = [
         (t, d)
         for t, d in tickers_data.items()
@@ -165,4 +174,28 @@ async def notify_signals(tickers_data: dict):
             line += f"\n   {d['reasoning'][:120]}…"
         lines.append(line)
     lines.append("\nlapio.dev")
-    await send_message("\n".join(lines))  # ignore result for bulk alerts
+    alert_text = "\n".join(lines)
+
+    # Store in chat history so the iOS app shows it
+    cache.add_chat_message("bot", alert_text)
+
+    await send_message(alert_text)  # ignore result for bulk alerts
+
+    # Send push notifications to registered iOS devices
+    if push.is_configured():
+        tokens_json = cache.get_setting("push_device_tokens")
+        if tokens_json:
+            import json
+            try:
+                tokens = json.loads(tokens_json)
+            except Exception:
+                tokens = []
+            push_title = f"LAPIO Alert — {date.today()}"
+            push_body = ", ".join(
+                f"{t} {d['recommendation']}" for t, d in alerts
+            )
+            for token in tokens:
+                try:
+                    await push.send_push(token, push_title, push_body)
+                except Exception as e:
+                    logger.warning(f"Push notification failed for token ...{token[-6:]}: {e}")

@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 from pathlib import Path
@@ -14,7 +15,7 @@ from .data import (
 from .macro import fetch_all_macro
 from .miners import fetch_miner_fundamentals
 from .technicals import add_relative_strength, compute_signals
-from . import cache, google_workspace, sizing, telegram
+from . import cache, google_workspace, push, sizing, telegram
 from .auth import make_token, verify_token
 
 router = APIRouter()
@@ -85,6 +86,59 @@ class SettingsIn(BaseModel):
 class CashIn(BaseModel):
     action: str   # "set" | "deposit" | "withdraw"
     amount: float
+
+
+class ChatSendIn(BaseModel):
+    text: str
+
+
+class PushRegisterIn(BaseModel):
+    token: str
+
+
+def _mobile_auth(request: Request) -> bool:
+    """Return True if request has a valid session cookie OR X-App-Password header."""
+    cookie = request.cookies.get("session")
+    if verify_token(cookie):
+        return True
+    app_password = os.getenv("APP_PASSWORD", "")
+    header_pw = request.headers.get("X-App-Password", "")
+    if app_password and header_pw == app_password:
+        return True
+    return False
+
+
+@router.get("/api/chat/messages")
+async def get_chat_messages(request: Request, limit: int = 100):
+    if not _mobile_auth(request):
+        raise HTTPException(401, "Unauthorized")
+    return cache.get_chat_messages(limit=limit)
+
+
+@router.post("/api/chat/send")
+async def send_chat_message(request: Request, body: ChatSendIn):
+    if not _mobile_auth(request):
+        raise HTTPException(401, "Unauthorized")
+    text = body.text.strip()
+    if not text:
+        raise HTTPException(400, "text must not be empty")
+    reply = await telegram.generate_reply(text)
+    return {"ok": True, "reply": reply}
+
+
+@router.post("/api/push/register")
+async def register_push_token(request: Request, body: PushRegisterIn):
+    if not _mobile_auth(request):
+        raise HTTPException(401, "Unauthorized")
+    token = body.token.strip()
+    if not token:
+        raise HTTPException(400, "token must not be empty")
+    existing_json = cache.get_setting("push_device_tokens")
+    tokens: list = json.loads(existing_json) if existing_json else []
+    if token not in tokens:
+        tokens.append(token)
+        cache.set_setting("push_device_tokens", json.dumps(tokens))
+    return {"ok": True}
 
 
 @router.post("/api/analyze")

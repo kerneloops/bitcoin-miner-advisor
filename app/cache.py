@@ -67,6 +67,14 @@ def init_db():
                 value TEXT
             )
         """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS chat_messages (
+                id   INTEGER PRIMARY KEY AUTOINCREMENT,
+                role TEXT NOT NULL,
+                text TEXT NOT NULL,
+                ts   TEXT NOT NULL
+            )
+        """)
 
         # One-time migration: backfill cash_balance from all existing trades.
         # Only runs if cash_balance has never been set.
@@ -331,6 +339,25 @@ def get_all_holdings() -> dict:
     with get_conn() as conn:
         rows = conn.execute("SELECT ticker, shares FROM holdings").fetchall()
     return {r["ticker"]: r["shares"] for r in rows}
+
+
+def add_chat_message(role: str, text: str) -> None:
+    from datetime import datetime, timezone
+    ts = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    with get_conn() as conn:
+        conn.execute(
+            "INSERT INTO chat_messages (role, text, ts) VALUES (?, ?, ?)",
+            (role, text, ts),
+        )
+
+
+def get_chat_messages(limit: int = 100) -> list[dict]:
+    with get_conn() as conn:
+        rows = conn.execute(
+            "SELECT id, role, text, ts FROM chat_messages ORDER BY id DESC LIMIT ?",
+            (limit,),
+        ).fetchall()
+    return [dict(r) for r in reversed(rows)]
 
 
 def get_analysis_history(ticker: str, limit: int = 12) -> list[dict]:

@@ -1,3 +1,4 @@
+import hmac
 import logging
 import os
 from contextlib import asynccontextmanager
@@ -25,7 +26,9 @@ class AuthMiddleware(BaseHTTPMiddleware):
         # Always allow login page, login POST, static assets, and Telegram webhook
         if path in ("/login", "/logout", "/api/telegram/webhook") or path.startswith("/static/"):
             return await call_next(request)
-        if not verify_token(request.cookies.get("session")):
+        app_password = os.getenv("APP_PASSWORD", "")
+        header_pw = request.headers.get("X-App-Password", "")
+        if not verify_token(request.cookies.get("session")) and not (app_password and hmac.compare_digest(header_pw, app_password)):
             return RedirectResponse(url="/login", status_code=302)
         return await call_next(request)
 
