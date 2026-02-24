@@ -1237,30 +1237,30 @@ header {
   z-index: 2010;
   background: var(--surface);
   border: 1px solid var(--green);
-  padding: 1.2rem 1.4rem;
-  max-width: 340px;
+  padding: 1.8rem 2rem;
+  max-width: 520px;
   width: calc(100vw - 2rem);
-  box-shadow: 0 0 24px rgba(0,210,106,0.18);
+  box-shadow: 0 0 32px rgba(0,210,106,0.2);
 }
 .tour-step-label {
-  font-size: 0.55rem;
+  font-size: 0.58rem;
   color: var(--green);
-  letter-spacing: 0.16em;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
-  margin-bottom: 0.35rem;
+  margin-bottom: 0.4rem;
 }
 .tour-title {
-  font-size: 0.82rem;
+  font-size: 1rem;
   font-weight: 700;
   color: var(--text);
   letter-spacing: 0.05em;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.6rem;
 }
 .tour-body {
-  font-size: 0.67rem;
+  font-size: 0.75rem;
   color: var(--muted);
-  line-height: 1.65;
-  margin-bottom: 1rem;
+  line-height: 1.7;
+  margin-bottom: 1.2rem;
   letter-spacing: 0.02em;
 }
 .tour-footer {
@@ -1272,9 +1272,9 @@ header {
   background: var(--green);
   color: var(--bg);
   border: none;
-  padding: 0.35rem 0.9rem;
+  padding: 0.5rem 1.2rem;
   font-family: inherit;
-  font-size: 0.6rem;
+  font-size: 0.65rem;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;

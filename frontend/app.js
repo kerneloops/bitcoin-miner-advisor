@@ -1278,10 +1278,9 @@ const _TOUR_STEPS = [
     body: 'Each card shows live signals for a ticker: RSI, moving averages, BTC correlation, and the AI recommendation. Green is bullish, red is bearish. Cards fill in after your first analysis run.',
   },
   {
-    target: '#macroPanel',
-    title: 'Macro Signals',
-    body: 'Broader market context: Fear & Greed, BTC funding rates, Puell Multiple, DVOL, and more. These appear after your first analysis run and help frame the ticker-level signals.',
-    fallback: '#macroBias',
+    target: '#chatSection',
+    title: 'LAPIO Advisor',
+    body: 'Ask LAPIO Advisor anything about your positions, what signals mean, or what to watch. It has full context: your portfolio, recent signals, macro data, and the latest analysis.',
   },
   {
     target: '#tradeLogSection',
@@ -1289,9 +1288,10 @@ const _TOUR_STEPS = [
     body: 'Log every buy and sell here. The trade log is the single source of truth — it auto-computes cost basis, P&L, and drives the position sizing guidance shown on the cards.',
   },
   {
-    target: '#chatSection',
-    title: 'LAPIO Advisor',
-    body: 'Ask LAPIO Advisor anything about your positions, what signals mean, or what to watch. It has full context: your portfolio, recent signals, macro data, and the latest analysis.',
+    target: '#macroPanel',
+    title: 'Macro Signals',
+    body: 'After your first analysis run, macro context appears here: Fear & Greed, BTC funding rates, Puell Multiple, DVOL, and more — helping you frame the ticker-level signals.',
+    fallback: '#macroBias',
   },
 ];
 
