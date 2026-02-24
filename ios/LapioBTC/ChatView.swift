@@ -12,6 +12,7 @@ private let termBorder  = Color(hex: "#2a2a2a")
 
 struct ChatView: View {
     @ObservedObject var viewModel: ChatViewModel
+    var onLogout: (() -> Void)? = nil
     @State private var inputText = ""
     @FocusState private var inputFocused: Bool
 
@@ -30,6 +31,18 @@ struct ChatView: View {
             .toolbarColorScheme(.dark, for: .navigationBar)
             .toolbarBackground(termSurface, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        onLogout?()
+                    } label: {
+                        Text("LOGOUT")
+                            .font(.system(size: 10, design: .monospaced).weight(.bold))
+                            .foregroundStyle(Color(red: 1, green: 0.36, blue: 0.36))
+                            .tracking(1)
+                    }
+                }
+            }
         }
         .onAppear { viewModel.startPolling() }
         .onDisappear { viewModel.stopPolling() }
