@@ -890,7 +890,6 @@ header {
   border-radius: 50%;
   background: var(--green);
   box-shadow: 0 0 6px var(--green);
-  animation: blink 1.8s step-end infinite;
   flex-shrink: 0;
 }
 
