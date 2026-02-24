@@ -518,9 +518,9 @@ main {
 .tier-btn.active { background: var(--green); color: var(--bg); font-weight: 700; text-shadow: none; }
 
 .settings-capital-input {
-  background: var(--bg);
+  background: var(--surface);
   border: 1px solid var(--border2);
-  color: var(--text);
+  color: var(--green);
   padding: 0.28rem 0.55rem;
   font-family: inherit;
   font-size: 0.7rem;
@@ -528,6 +528,11 @@ main {
   width: 130px;
 }
 .settings-capital-input:focus { border-color: var(--green-dim); }
+.settings-capital-input::-webkit-inner-spin-button,
+.settings-capital-input::-webkit-outer-spin-button {
+  opacity: 1;
+  filter: invert(48%) sepia(79%) saturate(2476%) hue-rotate(110deg) brightness(118%) contrast(90%);
+}
 
 .settings-status {
   font-size: 0.65rem;
