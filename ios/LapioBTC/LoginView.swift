@@ -26,7 +26,7 @@ struct LoginView: View {
                         .foregroundColor(green)
                         .tracking(3)
                         .padding(.bottom, 4)
-                    Text("LAPIO TRADING TERMINAL")
+                    Text("LAPIO SIGNAL TERMINAL")
                         .font(.system(size: 10, design: .monospaced))
                         .foregroundColor(.gray)
                         .tracking(2)

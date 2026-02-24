@@ -815,7 +815,7 @@ async function saveSettings(body) {
 // ── Boot sequence ──
 const _statusEl = document.getElementById("status");
 const _bootMsgs = [
-  "LAPIO TRADING TERMINAL v2.0",
+  "LAPIO SIGNAL TERMINAL v2.0",
   "CONNECTING TO MARKET DATA...",
   "LOADING PORTFOLIO...",
   "SYSTEM READY.",
