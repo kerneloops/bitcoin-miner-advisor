@@ -25,11 +25,13 @@ struct ContentView: View {
                     .tabItem {
                         Label("Dashboard", systemImage: "chart.line.uptrend.xyaxis")
                     }
+                    .environment(\.symbolVariants, .none)
 
                     ChatView(viewModel: chatVM, onLogout: { Task { await auth.logout() } })
                         .tabItem {
                             Label("LAPIO ADVISOR", systemImage: "bubble.left.and.bubble.right")
                         }
+                        .environment(\.symbolVariants, .none)
                 }
                 .toolbarBackground(Color(red: 0.067, green: 0.067, blue: 0.067), for: .tabBar)
                 .toolbarBackground(.visible, for: .tabBar)

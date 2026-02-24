@@ -8,15 +8,18 @@ struct LapioBTCApp: App {
         let appearance = UITabBarAppearance()
         appearance.configureWithOpaqueBackground()
         appearance.backgroundColor = UIColor(red: 0.067, green: 0.067, blue: 0.067, alpha: 1) // #111111
-        appearance.stackedLayoutAppearance.normal.iconColor = UIColor(white: 0.4, alpha: 1)
+        let green = UIColor(red: 0, green: 0.824, blue: 0.416, alpha: 1) // #00d26a
+        let muted = UIColor(white: 0.55, alpha: 1)
+
+        appearance.stackedLayoutAppearance.normal.iconColor = muted
         appearance.stackedLayoutAppearance.normal.titleTextAttributes = [
-            .foregroundColor: UIColor(white: 0.4, alpha: 1),
-            .font: UIFont.monospacedSystemFont(ofSize: 9, weight: .regular),
+            .foregroundColor: muted,
+            .font: UIFont.monospacedSystemFont(ofSize: 13, weight: .regular),
         ]
-        appearance.stackedLayoutAppearance.selected.iconColor = UIColor(red: 0, green: 0.824, blue: 0.416, alpha: 1) // #00d26a
+        appearance.stackedLayoutAppearance.selected.iconColor = green
         appearance.stackedLayoutAppearance.selected.titleTextAttributes = [
-            .foregroundColor: UIColor(red: 0, green: 0.824, blue: 0.416, alpha: 1),
-            .font: UIFont.monospacedSystemFont(ofSize: 9, weight: .bold),
+            .foregroundColor: green,
+            .font: UIFont.monospacedSystemFont(ofSize: 13, weight: .bold),
         ]
         UITabBar.appearance().standardAppearance = appearance
         UITabBar.appearance().scrollEdgeAppearance = appearance
