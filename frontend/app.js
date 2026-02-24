@@ -1322,6 +1322,11 @@ function tourNav(dir) {
 
 function _tourCleanup() {
   document.querySelectorAll('.tour-highlight').forEach(el => el.classList.remove('tour-highlight'));
+  // Restore any ancestor z-indexes we elevated
+  document.querySelectorAll('[data-tour-z]').forEach(el => {
+    el.style.zIndex = el.dataset.tourZ;
+    delete el.dataset.tourZ;
+  });
   const overlay = document.getElementById('tourOverlay');
   if (overlay) overlay.classList.remove('active');
   const card = document.getElementById('tourCard');
@@ -1341,6 +1346,14 @@ function _tourRender() {
   if (isVisible) {
     target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     target.classList.add('tour-highlight');
+    // If the target lives inside a positioned ancestor with its own z-index
+    // (e.g. the sticky header), elevate that ancestor above the overlay so
+    // the highlight is actually visible.
+    const headerEl = document.querySelector('header');
+    if (headerEl && headerEl.contains(target)) {
+      headerEl.dataset.tourZ = headerEl.style.zIndex || '';
+      headerEl.style.zIndex = '2002';
+    }
   }
 
   const overlay = document.getElementById('tourOverlay');
