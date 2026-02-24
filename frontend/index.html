@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="icon" href="/static/favicon.ico" type="image/x-icon" />
-  <link rel="stylesheet" href="/static/style.css?v=52" />
+  <link rel="stylesheet" href="/static/style.css?v=53" />
 </head>
 <body>
   <header>
@@ -25,10 +25,6 @@
         <span id="status" class="status"></span>
         <span id="exportStatus" class="status export-status"></span>
       </div>
-      <nav class="page-tabs">
-        <a href="/tech" class="page-tab">Tech Stocks</a>
-        <a href="/" class="page-tab active">Bitcoin Miners</a>
-      </nav>
       <div id="btcTicker" class="btc-ticker">
         <span class="btc-pair">BTC</span>
         <span class="btc-price" id="btcUsdPrice">—</span>
@@ -45,6 +41,11 @@
       <span id="liveClock"></span>
     </div>
   </header>
+
+  <nav class="page-tabs">
+    <a href="/tech" class="page-tab">Tech Stocks</a>
+    <a href="/" class="page-tab active">Bitcoin Miners</a>
+  </nav>
 
   <!-- Patience modal -->
   <div id="patienceModal" style="display:none;position:fixed;inset:0;z-index:1000;align-items:center;justify-content:center;pointer-events:none;">

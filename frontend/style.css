@@ -73,8 +73,8 @@ header {
   padding: 0 1.5rem;
   height: 48px;
   display: flex;
-  align-items: stretch;
-  gap: 0;
+  align-items: center;
+  gap: 1.25rem;
 }
 
 .btc-ticker {
@@ -110,15 +110,18 @@ header {
 .btc-sep { color: var(--border2); padding: 0 0.4rem; }
 .btc-updated { color: var(--muted); font-size: 0.58rem; margin-left: auto; }
 
-/* ── Page tab bar (inline in header) ── */
+/* ── Page tab bar (sticky row below header) ── */
 .page-tabs {
+  position: sticky;
+  top: 48px;
+  z-index: 98;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border2);
   display: flex;
-  align-items: stretch;
-  border-left: 1px solid var(--border2);
-  border-right: 1px solid var(--border2);
+  padding-left: 1.5rem;
 }
 .page-tab {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   font-size: 0.72rem;
   font-weight: 700;
@@ -126,7 +129,7 @@ header {
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--dim);
-  padding: 0 1.3rem;
+  padding: 0.65rem 1.3rem;
   text-decoration: none;
   border-bottom: 3px solid transparent;
   transition: color 0.12s, border-color 0.12s;
@@ -146,9 +149,6 @@ h1 {
   letter-spacing: 0.18em;
   text-transform: uppercase;
   white-space: nowrap;
-  display: flex;
-  align-items: center;
-  padding-right: 1.25rem;
 }
 
 
@@ -158,7 +158,7 @@ h1 {
   display: flex;
   align-items: center;
   gap: 0.6rem;
-  padding: 0 1.25rem;
+  flex: 1;
 }
 
 #liveClock {
