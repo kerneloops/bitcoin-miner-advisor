@@ -1008,7 +1008,7 @@ function outcomeIcon(outcome) {
 
   function startPolling() {
     stopPolling();
-    _pollTimer = setInterval(() => fetchMessages(false), 5000);
+    _pollTimer = setInterval(() => { if (!_sending) fetchMessages(false); }, 5000);
   }
 
   function stopPolling() {
