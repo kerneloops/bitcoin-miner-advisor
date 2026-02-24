@@ -33,6 +33,27 @@ _PUBLIC_PATHS = {
 }
 
 
+class CSRFMiddleware(BaseHTTPMiddleware):
+    """Reject state-changing API requests whose Origin doesn't match the host."""
+    _SAFE_METHODS = {"GET", "HEAD", "OPTIONS"}
+
+    async def dispatch(self, request: Request, call_next):
+        if request.method in self._SAFE_METHODS:
+            return await call_next(request)
+        if not request.url.path.startswith("/api/"):
+            return await call_next(request)
+        # Auth endpoints are rate-limited separately; skip CSRF for them
+        _csrf_exempt = {"/api/auth/login", "/api/auth/register",
+                        "/api/auth/logout", "/api/telegram/webhook"}
+        if request.url.path in _csrf_exempt:
+            return await call_next(request)
+        origin = request.headers.get("Origin") or request.headers.get("Referer", "")
+        host = request.headers.get("Host", "")
+        if origin and host and host not in origin:
+            return JSONResponse({"detail": "CSRF check failed"}, status_code=403)
+        return await call_next(request)
+
+
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         response = await call_next(request)
@@ -171,6 +192,7 @@ app.state.limiter = _limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
 app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(CSRFMiddleware)
 app.add_middleware(AuthMiddleware)
 
 _users.init_users_db()

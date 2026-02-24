@@ -314,10 +314,12 @@
           errEl.textContent = 'Invalid username or password.';
         } else if (resp.status === 403 || body.includes('beta_full')) {
           errEl.textContent = 'Beta is full — check back later.';
-        } else if (resp.status === 409 || body.includes('username_taken')) {
-          errEl.textContent = 'Username already taken.';
+        } else if (resp.status === 400 || body.includes('registration_failed')) {
+          errEl.textContent = 'Registration failed — try a different username.';
+        } else if (body.includes('password_too_weak')) {
+          errEl.textContent = 'Password must include letters and at least one number or symbol.';
         } else if (resp.status === 422 || body.includes('password_too_short')) {
-          errEl.textContent = 'Password must be at least 8 characters.';
+          errEl.textContent = 'Password must be at least 10 characters.';
         } else {
           errEl.textContent = 'Something went wrong. Try again.';
         }

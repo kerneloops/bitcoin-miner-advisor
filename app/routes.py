@@ -117,9 +117,10 @@ async def api_register(body: AuthRegisterIn, request: Request):
         if e.code == "beta_full":
             raise HTTPException(403, "beta_full")
         elif e.code == "username_taken":
-            raise HTTPException(409, "username_taken")
-        elif e.code == "password_too_short":
-            raise HTTPException(422, "password_too_short")
+            # Generic 400 — don't reveal whether the username exists
+            raise HTTPException(400, "registration_failed")
+        elif e.code in ("password_too_short", "password_too_weak"):
+            raise HTTPException(422, e.code)
         raise
     if was_first:
         user_store.claim_legacy_data(result["id"])

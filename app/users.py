@@ -71,9 +71,18 @@ def _hash_password(password: str, salt: str) -> str:
     ).hex()
 
 
-def create_user(username: str, password: str, max_users: int) -> dict:
-    if len(password) < 8:
+def _validate_password(password: str) -> None:
+    if len(password) < 10:
         raise RegistrationError("password_too_short")
+    import re
+    if not re.search(r'[A-Za-z]', password):
+        raise RegistrationError("password_too_weak")
+    if not re.search(r'[0-9!@#$%^&*()_+\-=\[\]{};:\'",.<>?/\\|`~]', password):
+        raise RegistrationError("password_too_weak")
+
+
+def create_user(username: str, password: str, max_users: int) -> dict:
+    _validate_password(password)
     with _get_conn() as conn:
         current_count = conn.execute(
             "SELECT COUNT(*) as n FROM users WHERE is_active = 1"
