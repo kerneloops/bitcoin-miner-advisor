@@ -1231,6 +1231,9 @@ header {
 
 .tour-card {
   position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
   z-index: 2010;
   background: var(--surface);
   border: 1px solid var(--green);

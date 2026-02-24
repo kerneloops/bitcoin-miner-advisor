@@ -1364,33 +1364,6 @@ function _tourRender() {
   `;
   document.body.appendChild(card);
 
-  // Position card near target (or centered if not visible)
-  if (isVisible) {
-    // Wait one tick so the card has dimensions
-    requestAnimationFrame(() => {
-      const rect   = target.getBoundingClientRect();
-      const cardW  = card.offsetWidth  || 340;
-      const cardH  = card.offsetHeight || 220;
-      const margin = 14;
-      const vw = window.innerWidth;
-      const vh = window.innerHeight;
-
-      let top = rect.bottom + margin;
-      if (top + cardH > vh - margin) top = rect.top - cardH - margin;
-      if (top < margin) top = margin;
-
-      let left = rect.left;
-      if (left + cardW > vw - margin) left = vw - cardW - margin;
-      if (left < margin) left = margin;
-
-      card.style.top  = top  + 'px';
-      card.style.left = left + 'px';
-    });
-  } else {
-    card.style.top       = '50%';
-    card.style.left      = '50%';
-    card.style.transform = 'translate(-50%, -50%)';
-  }
 }
 
 // Auto-trigger for first-time visitors (after boot sequence settles)
