@@ -987,6 +987,10 @@ function outcomeIcon(outcome) {
       });
       typing.remove();
       if (resp.ok) {
+        const data = await resp.json();
+        // Advance _lastMsgId past the server-stored user message so
+        // fetchMessages doesn't re-render it on top of the optimistic bubble.
+        if (data.user_msg_id) _lastMsgId = Math.max(_lastMsgId, data.user_msg_id);
         await fetchMessages(false);
       }
     } catch {

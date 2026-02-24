@@ -473,15 +473,17 @@ def get_all_holdings() -> dict:
     return {r["ticker"]: r["shares"] for r in rows}
 
 
-def add_chat_message(role: str, text: str) -> None:
+def add_chat_message(role: str, text: str) -> int:
+    """Insert a chat message and return its row id."""
     uid = _current_user_id.get()
     from datetime import datetime, timezone
     ts = datetime.now(timezone.utc).isoformat(timespec="seconds")
     with get_conn() as conn:
-        conn.execute(
+        cur = conn.execute(
             "INSERT INTO chat_messages (user_id, role, text, ts) VALUES (?, ?, ?, ?)",
             (uid, role, text, ts),
         )
+        return cur.lastrowid
 
 
 def get_chat_messages(limit: int = 100) -> list[dict]:
@@ -534,11 +536,3 @@ def get_analysis_history(ticker: str, limit: int = 12) -> list[dict]:
     return result
 
 
-def save_support_message(name: str, email: str, message: str) -> None:
-    from datetime import datetime, timezone
-    now = datetime.now(timezone.utc).isoformat(timespec="seconds")
-    with get_conn() as conn:
-        conn.execute(
-            "INSERT INTO support_messages (name, email, message, created_at) VALUES (?, ?, ?, ?)",
-            (name, email, message, now),
-        )

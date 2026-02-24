@@ -292,8 +292,8 @@ async def send_chat_message(body: ChatSendIn):
     text = body.text.strip()
     if not text:
         raise HTTPException(400, "text must not be empty")
-    reply = await telegram.generate_reply(text)
-    return {"ok": True, "reply": reply}
+    reply, user_msg_id = await telegram.generate_reply(text)
+    return {"ok": True, "reply": reply, "user_msg_id": user_msg_id}
 
 
 # ── Push notifications ────────────────────────────────────────────────────────

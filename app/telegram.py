@@ -150,10 +150,12 @@ async def _build_context() -> str:
     return "\n".join(lines) if lines else "No cached data available yet — run an analysis first."
 
 
-async def generate_reply(user_text: str) -> str:
-    """Generate a Claude reply, with tool use for live crypto prices. Stores messages in chat history."""
+async def generate_reply(user_text: str) -> tuple[str, int]:
+    """Generate a Claude reply, with tool use for live crypto prices.
+    Returns (reply_text, user_msg_id) — user_msg_id lets the frontend skip
+    the DB-stored user message it already rendered as an optimistic bubble."""
     from . import cache
-    cache.add_chat_message("user", user_text)
+    user_msg_id = cache.add_chat_message("user", user_text)
     context = await _build_context()
     system = BOT_SYSTEM + f"\n\nCurrent data:\n{context}"
     messages = [{"role": "user", "content": user_text}]
@@ -197,7 +199,7 @@ async def generate_reply(user_text: str) -> str:
         reply = f"Sorry, I hit an error: {e}"
 
     cache.add_chat_message("assistant", reply)
-    return reply
+    return reply, user_msg_id
 
 
 async def handle_update(update: dict):
@@ -226,7 +228,7 @@ async def handle_update(update: dict):
         )
         return
 
-    reply = await generate_reply(text)
+    reply, _ = await generate_reply(text)
     await send_message(reply)
 
 
