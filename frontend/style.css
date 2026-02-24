@@ -1218,3 +1218,28 @@ header {
   grid-column: 1 / -1;
   justify-self: start;
 }
+
+/* ── Mobile (WKWebView / narrow screens) ── */
+@media (max-width: 500px) {
+  html { font-size: 13px; }
+
+  /* Hide desktop-only chrome */
+  #fkeyBar   { display: none !important; }
+  #btcTicker { display: none; }
+  #liveClock { display: none; }
+
+  /* Remove bottom padding reserved for fkey bar */
+  main { padding-bottom: 1rem; }
+
+  /* Header: stack controls below h1 */
+  .header-inner { flex-wrap: wrap; gap: 0.4rem; padding: 0.6rem 1rem; }
+  h1 { font-size: 0.85rem; }
+  .controls { flex-wrap: wrap; gap: 0.4rem; }
+
+  /* Tabs: tighter */
+  .page-tabs-inner { padding: 0 1rem; }
+  .page-tab { padding: 0.5rem 1rem 0.5rem 0; font-size: 0.6rem; }
+
+  /* Cards: single column */
+  .dashboard { grid-template-columns: 1fr; }
+}

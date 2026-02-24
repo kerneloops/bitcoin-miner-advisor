@@ -6,8 +6,18 @@ struct DashboardView: UIViewRepresentable {
         let config = WKWebViewConfiguration()
         // Share the default cookie store so session cookie persists
         config.websiteDataStore = .default()
+
+        // Hide the fkey bar — it sits on top of the iOS tab bar and is redundant
+        let hideChrome = WKUserScript(
+            source: "var s=document.createElement('style');s.textContent='#fkeyBar{display:none!important}main{padding-bottom:1rem!important}';document.head.appendChild(s);",
+            injectionTime: .atDocumentEnd,
+            forMainFrameOnly: true
+        )
+        config.userContentController.addUserScript(hideChrome)
+
         let webView = WKWebView(frame: .zero, configuration: config)
         webView.allowsBackForwardNavigationGestures = true
+        webView.scrollView.showsHorizontalScrollIndicator = false
         return webView
     }
 
