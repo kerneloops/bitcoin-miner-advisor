@@ -105,7 +105,7 @@ Respond ONLY with valid JSON (no markdown):
     return json.loads(text.strip())
 
 
-async def generate_macro_bias(macro: dict, results: dict) -> str:
+async def generate_macro_bias(macro: dict, results: dict, universe: str = "miners") -> str:
     """One-sentence synthesis of macro environment vs ticker recommendations."""
     rec_counts = {}
     for d in results.values():
@@ -116,10 +116,19 @@ async def generate_macro_bias(macro: dict, results: dict) -> str:
     rec_summary = ", ".join(f"{k}: {v}" for k, v in sorted(rec_counts.items()))
     macro_section = _macro_summary(macro)
 
+    if universe == "tech":
+        context_hint = "Focus on implications for AI/semiconductor/tech equities (valuations, growth stocks, rate sensitivity, dollar impact on multinationals)."
+        sys_prompt = TECH_SYSTEM_PROMPT
+    else:
+        context_hint = "Focus on implications for Bitcoin miners and crypto assets (BTC price sensitivity, risk-on/off, DXY headwinds)."
+        sys_prompt = SYSTEM_PROMPT
+
     prompt = f"""Given these macro signals:
 {macro_section}
 
 And these recommendations for the user's held positions today: {rec_summary}
+
+{context_hint}
 
 Write exactly ONE sentence (max 30 words) for a "Macro environment" summary line.
 Explain the overall macro picture and, if there's tension between macro sentiment and the held-position recommendations, name it directly.
@@ -129,7 +138,7 @@ Respond with only the sentence, no JSON, no markdown."""
     message = await client.messages.create(
         model="claude-haiku-4-5-20251001",
         max_tokens=80,
-        system=SYSTEM_PROMPT,
+        system=sys_prompt,
         messages=[{"role": "user", "content": prompt}],
     )
     return message.content[0].text.strip()
@@ -157,8 +166,9 @@ async def run_analysis(all_signals: dict, fundamentals: dict | None = None, macr
         try:
             holdings = cache.get_all_holdings()
             held_results = {t: d for t, d in results.items() if t in holdings} if holdings else results
-            bias = await generate_macro_bias(macro, held_results)
-            cache.set_setting("macro_bias", bias)
+            bias = await generate_macro_bias(macro, held_results, universe)
+            bias_key = "macro_bias_tech" if universe == "tech" else "macro_bias"
+            cache.set_setting(bias_key, bias)
         except Exception:
             pass
 

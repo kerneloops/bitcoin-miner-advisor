@@ -429,7 +429,8 @@ async def analyze(universe: str = Query("miners")):
     except Exception as e:
         logger.warning(f"Telegram notification failed (non-fatal): {e}")
 
-    macro_bias = cache.get_setting("macro_bias")
+    bias_key = "macro_bias_tech" if universe == "tech" else "macro_bias"
+    macro_bias = cache.get_setting(bias_key)
     return {"tickers": results, "fundamentals": fundamentals, "macro": macro, "macro_bias": macro_bias}
 
 

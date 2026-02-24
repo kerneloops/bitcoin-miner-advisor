@@ -129,7 +129,8 @@ function renderFundamentals(f) {
   `;
 }
 
-function eli5Macro(key, value) {
+function eli5Macro(key, value, tech = false) {
+  const isTech = tech;
   const v = parseFloat(value);
   if (isNaN(v)) return "";
   switch (key) {
@@ -160,19 +161,19 @@ function eli5Macro(key, value) {
     case "vix":
       if (v < 15) return "stocks calm — risk-on environment";
       if (v < 20) return "normal equity vol — no concern";
-      if (v < 30) return "stocks nervous — watch crypto correlation";
-      if (v < 40) return "equity fear — likely crypto headwind";
+      if (v < 30) return isTech ? "stocks nervous — growth stocks at risk" : "stocks nervous — watch crypto correlation";
+      if (v < 40) return isTech ? "equity fear — tech valuations under pressure" : "equity fear — likely crypto headwind";
       return "stock market panic — extreme risk-off";
     case "yield":
       if (v < 2.0) return "easy money — friendly for risk assets";
       if (v < 3.5) return "moderate rates — neutral";
-      if (v < 4.5) return "tight money — headwind for crypto";
-      return "high rates — significant pressure on risk assets";
+      if (v < 4.5) return isTech ? "tight money — pressure on growth multiples" : "tight money — headwind for crypto";
+      return isTech ? "high rates — significant drag on tech valuations" : "high rates — significant pressure on risk assets";
     case "dxy":
-      if (v < 95)  return "weak dollar — historically bullish for crypto";
+      if (v < 95)  return isTech ? "weak dollar — tailwind for multinationals" : "weak dollar — historically bullish for crypto";
       if (v < 100) return "moderate dollar — neutral";
-      if (v < 105) return "strong dollar — headwind for crypto";
-      return "very strong dollar — significant crypto headwind";
+      if (v < 105) return isTech ? "strong dollar — headwind for multinationals" : "strong dollar — headwind for crypto";
+      return isTech ? "very strong dollar — multinational earnings headwind" : "very strong dollar — significant crypto headwind";
     case "hy":
       if (v < 3.0) return "credit calm — risk-on";
       if (v < 5.0) return "normal spreads — neutral";
@@ -213,9 +214,9 @@ function renderMacro(m) {
     !isTech && m.fear_greed_value != null ? `<div class="fund-item"><div class="fund-label tip" data-tip="Crypto market sentiment composite index&#10;Scale: 1–100&#10;  1 = extreme fear (max pessimism)&#10;100 = extreme greed (max optimism)&#10;&#10;< 25  extreme fear → historically bullish&#10;> 75  extreme greed → historically bearish">Fear &amp; Greed</div><div class="fund-value ${fgColor}">${m.fear_greed_value}</div><div class="fund-sub">${m.fear_greed_label ?? ""}</div><div class="fund-eli5">${eli5Macro("fg", m.fear_greed_value)}</div></div>` : "",
     !isTech && m.puell_multiple  != null ? `<div class="fund-item"><div class="fund-label tip" data-tip="Daily miner revenue ÷ 365-day moving avg&#10;Scale: 0–5+&#10;&#10;< 0.5  miner stress — cycle bottom zone&#10;0.5–1.5  normal range&#10;1.5–2.0  miners thriving&#10;> 2.0  historically near cycle tops">Puell Multiple</div><div class="fund-value ${puellColor}">${m.puell_multiple}</div><div class="fund-sub">miner revenue vs 365d avg</div><div class="fund-eli5">${eli5Macro("puell", m.puell_multiple)}</div></div>` : "",
     // Macro signals — shown on both pages, with universe-appropriate tooltip copy
-    m.vix != null ? `<div class="fund-item"><div class="fund-label tip" data-tip="S&amp;P 500 30-day Implied Volatility&#10;Scale: 10–80+&#10;< 15  very calm — risk-on&#10;15–20  normal equity vol&#10;20–30  elevated — caution&#10;> 30  equity fear → ${isTech ? "tech sell-off risk" : "crypto headwind"}&#10;> 40  panic — extreme risk-off">VIX</div><div class="fund-value ${vixColor}">${m.vix}</div><div class="fund-eli5">${eli5Macro("vix", m.vix)}</div></div>` : "",
-    m.us_2y_yield != null ? `<div class="fund-item"><div class="fund-label tip" data-tip="US 2-Year Treasury Yield (%)&#10;Reflects short-term rate expectations&#10;Higher = tighter monetary policy&#10;&#10;< 3.5%  neutral for risk assets&#10;3.5–4.5%  elevated pressure&#10;> 4.5%  ${isTech ? "headwind for growth / tech valuations" : "significant headwind for crypto"}">US 2Y Yield</div><div class="fund-value">${m.us_2y_yield}%</div><div class="fund-eli5">${eli5Macro("yield", m.us_2y_yield)}</div></div>` : "",
-    m.dxy != null ? `<div class="fund-item"><div class="fund-label tip" data-tip="US Dollar Index vs basket of 6 currencies&#10;Scale: ~85–115&#10;&#10;${isTech ? "< 95  weak dollar → tailwind for overseas earnings&#10;95–105  neutral&#10;> 105  strong dollar → headwind for multinationals" : "< 95  weak dollar → bullish for BTC&#10;95–105  neutral range&#10;> 105  strong dollar → headwind for BTC"}&#10;Rising DXY = risk-off pressure">DXY</div><div class="fund-value">${m.dxy}</div><div class="fund-eli5">${eli5Macro("dxy", m.dxy)}</div></div>` : "",
+    m.vix != null ? `<div class="fund-item"><div class="fund-label tip" data-tip="S&amp;P 500 30-day Implied Volatility&#10;Scale: 10–80+&#10;< 15  very calm — risk-on&#10;15–20  normal equity vol&#10;20–30  elevated — caution&#10;> 30  equity fear → ${isTech ? "tech sell-off risk" : "crypto headwind"}&#10;> 40  panic — extreme risk-off">VIX</div><div class="fund-value ${vixColor}">${m.vix}</div><div class="fund-eli5">${eli5Macro("vix", m.vix, isTech)}</div></div>` : "",
+    m.us_2y_yield != null ? `<div class="fund-item"><div class="fund-label tip" data-tip="US 2-Year Treasury Yield (%)&#10;Reflects short-term rate expectations&#10;Higher = tighter monetary policy&#10;&#10;< 3.5%  neutral for risk assets&#10;3.5–4.5%  elevated pressure&#10;> 4.5%  ${isTech ? "headwind for growth / tech valuations" : "significant headwind for crypto"}">US 2Y Yield</div><div class="fund-value">${m.us_2y_yield}%</div><div class="fund-eli5">${eli5Macro("yield", m.us_2y_yield, isTech)}</div></div>` : "",
+    m.dxy != null ? `<div class="fund-item"><div class="fund-label tip" data-tip="US Dollar Index vs basket of 6 currencies&#10;Scale: ~85–115&#10;&#10;${isTech ? "< 95  weak dollar → tailwind for overseas earnings&#10;95–105  neutral&#10;> 105  strong dollar → headwind for multinationals" : "< 95  weak dollar → bullish for BTC&#10;95–105  neutral range&#10;> 105  strong dollar → headwind for BTC"}&#10;Rising DXY = risk-off pressure">DXY</div><div class="fund-value">${m.dxy}</div><div class="fund-eli5">${eli5Macro("dxy", m.dxy, isTech)}</div></div>` : "",
     m.hy_spread != null ? `<div class="fund-item"><div class="fund-label tip" data-tip="High-yield credit spread over Treasuries (%)&#10;Measures credit market stress&#10;&#10;< 3%  calm — risk-on environment&#10;3–5%  normal — neutral&#10;5–7%  stress building — caution&#10;> 7%  credit crunch → strong risk-off">HY Spread</div><div class="fund-value">${m.hy_spread}%</div><div class="fund-eli5">${eli5Macro("hy", m.hy_spread)}</div></div>` : "",
   ].filter(Boolean).join("");
 
