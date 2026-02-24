@@ -55,7 +55,7 @@ struct ChatView: View {
             ScrollView {
                 LazyVStack(spacing: 10) {
                     if viewModel.messages.isEmpty {
-                        Text("Ask about your positions, signals, or market conditions.")
+                        Text("Ask about positions, signals, or macro.")
                             .font(.system(size: 12, design: .monospaced))
                             .foregroundStyle(termMuted)
                             .multilineTextAlignment(.center)
@@ -96,7 +96,7 @@ struct ChatView: View {
         HStack(alignment: .bottom, spacing: 8) {
             ZStack(alignment: .topLeading) {
                 if inputText.isEmpty {
-                    Text("▋ Ask anything…")
+                    Text("▋ Message…")
                         .font(.system(size: 13, design: .monospaced))
                         .foregroundStyle(termMuted)
                         .padding(.horizontal, 10)
