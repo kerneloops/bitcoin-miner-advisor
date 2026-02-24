@@ -9,6 +9,7 @@ struct ContentView: View {
             if auth.isAuthenticated {
                 TabView {
                     DashboardView()
+                        .background(Color(red: 0.04, green: 0.04, blue: 0.04))
                         .tabItem {
                             Label("Dashboard", systemImage: "chart.line.uptrend.xyaxis")
                         }
@@ -25,6 +26,7 @@ struct ContentView: View {
                 LoginView(auth: auth)
             }
         }
+        .preferredColorScheme(.dark)
         .task {
             await auth.checkStoredSession()
         }
