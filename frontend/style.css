@@ -877,21 +877,6 @@ header {
 #chatSection {
   border-left: 3px solid var(--green-dim) !important;
 }
-#chatSection h2 {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-}
-#chatSection h2::before {
-  content: '';
-  display: inline-block;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--green);
-  box-shadow: 0 0 6px var(--green);
-  flex-shrink: 0;
-}
 
 .chat-messages {
   min-height: 280px;
