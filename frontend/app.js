@@ -27,7 +27,7 @@ function updateRunTimer() {
   if (remaining > 0) {
     const m = Math.floor(remaining / 60000);
     const s = Math.floor((remaining % 60000) / 1000);
-    el.textContent = `ready in ${m}:${String(s).padStart(2, "0")}`;
+    el.textContent = `next run in ${m}:${String(s).padStart(2, "0")}`;
     el.className = "run-timer waiting";
   } else {
     const lastRunDate = localStorage.getItem(_COOLDOWN_DATE);
@@ -41,7 +41,7 @@ function showPatienceModal() {
   const remaining = cooldownRemaining();
   const m = Math.floor(remaining / 60000);
   const s = Math.floor((remaining % 60000) / 1000);
-  const timeStr = remaining > 0 ? ` — ready in ${m}:${String(s).padStart(2, "0")}` : "";
+  const timeStr = remaining > 0 ? ` — next run in ${m}:${String(s).padStart(2, "0")}` : "";
   document.getElementById("patienceTime").textContent = timeStr;
   document.getElementById("patienceModal").style.display = "flex";
   setTimeout(() => document.getElementById("patienceModal").style.display = "none", 3000);
