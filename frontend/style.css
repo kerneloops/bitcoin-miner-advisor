@@ -117,6 +117,33 @@ header {
 .btc-sep { color: var(--border2); padding: 0 0.4rem; }
 .btc-updated { color: var(--muted); font-size: 0.58rem; margin-left: auto; }
 
+/* ── Page tab bar ── */
+.page-tabs {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border2);
+}
+.page-tabs-inner {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+  display: flex;
+  gap: 0;
+}
+.page-tab {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-family: inherit;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 0.45rem 1.1rem;
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+  transition: color 0.12s, border-color 0.12s;
+}
+.page-tab:hover { color: var(--text); }
+.page-tab.active { color: var(--green); border-bottom-color: var(--green); }
+
 h1 {
   font-size: 0.78rem;
   font-weight: 700;
@@ -945,4 +972,185 @@ header {
   letter-spacing: 0.08em;
   padding: 0.3rem 0;
   align-self: flex-start;
+}
+
+/* ── Private Markets ── */
+.pm-disclaimer {
+  font-size: 0.65rem;
+  color: var(--muted);
+  margin-bottom: 1rem;
+  letter-spacing: 0.03em;
+}
+.pm-disclaimer a { color: var(--muted); text-decoration: underline; }
+.pm-sector-label {
+  font-size: 0.6rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 1.25rem 0 0.5rem;
+  border-bottom: 1px solid var(--border2);
+  padding-bottom: 0.25rem;
+}
+.pm-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+  gap: 0.75rem;
+}
+.pm-card {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-left: 3px solid var(--muted);
+  padding: 0.75rem 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.pm-card-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.pm-name {
+  font-weight: 700;
+  font-size: 0.82rem;
+  color: var(--text);
+  letter-spacing: 0.04em;
+}
+.pm-stage {
+  font-size: 0.55rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 0.1rem 0.4rem;
+  border: 1px solid;
+  white-space: nowrap;
+}
+.stage-preipo  { color: var(--hold);  border-color: var(--hold); }
+.stage-s1      { color: var(--buy);   border-color: var(--buy); }
+.stage-acquired{ color: var(--muted); border-color: var(--muted); }
+.stage-public  { color: var(--green); border-color: var(--green); }
+
+.pm-valuation {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--green);
+}
+.pm-round-info {
+  font-size: 0.62rem;
+  font-weight: 400;
+  color: var(--muted);
+  letter-spacing: 0.03em;
+}
+.pm-secondary {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.72rem;
+}
+.pm-label { color: var(--muted); font-size: 0.6rem; letter-spacing: 0.1em; text-transform: uppercase; }
+.pm-sec-price { font-weight: 600; color: var(--text); }
+.pm-sec-price.muted { color: var(--muted); }
+.pm-sec-date { font-size: 0.58rem; color: var(--muted); }
+.pm-edit-btn {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.75rem;
+  padding: 0;
+  line-height: 1;
+  transition: color 0.1s;
+}
+.pm-edit-btn:hover { color: var(--green); background: transparent; }
+.pm-edit-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+.pm-price-input {
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.7rem;
+  padding: 0.2rem 0.5rem;
+  width: 130px;
+}
+.pm-save-btn, .pm-cancel-btn {
+  font-size: 0.6rem;
+  padding: 0.2rem 0.55rem;
+}
+.pm-cancel-btn { border-color: var(--muted); color: var(--muted); }
+.pm-cancel-btn:hover { background: var(--muted); color: var(--bg); }
+
+.pm-notes {
+  font-size: 0.65rem;
+  color: var(--muted);
+  line-height: 1.4;
+  font-style: italic;
+}
+.pm-links {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.1rem;
+}
+.pm-link {
+  font-size: 0.58rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-decoration: none;
+  border: 1px solid var(--border2);
+  padding: 0.1rem 0.4rem;
+  transition: color 0.1s, border-color 0.1s;
+}
+.pm-link:hover { color: var(--text); border-color: var(--muted); }
+.pm-del-btn {
+  margin-left: auto;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.7rem;
+  padding: 0;
+  line-height: 1;
+  opacity: 0.5;
+  transition: opacity 0.1s, color 0.1s;
+}
+.pm-del-btn:hover { color: var(--sell); opacity: 1; background: transparent; }
+
+.pm-add-details { margin-top: 1.5rem; }
+.pm-add-toggle {
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  cursor: pointer;
+  list-style: none;
+  padding: 0.3rem 0;
+}
+.pm-add-toggle:hover { color: var(--text); }
+.pm-add-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+}
+.pm-add-form input, .pm-add-form select {
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.7rem;
+  padding: 0.3rem 0.6rem;
+}
+.pm-add-form button[type="submit"] {
+  grid-column: 1 / -1;
+  justify-self: start;
 }

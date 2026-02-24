@@ -10,6 +10,10 @@ SYSTEM_PROMPT = """You are a disciplined, data-driven investment advisor special
 You analyze technical signals and provide clear, reasoned daily buy/sell/hold recommendations.
 Be concise, specific, and honest about uncertainty. Never give financial advice disclaimers — the user understands this is a personal decision-support tool."""
 
+TECH_SYSTEM_PROMPT = """You are a disciplined, data-driven investment advisor specializing in AI, semiconductor, and technology stocks.
+You analyze technical signals and provide clear, reasoned daily buy/sell/hold recommendations.
+Be concise, specific, and honest about uncertainty. Never give financial advice disclaimers — the user understands this is a personal decision-support tool."""
+
 
 def _btc_trend_summary() -> str:
     btc_rows = cache.get_prices("BTC", limit=10)
@@ -49,10 +53,19 @@ def _macro_summary(macro: dict) -> str:
     return "\nMacro & market context:\n" + "\n".join(lines) if lines else ""
 
 
-async def get_recommendation(ticker: str, signals: dict, btc_trend: str, fundamentals: dict | None = None, macro: dict | None = None) -> dict:
-    fund_section = ""
-    if fundamentals:
-        fund_section = f"""
+async def get_recommendation(ticker: str, signals: dict, btc_trend: str, fundamentals: dict | None = None, macro: dict | None = None, universe: str = "miners") -> dict:
+    if universe == "tech":
+        system = TECH_SYSTEM_PROMPT
+        btc_line = f"BTC 7-day trend (macro context): {btc_trend}"
+        sector_hint = "Consider the broader AI/tech sector momentum, rates environment, and any ticker-specific catalysts implied by the signals."
+        fund_section = ""
+    else:
+        system = SYSTEM_PROMPT
+        btc_line = f"BTC 7-day trend: {btc_trend}"
+        sector_hint = "Consider how hashprice trend and the upcoming difficulty adjustment affect miner profitability and sector sentiment."
+        fund_section = ""
+        if fundamentals:
+            fund_section = f"""
 Bitcoin network fundamentals:
 - Hashprice: ${fundamentals.get('hashprice_usd_per_ph_day', 'N/A')}/PH/day (excludes tx fees)
 - Network hashrate: {fundamentals.get('network_hashrate_eh', 'N/A')} EH/s
@@ -68,9 +81,9 @@ Bitcoin network fundamentals:
 Technical signals:
 {json.dumps(signals, indent=2)}
 
-BTC 7-day trend: {btc_trend}
+{btc_line}
 {fund_section}{macro_section}
-Consider how hashprice trend and the upcoming difficulty adjustment affect miner profitability and sector sentiment.
+{sector_hint}
 
 Respond ONLY with valid JSON (no markdown):
 {{"recommendation": "BUY|SELL|HOLD", "confidence": "LOW|MEDIUM|HIGH", "reasoning": "2-3 sentences", "key_risk": "one sentence"}}"""
@@ -78,7 +91,7 @@ Respond ONLY with valid JSON (no markdown):
     message = await client.messages.create(
         model="claude-haiku-4-5-20251001",
         max_tokens=300,
-        system=SYSTEM_PROMPT,
+        system=system,
         messages=[{"role": "user", "content": prompt}],
     )
 
@@ -122,7 +135,7 @@ Respond with only the sentence, no JSON, no markdown."""
     return message.content[0].text.strip()
 
 
-async def run_analysis(all_signals: dict, fundamentals: dict | None = None, macro: dict | None = None) -> dict:
+async def run_analysis(all_signals: dict, fundamentals: dict | None = None, macro: dict | None = None, universe: str = "miners") -> dict:
     from datetime import date
 
     btc_trend = _btc_trend_summary()
@@ -134,7 +147,7 @@ async def run_analysis(all_signals: dict, fundamentals: dict | None = None, macr
             results[ticker] = signals
             continue
 
-        rec = await get_recommendation(ticker, signals, btc_trend, fundamentals, macro)
+        rec = await get_recommendation(ticker, signals, btc_trend, fundamentals, macro, universe)
         cache.save_analysis(
             run_date, ticker, signals, rec["recommendation"], rec.get("reasoning", "")
         )

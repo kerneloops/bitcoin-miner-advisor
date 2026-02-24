@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en" data-universe="miners">
+<html lang="en" data-universe="tech">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Hash &amp; Burn</title>
+  <title>Hash &amp; Burn · Tech</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="icon" href="/static/favicon.ico" type="image/x-icon" />
@@ -56,8 +56,8 @@
 
   <nav class="page-tabs">
     <div class="page-tabs-inner">
-      <a href="/tech" class="page-tab">Tech Stocks</a>
-      <a href="/" class="page-tab active">Bitcoin Miners</a>
+      <a href="/tech" class="page-tab active">Tech Stocks</a>
+      <a href="/" class="page-tab">Bitcoin Miners</a>
     </div>
   </nav>
 
@@ -93,12 +93,39 @@
       </form>
     </div>
 
+    <section id="privateMarketsSection" class="history-section">
+      <h2>Pre-IPO / Private Markets</h2>
+      <p class="pm-disclaimer">Last-round valuations from public announcements. Secondary prices entered manually from <a href="https://forgeglobal.com" target="_blank" rel="noopener">Forge</a>, <a href="https://equityzen.com" target="_blank" rel="noopener">EquityZen</a>, or <a href="https://www.hiive.com" target="_blank" rel="noopener">Hiive</a>.</p>
+      <div id="privateMarketsContent"></div>
+
+      <details class="pm-add-details">
+        <summary class="pm-add-toggle">+ Add / update company</summary>
+        <form id="pmAddForm" class="pm-add-form">
+          <input id="pmName"      type="text"   placeholder="Company name *" required>
+          <input id="pmSector"    type="text"   placeholder="Sector (e.g. AI Infrastructure)">
+          <select id="pmStage">
+            <option value="Pre-IPO">Pre-IPO</option>
+            <option value="S-1 Filed">S-1 Filed</option>
+            <option value="Acquired">Acquired</option>
+            <option value="Public">Public</option>
+          </select>
+          <input id="pmValuation" type="number" step="any" min="0" placeholder="Valuation ($B)">
+          <input id="pmRoundType" type="text"   placeholder="Round type (e.g. Series C)">
+          <input id="pmRoundAmt"  type="number" step="any" min="0" placeholder="Round size ($M)">
+          <input id="pmRoundDate" type="text"   placeholder="Round date (YYYY-MM)">
+          <input id="pmNotes"     type="text"   placeholder="Notes">
+          <input id="pmForgeUrl"  type="url"    placeholder="Forge listing URL (optional)">
+          <button type="submit">Save</button>
+        </form>
+      </details>
+    </section>
+
     <div id="chatSection" class="history-section">
       <h2>Chat</h2>
       <div id="chatMessages" class="chat-messages"></div>
       <div class="chat-input-bar">
         <div class="chat-input-wrap">
-          <textarea id="chatInput" class="chat-input" rows="1" placeholder="Ask about your positions, signals, market conditions…"></textarea>
+          <textarea id="chatInput" class="chat-input" rows="1" placeholder="Ask about tech stocks, AI, semiconductors, macro…"></textarea>
         </div>
         <button id="chatSendBtn" class="chat-send-btn" onclick="chatSend()">Send</button>
       </div>

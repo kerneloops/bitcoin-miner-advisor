@@ -155,6 +155,7 @@ app.add_middleware(AuthMiddleware)
 
 _users.init_users_db()
 cache.init_db()
+cache.init_private_companies()
 app.include_router(router)
 
 frontend = Path(__file__).parent / "frontend"

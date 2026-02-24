@@ -23,6 +23,27 @@ TICKER_UNIVERSE: dict[str, list[str]] = {
 # Flat list for membership checks
 TICKER_UNIVERSE_FLAT: list[str] = [t for tickers in TICKER_UNIVERSE.values() for t in tickers]
 
+# ── Tech stocks universe ───────────────────────────────────────────────────────
+
+TECH_TICKERS = ["NVDA", "AMD", "MSFT", "GOOGL", "META", "TSLA", "AMZN", "AAPL", "PLTR", "ARM", "ANET", "VRT", "NBIS"]
+
+TECH_TICKER_UNIVERSE: dict[str, list[str]] = {
+    "AI & Semiconductors": ["NVDA", "AMD", "INTC", "QCOM", "AVGO", "ARM", "MRVL", "AMAT", "LRCX"],
+    "AI Infrastructure": ["VRT", "ANET", "NBIS", "SMCI", "DELL"],
+    "Mega Cap Tech": ["AAPL", "MSFT", "GOOGL", "GOOG", "META", "AMZN", "TSLA"],
+    "AI Pure Plays": ["PLTR", "AI", "BBAI", "PATH", "SOUN"],
+    "Enterprise & Cloud": ["CRM", "ORCL", "NOW", "SNOW", "NET", "DDOG"],
+}
+TECH_TICKER_UNIVERSE_FLAT: list[str] = [t for tickers in TECH_TICKER_UNIVERSE.values() for t in tickers]
+
+
+def get_tickers_for_universe(universe: str) -> tuple[list[str], dict[str, list[str]], list[str]]:
+    """Return (base_tickers, universe_dict, universe_flat) for the given universe slug."""
+    if universe == "tech":
+        return TECH_TICKERS, TECH_TICKER_UNIVERSE, TECH_TICKER_UNIVERSE_FLAT
+    return TICKERS, TICKER_UNIVERSE, TICKER_UNIVERSE_FLAT
+
+
 BENCHMARK_TICKER = "SPY"
 
 

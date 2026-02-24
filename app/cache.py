@@ -497,6 +497,95 @@ def get_chat_messages(limit: int = 100) -> list[dict]:
     return [dict(r) for r in reversed(rows)]
 
 
+def init_private_companies() -> None:
+    """Create the private_companies table and seed defaults if empty."""
+    from .private_markets import DEFAULT_COMPANIES
+    with get_conn() as conn:
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS private_companies (
+                id                   INTEGER PRIMARY KEY AUTOINCREMENT,
+                name                 TEXT NOT NULL UNIQUE,
+                sector               TEXT DEFAULT '',
+                stage                TEXT DEFAULT 'Pre-IPO',
+                last_valuation_b     REAL,
+                last_round_type      TEXT DEFAULT '',
+                last_round_amount_m  REAL,
+                last_round_date      TEXT DEFAULT '',
+                secondary_price      REAL,
+                secondary_price_date TEXT,
+                notes                TEXT DEFAULT '',
+                forge_url            TEXT,
+                created_at           TEXT DEFAULT (datetime('now')),
+                updated_at           TEXT DEFAULT (datetime('now'))
+            )
+        """)
+        count = conn.execute("SELECT COUNT(*) FROM private_companies").fetchone()[0]
+        if count == 0:
+            for c in DEFAULT_COMPANIES:
+                conn.execute("""
+                    INSERT OR IGNORE INTO private_companies
+                        (name, sector, stage, last_valuation_b, last_round_type,
+                         last_round_amount_m, last_round_date, notes, forge_url)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    c["name"], c.get("sector", ""), c.get("stage", "Pre-IPO"),
+                    c.get("last_valuation_b"), c.get("last_round_type", ""),
+                    c.get("last_round_amount_m"), c.get("last_round_date", ""),
+                    c.get("notes", ""), c.get("forge_url"),
+                ))
+
+
+def get_private_companies() -> list[dict]:
+    with get_conn() as conn:
+        rows = conn.execute(
+            "SELECT * FROM private_companies ORDER BY sector, last_valuation_b DESC"
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def upsert_private_company(data: dict) -> dict:
+    with get_conn() as conn:
+        conn.execute("""
+            INSERT INTO private_companies
+                (name, sector, stage, last_valuation_b, last_round_type,
+                 last_round_amount_m, last_round_date, notes, forge_url, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+            ON CONFLICT(name) DO UPDATE SET
+                sector              = excluded.sector,
+                stage               = excluded.stage,
+                last_valuation_b    = excluded.last_valuation_b,
+                last_round_type     = excluded.last_round_type,
+                last_round_amount_m = excluded.last_round_amount_m,
+                last_round_date     = excluded.last_round_date,
+                notes               = excluded.notes,
+                forge_url           = excluded.forge_url,
+                updated_at          = datetime('now')
+        """, (
+            data.get("name"), data.get("sector", ""), data.get("stage", "Pre-IPO"),
+            data.get("last_valuation_b"), data.get("last_round_type", ""),
+            data.get("last_round_amount_m"), data.get("last_round_date", ""),
+            data.get("notes", ""), data.get("forge_url"),
+        ))
+        row = conn.execute(
+            "SELECT * FROM private_companies WHERE name = ?", (data["name"],)
+        ).fetchone()
+    return dict(row)
+
+
+def set_secondary_price(company_id: int, price: float | None) -> None:
+    from datetime import date as _date
+    with get_conn() as conn:
+        conn.execute(
+            "UPDATE private_companies SET secondary_price = ?, secondary_price_date = ?, updated_at = datetime('now') WHERE id = ?",
+            (price, _date.today().isoformat(), company_id),
+        )
+
+
+def delete_private_company(company_id: int) -> None:
+    with get_conn() as conn:
+        conn.execute("DELETE FROM private_companies WHERE id = ?", (company_id,))
+
+
 def get_analysis_history(ticker: str, limit: int = 12) -> list[dict]:
     with get_conn() as conn:
         rows = conn.execute(
