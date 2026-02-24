@@ -1227,6 +1227,8 @@ header {
   #fkeyBar   { display: none !important; }
   #btcTicker { display: none; }
   #liveClock { display: none; }
+  #exportBtn { display: none !important; }
+  #csvBtn    { display: none !important; }
 
   /* Remove bottom padding reserved for fkey bar */
   main { padding-bottom: 1rem; }

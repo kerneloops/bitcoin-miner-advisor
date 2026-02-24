@@ -11,7 +11,7 @@ struct DashboardView: UIViewRepresentable {
         let hideChrome = WKUserScript(
             source: """
             var s=document.createElement('style');
-            s.textContent='#fkeyBar{display:none!important}main{padding-bottom:1rem!important}';
+            s.textContent='#fkeyBar{display:none!important}#exportBtn{display:none!important}#csvBtn{display:none!important}main{padding-bottom:1rem!important}';
             document.head.appendChild(s);
             var vp=document.querySelector('meta[name=viewport]');
             if(vp){vp.setAttribute('content','width=device-width,initial-scale=1.0,user-scalable=yes,minimum-scale=0.5,maximum-scale=4.0');}
