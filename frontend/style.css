@@ -834,7 +834,7 @@ header {
   color: var(--bg);
   display: flex;
   align-items: center;
-  padding: 0 max(0.75rem, calc((100% - 1400px) / 2 + 1.5rem));
+  padding: 0 calc(max(0px, (100% - 1400px) / 2) + 1.5rem);
   box-sizing: border-box;
   z-index: 300;
   font-size: 0.6rem;
