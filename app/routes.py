@@ -128,6 +128,28 @@ async def api_me(request: Request):
     return {"username": user["username"], "user_id": user["user_id"]}
 
 
+@router.post("/api/support")
+async def submit_support(request: Request):
+    body = await request.json()
+    name    = str(body.get("name", "")).strip()
+    email   = str(body.get("email", "")).strip()
+    message = str(body.get("message", "")).strip()
+    if not name or not email or not message:
+        raise HTTPException(400, "name, email, and message are required")
+    if len(message) > 2000:
+        raise HTTPException(400, "message too long (max 2000 chars)")
+    cache.save_support_message(name, email, message)
+    try:
+        await telegram.send_message(
+            f"📬 <b>Support message</b>\n"
+            f"From: {name} &lt;{email}&gt;\n\n"
+            f"{message}"
+        )
+    except Exception:
+        pass  # DB save succeeded; Telegram is best-effort
+    return {"ok": True}
+
+
 @router.post("/api/auth/logout")
 async def api_logout(request: Request):
     token = request.cookies.get("session") or request.headers.get("X-Session-Token")

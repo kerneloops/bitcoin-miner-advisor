@@ -912,11 +912,12 @@ function closeSupportModal() {
   document.getElementById('supportModal').style.display = 'none';
 }
 
-function submitSupport() {
-  const name = document.getElementById('supportName').value.trim();
-  const email = document.getElementById('supportEmail').value.trim();
+async function submitSupport() {
+  const name    = document.getElementById('supportName').value.trim();
+  const email   = document.getElementById('supportEmail').value.trim();
   const message = document.getElementById('supportMessage').value.trim();
-  const errEl = document.getElementById('supportError');
+  const errEl   = document.getElementById('supportError');
+  const btn     = document.querySelector('#supportForm button');
 
   errEl.style.display = 'none';
   if (!name || !email || !message) {
@@ -930,15 +931,23 @@ function submitSupport() {
     return;
   }
 
-  const subject = encodeURIComponent(`[Lapio Support] Message from ${name}`);
-  const body = encodeURIComponent(`Name: ${name}\nEmail: ${email}\n\n${message}`);
-  window.location.href = `mailto:support@lapio.dev?subject=${subject}&body=${body}`;
-
-  // Show thanks after a brief delay (mail client opens in background)
-  setTimeout(() => {
+  btn.disabled = true;
+  btn.textContent = 'Sending…';
+  try {
+    const resp = await fetch('/api/support', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, message }),
+    });
+    if (!resp.ok) throw new Error(await resp.text());
     document.getElementById('supportForm').style.display = 'none';
     document.getElementById('supportThanks').style.display = 'block';
-  }, 500);
+  } catch (e) {
+    errEl.textContent = 'Failed to send. Try emailing support@lapio.dev directly.';
+    errEl.style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = 'Send Message';
+  }
 }
 
 // Close modal on backdrop click

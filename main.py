@@ -25,6 +25,7 @@ _PUBLIC_PATHS = {
     "/api/auth/register",
     "/api/auth/me",
     "/api/auth/logout",
+    "/api/support",
     "/api/telegram/webhook",
 }
 

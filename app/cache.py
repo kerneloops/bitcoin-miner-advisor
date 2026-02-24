@@ -61,6 +61,15 @@ def init_db():
                 data TEXT NOT NULL
             )
         """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS support_messages (
+                id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                name       TEXT NOT NULL,
+                email      TEXT NOT NULL,
+                message    TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            )
+        """)
 
         # ── User-scoped tables (new installs get user_id from the start) ────
         conn.execute("""
@@ -523,3 +532,13 @@ def get_analysis_history(ticker: str, limit: int = 12) -> list[dict]:
 
         result.append(d)
     return result
+
+
+def save_support_message(name: str, email: str, message: str) -> None:
+    from datetime import datetime, timezone
+    now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    with get_conn() as conn:
+        conn.execute(
+            "INSERT INTO support_messages (name, email, message, created_at) VALUES (?, ?, ?, ?)",
+            (name, email, message, now),
+        )
