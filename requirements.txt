@@ -1,5 +1,6 @@
 fastapi
 uvicorn[standard]
+slowapi
 httpx[http2]
 anthropic
 pandas

@@ -129,19 +129,25 @@ def create_session(user_id: str, user_agent: str = "") -> str:
 def get_session(token: str | None) -> dict | None:
     if not token:
         return None
-    from datetime import datetime, timezone
-    now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    from datetime import datetime, timezone, timedelta
+    now = datetime.now(timezone.utc)
+    now_iso = now.isoformat(timespec="seconds")
     with _get_conn() as conn:
         row = conn.execute(
-            """SELECT s.token, s.user_id, u.username
+            """SELECT s.token, s.user_id, u.username, s.created_at, s.last_seen
                FROM sessions s JOIN users u ON u.id = s.user_id
                WHERE s.token = ? AND u.is_active = 1""",
             (token,),
         ).fetchone()
         if not row:
             return None
+        # Expire sessions older than 30 days
+        created = datetime.fromisoformat(row["created_at"]).replace(tzinfo=timezone.utc)
+        if now - created > timedelta(days=30):
+            conn.execute("DELETE FROM sessions WHERE token = ?", (token,))
+            return None
         conn.execute(
-            "UPDATE sessions SET last_seen = ? WHERE token = ?", (now, token)
+            "UPDATE sessions SET last_seen = ? WHERE token = ?", (now_iso, token)
         )
     return {"user_id": row["user_id"], "username": row["username"]}
 

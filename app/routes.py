@@ -7,6 +7,10 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from pydantic import BaseModel
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+
+_limiter = Limiter(key_func=get_remote_address)
 
 from .advisor import run_analysis
 from .data import (
@@ -42,6 +46,7 @@ def tech_page():
 
 
 @router.post("/login")
+@_limiter.limit("10/minute")
 async def do_login(request: Request):
     """Form-based login (sets session cookie, redirects to /)."""
     form = await request.form()
@@ -54,7 +59,7 @@ async def do_login(request: Request):
         response = RedirectResponse(url="/", status_code=302)
         response.set_cookie(
             "session", token,
-            httponly=True, samesite="strict",
+            httponly=True, secure=True, samesite="strict",
             max_age=30 * 24 * 3600,
         )
         return response
@@ -83,6 +88,7 @@ class AuthRegisterIn(BaseModel):
 
 
 @router.post("/api/auth/login")
+@_limiter.limit("10/minute")
 async def api_login(body: AuthLoginIn, request: Request):
     user = user_store.verify_password(body.username, body.password)
     if not user:
@@ -94,13 +100,14 @@ async def api_login(body: AuthLoginIn, request: Request):
     )
     response.set_cookie(
         "session", token,
-        httponly=True, samesite="strict",
+        httponly=True, secure=True, samesite="strict",
         max_age=30 * 24 * 3600,
     )
     return response
 
 
 @router.post("/api/auth/register")
+@_limiter.limit("5/minute")
 async def api_register(body: AuthRegisterIn, request: Request):
     max_users = int(os.getenv("MAX_USERS", "20"))
     was_first = user_store.is_first_user()
@@ -123,7 +130,7 @@ async def api_register(body: AuthRegisterIn, request: Request):
     )
     response.set_cookie(
         "session", token,
-        httponly=True, samesite="strict",
+        httponly=True, secure=True, samesite="strict",
         max_age=30 * 24 * 3600,
     )
     return response
