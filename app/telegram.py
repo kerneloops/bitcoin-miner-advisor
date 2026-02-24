@@ -160,10 +160,20 @@ async def generate_reply(user_text: str) -> tuple[str, int]:
     Returns (reply_text, user_msg_id) — user_msg_id lets the frontend skip
     the DB-stored user message it already rendered as an optimistic bubble."""
     from . import cache
+    # Load prior history before saving the new message
+    history = cache.get_chat_messages(limit=40)
     user_msg_id = cache.add_chat_message("user", user_text)
     context = await _build_context()
     system = BOT_SYSTEM + f"\n\nCurrent data:\n{context}"
-    messages = [{"role": "user", "content": user_text}]
+
+    # Build messages: prior turns + current user message
+    # Only include plain text turns (skip any tool-result artefacts stored as text)
+    messages = [
+        {"role": row["role"], "content": row["text"]}
+        for row in history
+        if row["role"] in ("user", "assistant")
+    ]
+    messages.append({"role": "user", "content": user_text})
 
     try:
         for _ in range(5):  # max 5 agentic iterations
