@@ -139,6 +139,30 @@ async def submit_support(request: Request):
     if len(message) > 2000:
         raise HTTPException(400, "message too long (max 2000 chars)")
     cache.save_support_message(name, email, message)
+
+    # Send via Resend if configured
+    resend_key = os.getenv("RESEND_API_KEY", "")
+    support_to = os.getenv("SUPPORT_TO_EMAIL", "support@lapio.dev")
+    if resend_key:
+        try:
+            import httpx
+            async with httpx.AsyncClient() as client:
+                await client.post(
+                    "https://api.resend.com/emails",
+                    headers={"Authorization": f"Bearer {resend_key}"},
+                    json={
+                        "from": "Lapio Support <support@lapio.dev>",
+                        "to": [support_to],
+                        "reply_to": email,
+                        "subject": f"[Lapio Support] Message from {name}",
+                        "text": f"Name: {name}\nEmail: {email}\n\n{message}",
+                    },
+                    timeout=10,
+                )
+        except Exception as e:
+            logger.warning(f"Resend email failed (non-fatal): {e}")
+
+    # Also forward to Telegram
     try:
         await telegram.send_message(
             f"📬 <b>Support message</b>\n"
@@ -146,7 +170,7 @@ async def submit_support(request: Request):
             f"{message}"
         )
     except Exception:
-        pass  # DB save succeeded; Telegram is best-effort
+        pass
     return {"ok": True}
 
 
