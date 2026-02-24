@@ -117,8 +117,12 @@ header {
   z-index: 98;
   background: var(--bg);
   border-bottom: 1px solid var(--border2);
+}
+.page-tabs-inner {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
   display: flex;
-  padding-left: 1.5rem;
 }
 .page-tab {
   display: inline-flex;
