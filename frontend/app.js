@@ -897,60 +897,121 @@ function outcomeIcon(outcome) {
 
 // ── Support modal ────────────────────────────────────────────────────────────
 
-function openSupportModal() {
-  document.getElementById('supportModal').style.display = 'flex';
-  document.getElementById('supportForm').style.display = 'block';
-  document.getElementById('supportThanks').style.display = 'none';
-  document.getElementById('supportError').style.display = 'none';
-  document.getElementById('supportName').value = '';
-  document.getElementById('supportEmail').value = '';
-  document.getElementById('supportMessage').value = '';
-  setTimeout(() => document.getElementById('supportName').focus(), 50);
-}
 
-function closeSupportModal() {
-  document.getElementById('supportModal').style.display = 'none';
-}
+// ── Chat ─────────────────────────────────────────────────────────────────────
 
-async function submitSupport() {
-  const name    = document.getElementById('supportName').value.trim();
-  const email   = document.getElementById('supportEmail').value.trim();
-  const message = document.getElementById('supportMessage').value.trim();
-  const errEl   = document.getElementById('supportError');
-  const btn     = document.querySelector('#supportForm button');
+(function () {
+  let _lastMsgId = 0;
+  let _pollTimer = null;
+  let _sending = false;
 
-  errEl.style.display = 'none';
-  if (!name || !email || !message) {
-    errEl.textContent = 'All fields are required.';
-    errEl.style.display = 'block';
-    return;
-  }
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    errEl.textContent = 'Enter a valid email address.';
-    errEl.style.display = 'block';
-    return;
+  function stripHTML(html) {
+    return html.replace(/<[^>]+>/g, '');
   }
 
-  btn.disabled = true;
-  btn.textContent = 'Sending…';
-  try {
-    const resp = await fetch('/api/support', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, email, message }),
-    });
-    if (!resp.ok) throw new Error(await resp.text());
-    document.getElementById('supportForm').style.display = 'none';
-    document.getElementById('supportThanks').style.display = 'block';
-  } catch (e) {
-    errEl.textContent = 'Failed to send. Try emailing support@lapio.dev directly.';
-    errEl.style.display = 'block';
+  function formatTime(iso) {
+    try {
+      return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } catch { return ''; }
+  }
+
+  function appendBubble(msg) {
+    const box = document.getElementById('chatMessages');
+    if (!box) return;
+
+    const bubble = document.createElement('div');
+    bubble.className = `chat-bubble ${msg.role}`;
+    bubble.textContent = stripHTML(msg.text);
+
+    const time = document.createElement('div');
+    time.className = 'chat-bubble-time';
+    time.textContent = formatTime(msg.ts);
+
+    box.appendChild(bubble);
+    box.appendChild(time);
+    box.scrollTop = box.scrollHeight;
+    _lastMsgId = Math.max(_lastMsgId, msg.id);
+  }
+
+  async function fetchMessages(initial = false) {
+    try {
+      const resp = await fetch('/api/chat/messages?limit=100');
+      if (!resp.ok) return;
+      const msgs = await resp.json();
+      if (initial) {
+        document.getElementById('chatMessages').innerHTML = '';
+        _lastMsgId = 0;
+      }
+      const newMsgs = msgs.filter(m => m.id > _lastMsgId);
+      newMsgs.forEach(appendBubble);
+    } catch {}
+  }
+
+  function startPolling() {
+    stopPolling();
+    _pollTimer = setInterval(() => fetchMessages(false), 5000);
+  }
+
+  function stopPolling() {
+    if (_pollTimer) { clearInterval(_pollTimer); _pollTimer = null; }
+  }
+
+  window.chatSend = async function () {
+    if (_sending) return;
+    const input = document.getElementById('chatInput');
+    const btn   = document.getElementById('chatSendBtn');
+    const text  = input.value.trim();
+    if (!text) return;
+
+    _sending = true;
+    input.value = '';
+    input.style.height = '';
+    btn.disabled = true;
+
+    // Optimistic user bubble
+    appendBubble({ id: Date.now(), role: 'user', text, ts: new Date().toISOString() });
+
+    // Typing indicator
+    const box = document.getElementById('chatMessages');
+    const typing = document.createElement('div');
+    typing.className = 'chat-typing';
+    typing.textContent = '▋ thinking…';
+    box.appendChild(typing);
+    box.scrollTop = box.scrollHeight;
+
+    try {
+      const resp = await fetch('/api/chat/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text }),
+      });
+      typing.remove();
+      if (resp.ok) {
+        await fetchMessages(false);
+      }
+    } catch {
+      typing.remove();
+    }
+
+    _sending = false;
     btn.disabled = false;
-    btn.textContent = 'Send Message';
-  }
-}
+    input.focus();
+  };
 
-// Close modal on backdrop click
-document.getElementById('supportModal').addEventListener('click', function(e) {
-  if (e.target === this) closeSupportModal();
-});
+  // Auto-grow textarea, send on Enter (Shift+Enter = newline)
+  document.addEventListener('DOMContentLoaded', function () {
+    const input = document.getElementById('chatInput');
+    if (!input) return;
+    input.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        chatSend();
+      }
+    });
+  });
+
+  // Load history and start polling when page loads
+  window.addEventListener('load', function () {
+    fetchMessages(true).then(startPolling);
+  });
+})();
