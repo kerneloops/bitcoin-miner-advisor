@@ -7,6 +7,9 @@ set -e
 SSH_KEY="${SSH_KEY:-$HOME/.ssh/id_ed25519}"
 SSH="ssh -i $SSH_KEY -o StrictHostKeyChecking=accept-new"
 
+echo "=== Pushing to GitHub ==="
+git push origin main
+
 echo "=== Pushing to production ==="
 $SSH root@172.233.136.138 '
     sudo -u miner bash -c "cd ~/bitcoin-miner-advisor && git pull && source .venv/bin/activate && pip install -r requirements.txt -q"
