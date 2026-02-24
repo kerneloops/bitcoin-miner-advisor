@@ -77,6 +77,42 @@ header {
   gap: 1.25rem;
 }
 
+.btc-ticker {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border2);
+  position: sticky;
+  top: 48px;
+  z-index: 99;
+  padding: 0.3rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+}
+.btc-pair {
+  color: var(--muted);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.btc-price {
+  color: var(--text);
+  font-weight: 600;
+  margin-right: 0.25rem;
+}
+.btc-change { font-weight: 600; }
+.btc-change.pos { color: var(--green); }
+.btc-change.neg { color: var(--sell); }
+.btc-period {
+  color: var(--muted);
+  font-size: 0.6rem;
+  margin-right: 0.35rem;
+}
+.btc-sep { color: var(--border2); padding: 0 0.4rem; }
+.btc-updated { color: var(--muted); font-size: 0.58rem; margin-left: auto; }
+
 h1 {
   font-size: 0.78rem;
   font-weight: 700;

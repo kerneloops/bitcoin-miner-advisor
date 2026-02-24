@@ -1015,3 +1015,51 @@ function outcomeIcon(outcome) {
     fetchMessages(true).then(startPolling);
   });
 })();
+
+// ── BTC ticker ───────────────────────────────────────────────────────────────
+
+(function () {
+  function fmtPrice(v, symbol) {
+    return symbol + v.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  }
+
+  function fmtPct(v) {
+    if (v == null) return '—';
+    return (v >= 0 ? '+' : '') + v.toFixed(2) + '%';
+  }
+
+  function setChange(id, value) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = fmtPct(value);
+    el.className = 'btc-change' + (value == null ? '' : value >= 0 ? ' pos' : ' neg');
+  }
+
+  async function loadBtcTicker() {
+    try {
+      const resp = await fetch('/api/btc-ticker');
+      if (!resp.ok) return;
+      const d = await resp.json();
+
+      const usdEl = document.getElementById('btcUsdPrice');
+      const eurEl = document.getElementById('btcEurPrice');
+      if (usdEl) usdEl.textContent = fmtPrice(d.usd.price, '$');
+      if (eurEl) eurEl.textContent = fmtPrice(d.eur.price, '€');
+
+      setChange('btcUsd24h', d.usd.change_24h);
+      setChange('btcUsd7d',  d.usd.change_7d);
+      setChange('btcUsd30d', d.usd.change_30d);
+      setChange('btcEur24h', d.eur.change_24h);
+      setChange('btcEur7d',  d.eur.change_7d);
+      setChange('btcEur30d', d.eur.change_30d);
+
+      const updEl = document.getElementById('btcUpdated');
+      if (updEl) updEl.textContent = 'updated ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } catch {}
+  }
+
+  window.addEventListener('load', function () {
+    loadBtcTicker();
+    setInterval(loadBtcTicker, 120_000);
+  });
+})();

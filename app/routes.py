@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import time
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Request
@@ -227,6 +228,56 @@ class ChatSendIn(BaseModel):
 
 class PushRegisterIn(BaseModel):
     token: str
+
+
+# ── BTC ticker ───────────────────────────────────────────────────────────────
+
+_btc_ticker_cache: dict = {}
+_btc_ticker_ts: float = 0.0
+_BTC_TICKER_TTL = 120  # seconds
+
+
+@router.get("/api/btc-ticker")
+async def btc_ticker():
+    global _btc_ticker_cache, _btc_ticker_ts
+    import httpx
+    if _btc_ticker_cache and (time.time() - _btc_ticker_ts) < _BTC_TICKER_TTL:
+        return _btc_ticker_cache
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.get(
+                "https://api.coingecko.com/api/v3/coins/bitcoin",
+                params={
+                    "localization": "false",
+                    "tickers": "false",
+                    "market_data": "true",
+                    "community_data": "false",
+                    "developer_data": "false",
+                },
+            )
+            resp.raise_for_status()
+            md = resp.json()["market_data"]
+        result = {
+            "usd": {
+                "price": md["current_price"]["usd"],
+                "change_24h": md["price_change_percentage_24h"],
+                "change_7d": md["price_change_percentage_7d"],
+                "change_30d": md["price_change_percentage_30d"],
+            },
+            "eur": {
+                "price": md["current_price"]["eur"],
+                "change_24h": md["price_change_percentage_24h_in_currency"].get("eur"),
+                "change_7d": md["price_change_percentage_7d_in_currency"].get("eur"),
+                "change_30d": md["price_change_percentage_30d_in_currency"].get("eur"),
+            },
+        }
+        _btc_ticker_cache = result
+        _btc_ticker_ts = time.time()
+        return result
+    except Exception as e:
+        if _btc_ticker_cache:
+            return _btc_ticker_cache  # serve stale on error
+        raise HTTPException(503, f"BTC price unavailable: {e}")
 
 
 # ── Chat ─────────────────────────────────────────────────────────────────────
