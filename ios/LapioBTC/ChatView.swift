@@ -100,7 +100,7 @@ private struct MessageBubble: View {
         HStack {
             if isUser { Spacer(minLength: 48) }
             VStack(alignment: isUser ? .trailing : .leading, spacing: 2) {
-                Text(message.text)
+                Text(message.text.strippingHTML)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 9)
                     .background(isUser ? Color.blue : Color(.secondarySystemBackground))
@@ -124,3 +124,12 @@ private struct MessageBubble: View {
         return display.string(from: date)
     }
 }
+
+// MARK: - HTML strip
+
+private extension String {
+    var strippingHTML: String {
+        replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)
+    }
+}
+
