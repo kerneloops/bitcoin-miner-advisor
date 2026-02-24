@@ -1114,8 +1114,6 @@ function renderPrivateMarkets(companies) {
         : `<span class="pm-sec-price muted" id="pmsp-${c.id}">—</span>`;
       const links = [
         c.forge_url ? `<a href="${c.forge_url}" target="_blank" rel="noopener" class="pm-link">Forge</a>` : "",
-        `<a href="https://equityzen.com/company/${encodeURIComponent(c.name.toLowerCase().replace(/[^a-z0-9]/g,'-'))}/" target="_blank" rel="noopener" class="pm-link">EquityZen</a>`,
-        `<a href="https://www.hiive.com/company/${encodeURIComponent(c.name.toLowerCase().replace(/[^a-z0-9]/g,'-'))}" target="_blank" rel="noopener" class="pm-link">Hiive</a>`,
       ].filter(Boolean).join("");
       const sc = stageClass[c.stage] || "stage-preipo";
 
