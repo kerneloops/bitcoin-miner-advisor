@@ -1270,7 +1270,7 @@ const _TOUR_STEPS = [
   {
     target: '#analyzeBtn',
     title: 'Run Analysis',
-    body: 'Hit this to kick off the full pipeline — live prices fetched, technical signals computed, and Claude AI generates a BUY/SELL/HOLD recommendation for every ticker. Takes about 15 seconds.',
+    body: 'Hit this to kick off the full pipeline — live prices fetched, technical signals computed, and LAPIO Advisor generates a BUY/SELL/HOLD recommendation for every ticker. Takes about 15 seconds.',
   },
   {
     target: '#dashboard',
