@@ -39,7 +39,9 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        req.setValue(Config.appPassword, forHTTPHeaderField: "X-App-Password")
+        if let sessionToken = AuthManager.shared.sessionToken {
+            req.setValue(sessionToken, forHTTPHeaderField: "X-Session-Token")
+        }
         req.httpBody = try? JSONEncoder().encode(["token": token])
         _ = try? await URLSession.shared.data(for: req)
     }

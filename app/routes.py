@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import FileResponse, RedirectResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from pydantic import BaseModel
 
 from .advisor import run_analysis
@@ -16,7 +16,7 @@ from .macro import fetch_all_macro
 from .miners import fetch_miner_fundamentals
 from .technicals import add_relative_strength, compute_signals
 from . import cache, google_workspace, push, sizing, telegram
-from .auth import make_token, verify_token
+from . import users as user_store
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -24,33 +24,118 @@ logger = logging.getLogger(__name__)
 _frontend = Path(__file__).parent.parent / "frontend"
 
 
+# ── Auth pages ───────────────────────────────────────────────────────────────
+
 @router.get("/login")
-def login_page(error: int = 0):
+def login_page():
     return FileResponse(_frontend / "login.html")
 
 
 @router.post("/login")
 async def do_login(request: Request):
+    """Form-based login (sets session cookie, redirects to /)."""
     form = await request.form()
+    username = form.get("username", "")
     password = form.get("password", "")
-    app_password = os.getenv("APP_PASSWORD", "")
-    if app_password and password == app_password:
+    user = user_store.verify_password(username, password)
+    if user:
+        ua = request.headers.get("User-Agent", "")
+        token = user_store.create_session(user["id"], ua)
         response = RedirectResponse(url="/", status_code=302)
         response.set_cookie(
-            "session", make_token(),
+            "session", token,
             httponly=True, samesite="strict",
-            max_age=30 * 24 * 3600,  # 30 days
+            max_age=30 * 24 * 3600,
         )
         return response
     return RedirectResponse(url="/login?error=1", status_code=302)
 
 
 @router.get("/logout")
-def logout():
+async def logout(request: Request):
+    token = request.cookies.get("session")
+    user_store.delete_session(token)
     response = RedirectResponse(url="/login", status_code=302)
     response.delete_cookie("session")
     return response
 
+
+# ── JSON auth API (used by iOS and web JS) ───────────────────────────────────
+
+class AuthLoginIn(BaseModel):
+    username: str
+    password: str
+
+
+class AuthRegisterIn(BaseModel):
+    username: str
+    password: str
+
+
+@router.post("/api/auth/login")
+async def api_login(body: AuthLoginIn, request: Request):
+    user = user_store.verify_password(body.username, body.password)
+    if not user:
+        raise HTTPException(401, "invalid_credentials")
+    ua = request.headers.get("User-Agent", "")
+    token = user_store.create_session(user["id"], ua)
+    response = JSONResponse(
+        {"token": token, "username": user["username"], "user_id": user["id"]}
+    )
+    response.set_cookie(
+        "session", token,
+        httponly=True, samesite="strict",
+        max_age=30 * 24 * 3600,
+    )
+    return response
+
+
+@router.post("/api/auth/register")
+async def api_register(body: AuthRegisterIn, request: Request):
+    max_users = int(os.getenv("MAX_USERS", "5"))
+    was_first = user_store.is_first_user()
+    try:
+        result = user_store.create_user(body.username, body.password, max_users)
+    except user_store.RegistrationError as e:
+        if e.code == "beta_full":
+            raise HTTPException(403, "beta_full")
+        elif e.code == "username_taken":
+            raise HTTPException(409, "username_taken")
+        elif e.code == "password_too_short":
+            raise HTTPException(422, "password_too_short")
+        raise
+    if was_first:
+        user_store.claim_legacy_data(result["id"])
+    ua = request.headers.get("User-Agent", "")
+    token = user_store.create_session(result["id"], ua)
+    response = JSONResponse(
+        {"token": token, "username": result["username"], "user_id": result["id"]}
+    )
+    response.set_cookie(
+        "session", token,
+        httponly=True, samesite="strict",
+        max_age=30 * 24 * 3600,
+    )
+    return response
+
+
+@router.get("/api/auth/me")
+async def api_me(request: Request):
+    token = request.cookies.get("session") or request.headers.get("X-Session-Token")
+    user = user_store.get_session(token)
+    if not user:
+        raise HTTPException(401, "Unauthorized")
+    return {"username": user["username"], "user_id": user["user_id"]}
+
+
+@router.post("/api/auth/logout")
+async def api_logout(request: Request):
+    token = request.cookies.get("session") or request.headers.get("X-Session-Token")
+    user_store.delete_session(token)
+    return {"ok": True}
+
+
+# ── Telegram webhook ─────────────────────────────────────────────────────────
 
 @router.post("/api/telegram/webhook")
 async def telegram_webhook(request: Request):
@@ -62,6 +147,8 @@ async def telegram_webhook(request: Request):
     await telegram.handle_update(update)
     return {"ok": True}
 
+
+# ── Pydantic models ───────────────────────────────────────────────────────────
 
 class HoldingIn(BaseModel):
     ticker: str
@@ -96,29 +183,15 @@ class PushRegisterIn(BaseModel):
     token: str
 
 
-def _mobile_auth(request: Request) -> bool:
-    """Return True if request has a valid session cookie OR X-App-Password header."""
-    cookie = request.cookies.get("session")
-    if verify_token(cookie):
-        return True
-    app_password = os.getenv("APP_PASSWORD", "")
-    header_pw = request.headers.get("X-App-Password", "")
-    if app_password and header_pw == app_password:
-        return True
-    return False
-
+# ── Chat ─────────────────────────────────────────────────────────────────────
 
 @router.get("/api/chat/messages")
-async def get_chat_messages(request: Request, limit: int = 100):
-    if not _mobile_auth(request):
-        raise HTTPException(401, "Unauthorized")
+async def get_chat_messages(limit: int = 100):
     return cache.get_chat_messages(limit=limit)
 
 
 @router.post("/api/chat/send")
-async def send_chat_message(request: Request, body: ChatSendIn):
-    if not _mobile_auth(request):
-        raise HTTPException(401, "Unauthorized")
+async def send_chat_message(body: ChatSendIn):
     text = body.text.strip()
     if not text:
         raise HTTPException(400, "text must not be empty")
@@ -126,10 +199,10 @@ async def send_chat_message(request: Request, body: ChatSendIn):
     return {"ok": True, "reply": reply}
 
 
+# ── Push notifications ────────────────────────────────────────────────────────
+
 @router.post("/api/push/register")
-async def register_push_token(request: Request, body: PushRegisterIn):
-    if not _mobile_auth(request):
-        raise HTTPException(401, "Unauthorized")
+async def register_push_token(body: PushRegisterIn):
     token = body.token.strip()
     if not token:
         raise HTTPException(400, "token must not be empty")
@@ -140,6 +213,8 @@ async def register_push_token(request: Request, body: PushRegisterIn):
         cache.set_setting("push_device_tokens", json.dumps(tokens))
     return {"ok": True}
 
+
+# ── Analysis ──────────────────────────────────────────────────────────────────
 
 @router.post("/api/analyze")
 async def analyze():
@@ -156,7 +231,6 @@ async def analyze():
 
     signals = add_relative_strength({ticker: compute_signals(ticker) for ticker in active_tickers})
 
-    # Fetch miner fundamentals and macro signals — non-fatal if unavailable
     fundamentals = None
     try:
         btc_rows = cache.get_prices("BTC", limit=2)
@@ -178,7 +252,6 @@ async def analyze():
     except Exception as e:
         raise HTTPException(502, f"AI analysis failed: {e}")
 
-    # Attach position guidance to each ticker result
     tier_name = cache.get_setting("risk_tier", "neutral")
     cap_str = cache.get_setting("total_capital")
     total_capital = float(cap_str) if cap_str else None
@@ -200,7 +273,6 @@ async def analyze():
             logger.warning(f"Sizing guidance failed for {ticker} (non-fatal): {e}")
             d["position_guidance"] = None
 
-    # Send Telegram notifications — non-fatal
     try:
         await telegram.notify_signals(results)
     except Exception as e:
@@ -216,6 +288,8 @@ async def get_signals():
     active_tickers = cache.get_active_tickers(TICKERS)
     return add_relative_strength({ticker: compute_signals(ticker) for ticker in active_tickers})
 
+
+# ── Settings ──────────────────────────────────────────────────────────────────
 
 @router.get("/api/settings")
 def get_settings():
@@ -316,7 +390,6 @@ def get_benchmark_chart():
     if not holdings:
         return {"available": True, "spy": spy_series, "portfolio": None}
 
-    # For each date, sum (shares × closing price) across all holdings
     port_by_date: dict[str, float] = {}
     for ticker, shares in holdings.items():
         prices = cache.get_prices(ticker, limit=35)
@@ -327,7 +400,6 @@ def get_benchmark_chart():
         for d in dates:
             price = price_map.get(d)
             if price is None:
-                # Use the most recent price on or before this date
                 candidates = [k for k in sorted_dates_avail if k <= d]
                 if candidates:
                     price = price_map[candidates[-1]]
@@ -365,6 +437,8 @@ async def export_status():
         "missing": google_workspace._get_missing() if not configured else [],
     }
 
+
+# ── Portfolio ─────────────────────────────────────────────────────────────────
 
 @router.get("/api/portfolio")
 def get_portfolio():
@@ -422,6 +496,8 @@ def remove_holding(ticker: str):
     return {"ok": True}
 
 
+# ── Trades ────────────────────────────────────────────────────────────────────
+
 @router.get("/api/trades")
 def list_trades():
     return cache.get_trades()
@@ -438,7 +514,6 @@ async def create_trade(body: TradeIn):
                 f"Cannot sell {body.quantity} shares of {body.ticker} — only {held} held. "
                 "Record a BUY trade first if you have an existing position with no purchase history."
             )
-    # Auto-add new tickers from the universe to active tracking and fetch their price history
     active = cache.get_active_tickers(TICKERS)
     if body.ticker not in active and body.ticker in TICKER_UNIVERSE_FLAT:
         cache.add_active_ticker(body.ticker, TICKERS)
@@ -456,6 +531,8 @@ def remove_trade(trade_id: int):
     cache.delete_trade(trade_id)
     return {"ok": True}
 
+
+# ── Cash ──────────────────────────────────────────────────────────────────────
 
 @router.get("/api/cash")
 def get_cash():
@@ -477,6 +554,8 @@ def update_cash(body: CashIn):
         raise HTTPException(400, f"Unknown action '{body.action}'. Use set/deposit/withdraw.")
     return {"balance": cache.get_cash()}
 
+
+# ── Google Sheets export ──────────────────────────────────────────────────────
 
 @router.post("/api/export")
 async def export_to_google(analysis_data: dict):

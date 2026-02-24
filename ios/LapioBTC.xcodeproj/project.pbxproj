@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 77;
+	objectVersion = 63;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -15,14 +15,18 @@
 		A8050AE073469BD6BF0F1D76 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2617E135AD12462007F431F3 /* AppDelegate.swift */; };
 		DC5A26C4E84089D1813E1F29 /* ChatViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD6F640E4C3CA9B1A643AE5A /* ChatViewModel.swift */; };
 		F1D95F9CC080535DE2FE9FAF /* LapioBTCApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56BBD4092C6C71CE60507183 /* LapioBTCApp.swift */; };
+		AAB1C2D3E4F5A6B7C8D9E0F1 /* AuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAB1C2D3E4F5A6B7C8D9E001 /* AuthManager.swift */; };
+		BBCC1122334455667788990A /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBCC1122334455667788990B /* LoginView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		122EAA1FEEC372C80A4D8FDF /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		1AB5CDA3861AB1CF4827431F /* Config.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Config.swift; sourceTree = "<group>"; };
 		2617E135AD12462007F431F3 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		AAB1C2D3E4F5A6B7C8D9E001 /* AuthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthManager.swift; sourceTree = "<group>"; };
+		BBCC1122334455667788990B /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
 		56BBD4092C6C71CE60507183 /* LapioBTCApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LapioBTCApp.swift; sourceTree = "<group>"; };
-		6FB4B94ED907D1793279C129 /* LapioBTC.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = LapioBTC.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		6FB4B94ED907D1793279C129 /* LapioBTC.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LapioBTC.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B0955A8C5833F1C879CE0E59 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		BD6F640E4C3CA9B1A643AE5A /* ChatViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatViewModel.swift; sourceTree = "<group>"; };
 		C8EF258B6D56D443C78028D2 /* ChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatView.swift; sourceTree = "<group>"; };
@@ -45,6 +49,7 @@
 			children = (
 				2617E135AD12462007F431F3 /* AppDelegate.swift */,
 				D29F903BBCAEE67508B4A664 /* Assets.xcassets */,
+				AAB1C2D3E4F5A6B7C8D9E001 /* AuthManager.swift */,
 				C8EF258B6D56D443C78028D2 /* ChatView.swift */,
 				BD6F640E4C3CA9B1A643AE5A /* ChatViewModel.swift */,
 				1AB5CDA3861AB1CF4827431F /* Config.swift */,
@@ -53,6 +58,7 @@
 				B0955A8C5833F1C879CE0E59 /* Info.plist */,
 				E2EFDFF43736518E8BFD2E21 /* LapioBTC.entitlements */,
 				56BBD4092C6C71CE60507183 /* LapioBTCApp.swift */,
+				BBCC1122334455667788990B /* LoginView.swift */,
 			);
 			path = LapioBTC;
 			sourceTree = "<group>";
@@ -96,7 +102,6 @@
 				LastUpgradeCheck = 1500;
 				TargetAttributes = {
 					D5EF48EC87703BA9B6075A03 = {
-						DevelopmentTeam = "";
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -111,7 +116,6 @@
 			);
 			mainGroup = 1B9D6B7D64EF7A9FBCB05BB8;
 			minimizedProjectReferenceProxies = 1;
-			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -137,12 +141,14 @@
 			buildActionMask = 2147483647;
 			files = (
 				A8050AE073469BD6BF0F1D76 /* AppDelegate.swift in Sources */,
+				AAB1C2D3E4F5A6B7C8D9E0F1 /* AuthManager.swift in Sources */,
 				57003295C06E711B712F1869 /* ChatView.swift in Sources */,
 				DC5A26C4E84089D1813E1F29 /* ChatViewModel.swift in Sources */,
 				4A647B99F3126BBF9BD6B90D /* Config.swift in Sources */,
 				63CC0BB37A8ED9DF3A4D1825 /* ContentView.swift in Sources */,
 				A1AF58114703A5181A68FC63 /* DashboardView.swift in Sources */,
 				F1D95F9CC080535DE2FE9FAF /* LapioBTCApp.swift in Sources */,
+				BBCC1122334455667788990A /* LoginView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -156,7 +162,7 @@
 				CODE_SIGN_ENTITLEMENTS = LapioBTC/LapioBTC.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = Y9LA4JB3MF;
 				INFOPLIST_FILE = LapioBTC/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -176,7 +182,7 @@
 				CODE_SIGN_ENTITLEMENTS = LapioBTC/LapioBTC.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = Y9LA4JB3MF;
 				INFOPLIST_FILE = LapioBTC/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (

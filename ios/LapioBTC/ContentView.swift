@@ -1,19 +1,29 @@
 import SwiftUI
 
 struct ContentView: View {
+    @StateObject private var auth = AuthManager.shared
     @StateObject private var chatVM = ChatViewModel()
 
     var body: some View {
-        TabView {
-            DashboardView()
-                .tabItem {
-                    Label("Dashboard", systemImage: "chart.line.uptrend.xyaxis")
-                }
+        Group {
+            if auth.isAuthenticated {
+                TabView {
+                    DashboardView()
+                        .tabItem {
+                            Label("Dashboard", systemImage: "chart.line.uptrend.xyaxis")
+                        }
 
-            ChatView(viewModel: chatVM)
-                .tabItem {
-                    Label("Chat", systemImage: "bubble.left.and.bubble.right")
+                    ChatView(viewModel: chatVM)
+                        .tabItem {
+                            Label("Chat", systemImage: "bubble.left.and.bubble.right")
+                        }
                 }
+            } else {
+                LoginView(auth: auth)
+            }
+        }
+        .task {
+            await auth.checkStoredSession()
         }
     }
 }

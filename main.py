@@ -1,4 +1,3 @@
-import hmac
 import logging
 import os
 from contextlib import asynccontextmanager
@@ -8,7 +7,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from dotenv import load_dotenv
 from fastapi import FastAPI
-from fastapi.responses import FileResponse, RedirectResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
@@ -16,21 +15,36 @@ from starlette.requests import Request
 load_dotenv()
 
 from app import cache
-from app.auth import verify_token
+from app import users as _users
 from app.routes import router
+
+_PUBLIC_PATHS = {
+    "/login",
+    "/logout",
+    "/api/auth/login",
+    "/api/auth/register",
+    "/api/auth/me",
+    "/api/auth/logout",
+    "/api/telegram/webhook",
+}
 
 
 class AuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         path = request.url.path
-        # Always allow login page, login POST, static assets, and Telegram webhook
-        if path in ("/login", "/logout", "/api/telegram/webhook") or path.startswith("/static/"):
+        if path in _PUBLIC_PATHS or path.startswith("/static/"):
             return await call_next(request)
-        app_password = os.getenv("APP_PASSWORD", "")
-        header_pw = request.headers.get("X-App-Password", "")
-        if not verify_token(request.cookies.get("session")) and not (app_password and hmac.compare_digest(header_pw, app_password)):
+
+        token = request.cookies.get("session") or request.headers.get("X-Session-Token")
+        user = _users.get_session(token)
+        if not user:
+            if path.startswith("/api/"):
+                return JSONResponse({"detail": "Unauthorized"}, status_code=401)
             return RedirectResponse(url="/login", status_code=302)
+
+        cache.set_current_user_id(user["user_id"])
         return await call_next(request)
+
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +55,10 @@ async def _scheduled_analysis():
     from app.macro import fetch_all_macro
     from app.miners import fetch_miner_fundamentals
     from app.technicals import add_relative_strength, compute_signals
+
+    primary = _users.get_primary_user_id()
+    if primary:
+        cache.set_current_user_id(primary)
 
     logger.info("Scheduled analysis starting…")
     active_tickers = cache.get_active_tickers(TICKERS)
@@ -72,7 +90,6 @@ async def _scheduled_analysis():
 
         results = await run_analysis(signals, fundamentals, macro)
 
-        # Attach position guidance
         tier_name = cache.get_setting("risk_tier", "neutral")
         cap_str = cache.get_setting("total_capital")
         total_capital = float(cap_str) if cap_str else None
@@ -91,7 +108,6 @@ async def _scheduled_analysis():
             except Exception:
                 d["position_guidance"] = None
 
-        # Send Telegram notifications
         try:
             await telegram.notify_signals(results)
         except Exception as e:
@@ -136,6 +152,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Hash & Burn", lifespan=lifespan)
 app.add_middleware(AuthMiddleware)
 
+_users.init_users_db()
 cache.init_db()
 app.include_router(router)
 

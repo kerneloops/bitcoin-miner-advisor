@@ -15,7 +15,6 @@ class ChatViewModel: ObservableObject {
 
     private var pollTask: Task<Void, Never>?
     private let baseURL = Config.baseURL
-    private let password = Config.appPassword
 
     // MARK: - Polling
 
@@ -39,9 +38,15 @@ class ChatViewModel: ObservableObject {
     func fetchMessages() async {
         guard let url = URL(string: "\(baseURL)/api/chat/messages?limit=100") else { return }
         var req = URLRequest(url: url)
-        req.setValue(password, forHTTPHeaderField: "X-App-Password")
+        if let token = AuthManager.shared.sessionToken {
+            req.setValue(token, forHTTPHeaderField: "X-Session-Token")
+        }
         do {
-            let (data, _) = try await URLSession.shared.data(for: req)
+            let (data, resp) = try await URLSession.shared.data(for: req)
+            if let http = resp as? HTTPURLResponse, http.statusCode == 401 {
+                await AuthManager.shared.logout()
+                return
+            }
             let decoded = try JSONDecoder().decode([ChatMessage].self, from: data)
             messages = decoded
             errorMessage = nil
@@ -58,16 +63,20 @@ class ChatViewModel: ObservableObject {
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        req.setValue(password, forHTTPHeaderField: "X-App-Password")
+        if let token = AuthManager.shared.sessionToken {
+            req.setValue(token, forHTTPHeaderField: "X-Session-Token")
+        }
         req.httpBody = try? JSONEncoder().encode(["text": text])
         do {
-            let (data, _) = try await URLSession.shared.data(for: req)
+            let (data, resp) = try await URLSession.shared.data(for: req)
+            if let http = resp as? HTTPURLResponse, http.statusCode == 401 {
+                await AuthManager.shared.logout()
+                return
+            }
             struct SendResponse: Decodable { let ok: Bool; let reply: String }
-            let resp = try JSONDecoder().decode(SendResponse.self, from: data)
-            // Refresh full list (includes the user message the server stored)
+            let _ = try JSONDecoder().decode(SendResponse.self, from: data)
             await fetchMessages()
             errorMessage = nil
-            _ = resp.reply // already in fetched messages
         } catch {
             errorMessage = "Send failed: \(error.localizedDescription)"
         }
