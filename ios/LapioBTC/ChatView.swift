@@ -96,7 +96,7 @@ struct ChatView: View {
         HStack(alignment: .bottom, spacing: 8) {
             ZStack(alignment: .topLeading) {
                 if inputText.isEmpty {
-                    Text("▋ Message…")
+                    Text("▋ Ask LAPIO Advisor")
                         .font(.system(size: 13, design: .monospaced))
                         .foregroundStyle(termMuted)
                         .padding(.horizontal, 10)
