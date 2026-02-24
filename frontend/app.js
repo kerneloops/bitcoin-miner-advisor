@@ -1247,4 +1247,15 @@ if (UNIVERSE === 'tech') {
     loadBtcTicker();
     setInterval(loadBtcTicker, 120_000);
   });
+
+  // Align first tab's right edge with the start of .controls (RUN ANALYSIS)
+  function syncTabAlignment() {
+    const h1 = document.querySelector('.header-inner h1');
+    const firstTab = document.querySelector('.page-tab');
+    if (!h1 || !firstTab) return;
+    const gap = parseFloat(getComputedStyle(document.querySelector('.header-inner')).columnGap) || 20;
+    firstTab.style.minWidth = (h1.offsetWidth + gap) + 'px';
+  }
+  document.addEventListener('DOMContentLoaded', syncTabAlignment);
+  window.addEventListener('resize', syncTabAlignment);
 })();
