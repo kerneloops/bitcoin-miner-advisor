@@ -86,7 +86,7 @@
       background: var(--bg);
       border: 1px solid var(--border2);
       color: var(--text);
-      padding: 0.55rem 0.7rem 0.55rem 1.6rem;
+      padding: 0.55rem 2.2rem 0.55rem 1.6rem;
       font-family: inherit;
       font-size: 0.85rem;
       outline: none;
@@ -94,6 +94,22 @@
     }
     .login-box input[type="text"]:focus,
     .login-box input[type="password"]:focus { border-color: var(--green-dim); }
+    .eye-btn {
+      position: absolute;
+      right: 0.5rem;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      padding: 0;
+      cursor: pointer;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      z-index: 2;
+    }
+    .eye-btn:hover { color: var(--green); }
+    .eye-btn svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
     @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
     .login-box button.submit-btn {
       width: 100%;
@@ -149,6 +165,19 @@
     <label for="password">Password</label>
     <div class="input-cursor-wrap">
       <input id="password" name="password" type="password" autocomplete="current-password" />
+      <button type="button" class="eye-btn" onclick="togglePw('password')" tabindex="-1" aria-label="Show password">
+        <svg id="eyeIcon_password" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+    </div>
+
+    <div id="confirmWrap" style="display:none">
+      <label for="confirmPassword">Confirm Password</label>
+      <div class="input-cursor-wrap">
+        <input id="confirmPassword" name="confirmPassword" type="password" autocomplete="new-password" />
+        <button type="button" class="eye-btn" onclick="togglePw('confirmPassword')" tabindex="-1" aria-label="Show password">
+          <svg id="eyeIcon_confirmPassword" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
     </div>
 
     <div class="api-error" id="apiError"></div>
@@ -214,11 +243,26 @@
       document.getElementById('username').focus();
     }
 
+    function togglePw(id) {
+      const input = document.getElementById(id);
+      const icon = document.getElementById('eyeIcon_' + id);
+      const showing = input.type === 'text';
+      input.type = showing ? 'password' : 'text';
+      // Toggle between eye-open and eye-slash SVG paths
+      icon.innerHTML = showing
+        ? '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>'
+        : '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>'
+        + '<path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>'
+        + '<line x1="1" y1="1" x2="23" y2="23"/>';
+    }
+
     function toggleMode() {
       isRegister = !isRegister;
       document.getElementById('modeLabel').textContent = isRegister ? 'Beta registration' : '';
       document.getElementById('submitBtn').textContent = isRegister ? 'Request access' : 'Enter at your own risk';
       document.getElementById('toggleBtn').textContent = isRegister ? '← Back to login' : 'Request beta access →';
+      document.getElementById('confirmWrap').style.display = isRegister ? 'block' : 'none';
+      document.getElementById('confirmPassword').value = '';
       document.getElementById('apiError').style.display = 'none';
       document.getElementById('apiError').textContent = '';
       document.getElementById('username').focus();
@@ -237,6 +281,16 @@
         errEl.textContent = 'Username and password are required.';
         errEl.style.display = 'block';
         return;
+      }
+
+      if (isRegister) {
+        const confirm = document.getElementById('confirmPassword').value;
+        if (password !== confirm) {
+          errEl.textContent = 'Passwords do not match.';
+          errEl.style.display = 'block';
+          document.getElementById('confirmPassword').focus();
+          return;
+        }
       }
 
       btn.disabled = true;
