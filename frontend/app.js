@@ -1344,11 +1344,10 @@ function _tourRender() {
   const isVisible = target && target.offsetParent !== null && target.getBoundingClientRect().width > 0;
 
   if (isVisible) {
-    target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    // Instant scroll so the element is in its final position before we measure
+    target.scrollIntoView({ behavior: 'instant', block: 'center' });
     target.classList.add('tour-highlight');
-    // If the target lives inside a positioned ancestor with its own z-index
-    // (e.g. the sticky header), elevate that ancestor above the overlay so
-    // the highlight is actually visible.
+    // Elevate sticky header if the target lives inside it
     const headerEl = document.querySelector('header');
     if (headerEl && headerEl.contains(target)) {
       headerEl.dataset.tourZ = headerEl.style.zIndex || '';
@@ -1377,6 +1376,35 @@ function _tourRender() {
   `;
   document.body.appendChild(card);
 
+  // Position card relative to the highlighted element now that scroll is settled
+  requestAnimationFrame(() => {
+    if (isVisible) {
+      const rect  = target.getBoundingClientRect();
+      const cardW = card.offsetWidth  || 520;
+      const cardH = card.offsetHeight || 220;
+      const margin = 16;
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+
+      // Prefer below the element; flip above if not enough room
+      let top = rect.bottom + margin;
+      if (top + cardH > vh - margin) top = rect.top - cardH - margin;
+      if (top < margin) top = margin;
+
+      // Align left edge with element, clamp to viewport
+      let left = rect.left;
+      if (left + cardW > vw - margin) left = vw - cardW - margin;
+      if (left < margin) left = margin;
+
+      card.style.top  = top  + 'px';
+      card.style.left = left + 'px';
+    } else {
+      // Hidden element (e.g. macro panel before first run) — center in viewport
+      card.style.top       = '50%';
+      card.style.left      = '50%';
+      card.style.transform = 'translate(-50%, -50%)';
+    }
+  });
 }
 
 // Auto-trigger for first-time visitors (after boot sequence settles)
