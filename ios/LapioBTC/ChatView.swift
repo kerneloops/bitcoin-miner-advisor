@@ -1,5 +1,15 @@
 import SwiftUI
 
+// MARK: - Colour palette (matches lapio.dev CSS vars)
+private let termBg      = Color(hex: "#0a0a0a")
+private let termSurface = Color(hex: "#111111")
+private let termSurface2 = Color(hex: "#1a1a1a")
+private let termGreen   = Color(hex: "#00d26a")
+private let termGreenDim = Color(hex: "#00a854")
+private let termText    = Color(hex: "#e8e8e8")
+private let termMuted   = Color(hex: "#666666")
+private let termBorder  = Color(hex: "#2a2a2a")
+
 struct ChatView: View {
     @ObservedObject var viewModel: ChatViewModel
     @State private var inputText = ""
@@ -7,20 +17,22 @@ struct ChatView: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
-                messageList
-                Divider()
-                inputBar
+            ZStack {
+                termBg.ignoresSafeArea()
+                VStack(spacing: 0) {
+                    messageList
+                    Divider().background(termBorder)
+                    inputBar
+                }
             }
-            .navigationTitle("LAPIO Chat")
+            .navigationTitle("LAPIO ADVISOR")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarColorScheme(.dark, for: .navigationBar)
+            .toolbarBackground(termSurface, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
         }
-        .onAppear {
-            viewModel.startPolling()
-        }
-        .onDisappear {
-            viewModel.stopPolling()
-        }
+        .onAppear { viewModel.startPolling() }
+        .onDisappear { viewModel.stopPolling() }
     }
 
     // MARK: - Message List
@@ -28,11 +40,11 @@ struct ChatView: View {
     private var messageList: some View {
         ScrollViewReader { proxy in
             ScrollView {
-                LazyVStack(spacing: 8) {
+                LazyVStack(spacing: 10) {
                     if viewModel.messages.isEmpty {
-                        Text("Ask me anything about your miner positions, signals, or market conditions.")
-                            .font(.callout)
-                            .foregroundStyle(.secondary)
+                        Text("Ask about your positions, signals, or market conditions.")
+                            .font(.system(size: 12, design: .monospaced))
+                            .foregroundStyle(termMuted)
                             .multilineTextAlignment(.center)
                             .padding(32)
                     }
@@ -41,16 +53,21 @@ struct ChatView: View {
                             .id(msg.id)
                     }
                     if viewModel.isLoading {
-                        HStack {
+                        HStack(spacing: 8) {
                             ProgressView()
-                                .padding(.horizontal, 16)
-                                .padding(.vertical, 10)
+                                .tint(termGreen)
+                                .scaleEffect(0.75)
+                            Text("thinking…")
+                                .font(.system(size: 11, design: .monospaced))
+                                .foregroundStyle(termMuted)
                             Spacer()
                         }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
                     }
                 }
                 .padding(.horizontal, 12)
-                .padding(.vertical, 8)
+                .padding(.vertical, 10)
             }
             .onChange(of: viewModel.messages.count) { _, _ in
                 if let last = viewModel.messages.last {
@@ -64,13 +81,26 @@ struct ChatView: View {
 
     private var inputBar: some View {
         HStack(alignment: .bottom, spacing: 8) {
-            TextField("Message", text: $inputText, axis: .vertical)
-                .lineLimit(1...5)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .background(Color(.secondarySystemBackground))
-                .clipShape(RoundedRectangle(cornerRadius: 20))
-                .focused($inputFocused)
+            ZStack(alignment: .topLeading) {
+                if inputText.isEmpty {
+                    Text("▋ Ask anything…")
+                        .font(.system(size: 13, design: .monospaced))
+                        .foregroundStyle(termMuted)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 9)
+                        .allowsHitTesting(false)
+                }
+                TextField("", text: $inputText, axis: .vertical)
+                    .lineLimit(1...5)
+                    .font(.system(size: 13, design: .monospaced))
+                    .foregroundStyle(termGreen)
+                    .tint(termGreen)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 9)
+                    .focused($inputFocused)
+            }
+            .background(termSurface2)
+            .overlay(Rectangle().stroke(inputFocused ? termGreenDim : termBorder, lineWidth: 1))
 
             Button {
                 let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -78,14 +108,19 @@ struct ChatView: View {
                 inputText = ""
                 Task { await viewModel.send(text) }
             } label: {
-                Image(systemName: "arrow.up.circle.fill")
-                    .font(.system(size: 32))
-                    .foregroundStyle(inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? Color.secondary : Color.blue)
+                Text("SEND")
+                    .font(.system(size: 10, design: .monospaced).weight(.bold))
+                    .tracking(1)
+                    .foregroundStyle(termBg)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 9)
+                    .background(inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.isLoading ? termGreenDim : termGreen)
             }
             .disabled(inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.isLoading)
         }
         .padding(.horizontal, 12)
-        .padding(.vertical, 8)
+        .padding(.vertical, 10)
+        .background(termBg)
     }
 }
 
@@ -97,20 +132,33 @@ private struct MessageBubble: View {
     private var isUser: Bool { message.role == "user" }
 
     var body: some View {
-        HStack {
+        HStack(alignment: .top, spacing: 0) {
             if isUser { Spacer(minLength: 48) }
-            VStack(alignment: isUser ? .trailing : .leading, spacing: 2) {
+
+            VStack(alignment: isUser ? .trailing : .leading, spacing: 4) {
+                // Role label
+                Text(isUser ? "YOU" : "LAPIO")
+                    .font(.system(size: 9, design: .monospaced).weight(.bold))
+                    .foregroundStyle(isUser ? termMuted : termGreen)
+                    .tracking(1)
+                    .padding(.horizontal, 2)
+
                 Text(message.text.strippingHTML)
-                    .padding(.horizontal, 14)
+                    .font(.system(size: 13, design: .monospaced))
+                    .foregroundStyle(isUser ? termMuted : termText)
+                    .padding(.horizontal, 12)
                     .padding(.vertical, 9)
-                    .background(isUser ? Color.blue : Color(.secondarySystemBackground))
-                    .foregroundStyle(isUser ? .white : .primary)
-                    .clipShape(RoundedRectangle(cornerRadius: 18))
+                    .background(isUser ? termSurface2 : termSurface)
+                    .overlay(
+                        Rectangle().stroke(isUser ? termBorder : termGreenDim.opacity(0.4), lineWidth: 1)
+                    )
+
                 Text(shortTime(message.ts))
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 4)
+                    .font(.system(size: 9, design: .monospaced))
+                    .foregroundStyle(termMuted)
+                    .padding(.horizontal, 2)
             }
+
             if !isUser { Spacer(minLength: 48) }
         }
     }
@@ -125,7 +173,7 @@ private struct MessageBubble: View {
     }
 }
 
-// MARK: - HTML strip
+// MARK: - Helpers
 
 private extension String {
     var strippingHTML: String {
@@ -133,3 +181,14 @@ private extension String {
     }
 }
 
+private extension Color {
+    init(hex: String) {
+        let h = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
+        var int = UInt64()
+        Scanner(string: h).scanHexInt64(&int)
+        let r = Double((int >> 16) & 0xFF) / 255
+        let g = Double((int >> 8)  & 0xFF) / 255
+        let b = Double(int         & 0xFF) / 255
+        self.init(red: r, green: g, blue: b)
+    }
+}
