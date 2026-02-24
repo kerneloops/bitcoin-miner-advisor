@@ -227,6 +227,14 @@ main {
   background: var(--border2);
 }
 
+.dashboard-wrap {
+  border: 1px solid var(--border2);
+  margin-bottom: 1.5rem;
+}
+.dashboard-wrap .dashboard {
+  border: none;
+}
+
 .panel-header {
   background: var(--surface);
   padding: 0.22rem 0.8rem;

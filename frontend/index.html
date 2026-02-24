@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="icon" href="/static/favicon.ico" type="image/x-icon" />
-  <link rel="stylesheet" href="/static/style.css?v=64" />
+  <link rel="stylesheet" href="/static/style.css?v=65" />
 </head>
 <body>
   <header>
@@ -62,9 +62,12 @@
     <div id="macroPanel" class="fundamentals" style="display:none"></div>
     <div id="macroBias" class="macro-bias" style="display:none"></div>
 
-    <div id="dashboard" class="dashboard">
-      <div class="placeholder">
-        <p>Click <a onclick="runAnalysis()"><strong>Run Analysis</strong></a> to fetch the latest data and get LAPIO recommendations.</p>
+    <div class="dashboard-wrap">
+      <div class="panel-header">SIGNAL CARDS</div>
+      <div id="dashboard" class="dashboard">
+        <div class="placeholder">
+          <p>Click <a onclick="runAnalysis()"><strong>Run Analysis</strong></a> to fetch the latest data and get LAPIO recommendations.</p>
+        </div>
       </div>
     </div>
 
