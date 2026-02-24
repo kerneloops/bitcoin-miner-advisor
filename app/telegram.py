@@ -74,7 +74,7 @@ async def generate_reply(user_text: str) -> str:
         reply = resp.content[0].text.strip()
     except Exception as e:
         reply = f"Sorry, I hit an error: {e}"
-    cache.add_chat_message("bot", reply)
+    cache.add_chat_message("assistant", reply)
     return reply
 
 
@@ -177,7 +177,7 @@ async def notify_signals(tickers_data: dict):
     alert_text = "\n".join(lines)
 
     # Store in chat history so the iOS app shows it
-    cache.add_chat_message("bot", alert_text)
+    cache.add_chat_message("assistant", alert_text)
 
     await send_message(alert_text)  # ignore result for bulk alerts
 

@@ -968,8 +968,8 @@ function outcomeIcon(outcome) {
     input.style.height = '';
     btn.disabled = true;
 
-    // Optimistic user bubble
-    appendBubble({ id: Date.now(), role: 'user', text, ts: new Date().toISOString() });
+    // Optimistic user bubble (id: 0 so it doesn't corrupt _lastMsgId)
+    appendBubble({ id: 0, role: 'user', text, ts: new Date().toISOString() });
 
     // Typing indicator
     const box = document.getElementById('chatMessages');

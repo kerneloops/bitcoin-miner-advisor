@@ -87,7 +87,7 @@ async def _scheduled_analysis():
         logger.warning(f"Scheduled macro fetch failed (non-fatal): {e}")
 
     try:
-        from app import cache, sizing, telegram
+        from app import sizing, telegram
 
         results = await run_analysis(signals, fundamentals, macro)
 
