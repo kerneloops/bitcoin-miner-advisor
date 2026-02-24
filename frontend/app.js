@@ -54,15 +54,23 @@ async function runAnalysis() {
   const status = document.getElementById("status");
 
   btn.disabled = true;
-  status.textContent = "Fetching data & running analysis…";
+  const _start = Date.now();
+  let _elapsed = 0;
+  status.textContent = "Analyzing… 0s";
+  const _timer = setInterval(() => {
+    _elapsed = Math.round((Date.now() - _start) / 1000);
+    status.textContent = `Analyzing… ${_elapsed}s`;
+  }, 1000);
 
   try {
     const resp = await fetch("/api/analyze?universe=" + UNIVERSE, { method: "POST" });
+    clearInterval(_timer);
     if (!resp.ok) {
       const err = await resp.json();
       throw new Error(err.detail || "Request failed");
     }
     const data = await resp.json();
+    const _took = Math.round((Date.now() - _start) / 1000);
     lastAnalysisData = data;
     const exportBtn = document.getElementById("exportBtn");
     if (exportBtn) exportBtn.style.display = "";
@@ -78,8 +86,9 @@ async function runAnalysis() {
     localStorage.setItem(_COOLDOWN_AT, new Date().toISOString());
     localStorage.setItem(_COOLDOWN_DATE, localDateStr());
     updateRunTimer();
-    status.textContent = `Updated ${new Date().toLocaleDateString()}`;
+    status.textContent = `Updated ${new Date().toLocaleDateString()} · ran in ${_took}s`;
   } catch (e) {
+    clearInterval(_timer);
     status.textContent = `Error: ${e.message}`;
   } finally {
     btn.disabled = false;

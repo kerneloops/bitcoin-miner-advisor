@@ -349,13 +349,14 @@ main {
 
 .placeholder {
   grid-column: 1/-1;
-  padding: 4rem 2rem;
-  text-align: center;
+  padding: 0.6rem 1rem;
   color: var(--muted);
   background: var(--surface);
 }
-.placeholder p     { margin-bottom: 0.5rem; font-size: 0.82rem; }
-.placeholder .sub  { font-size: 0.72rem; color: var(--dim); }
+.placeholder p     { margin: 0; font-size: 0.7rem; }
+.placeholder .sub  { display: none; }
+.placeholder a     { color: var(--green); text-decoration: none; cursor: pointer; }
+.placeholder a:hover { text-decoration: underline; }
 
 /* ── Card ── */
 .card {
