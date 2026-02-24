@@ -29,14 +29,16 @@ _frontend = Path(__file__).parent.parent / "frontend"
 
 # ── Auth pages ───────────────────────────────────────────────────────────────
 
+_NO_CACHE = {"Cache-Control": "no-cache, no-store, must-revalidate"}
+
 @router.get("/login")
 def login_page():
-    return FileResponse(_frontend / "login.html")
+    return FileResponse(_frontend / "login.html", headers=_NO_CACHE)
 
 
 @router.get("/tech")
 def tech_page():
-    return FileResponse(_frontend / "tech.html")
+    return FileResponse(_frontend / "tech.html", headers=_NO_CACHE)
 
 
 @router.post("/login")
