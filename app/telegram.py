@@ -1,5 +1,7 @@
+import json
 import logging
 import os
+import time
 from datetime import date
 
 import httpx
@@ -15,8 +17,92 @@ BOT_SYSTEM = """You are LAPIO, a sharp AI trading assistant specialising in:
 - Macro and finance (rates, Fed, equities, commodities, risk-on/off regimes)
 
 You have been given the user's current portfolio, live technical signals, and macro conditions.
+When the user asks about any cryptocurrency price or performance, use the get_crypto_price tool.
 Answer concisely and specifically. This is a personal decision-support tool — skip disclaimers.
 Use plain text only — no markdown, no asterisks. Telegram HTML tags (<b>, <i>) are fine sparingly."""
+
+_TOOLS = [
+    {
+        "name": "get_crypto_price",
+        "description": (
+            "Fetch the live price and % change (24h, 7d, 30d) for any cryptocurrency or token. "
+            "Use this whenever the user asks about a coin's current price, performance, or market cap. "
+            "Works for any coin — BTC, ETH, SOL, PEPE, any altcoin or token."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "Coin name or ticker symbol, e.g. 'ETH', 'solana', 'PEPE', 'chainlink', 'dogecoin'",
+                }
+            },
+            "required": ["query"],
+        },
+    }
+]
+
+# Simple in-memory price cache: query -> (json_result, timestamp)
+_price_cache: dict[str, tuple[str, float]] = {}
+_PRICE_CACHE_TTL = 60  # seconds
+
+
+async def _fetch_crypto_price(query: str) -> str:
+    """Search CoinGecko for any coin and return live price data as a JSON string."""
+    key = query.lower().strip()
+    if key in _price_cache:
+        result, ts = _price_cache[key]
+        if time.time() - ts < _PRICE_CACHE_TTL:
+            return result
+
+    async with httpx.AsyncClient(timeout=12) as client:
+        # Step 1 — find the CoinGecko coin ID
+        try:
+            sr = await client.get(
+                "https://api.coingecko.com/api/v3/search",
+                params={"query": query},
+            )
+            sr.raise_for_status()
+            coins = sr.json().get("coins", [])
+        except Exception as e:
+            return json.dumps({"error": f"Search failed: {e}"})
+
+        if not coins:
+            return json.dumps({"error": f"No cryptocurrency found matching '{query}'"})
+
+        coin_id = coins[0]["id"]
+
+        # Step 2 — fetch full market data
+        try:
+            pr = await client.get(
+                f"https://api.coingecko.com/api/v3/coins/{coin_id}",
+                params={
+                    "localization": "false",
+                    "tickers": "false",
+                    "market_data": "true",
+                    "community_data": "false",
+                    "developer_data": "false",
+                },
+            )
+            pr.raise_for_status()
+            data = pr.json()
+            md = data["market_data"]
+        except Exception as e:
+            return json.dumps({"error": f"Price fetch failed: {e}"})
+
+    result = json.dumps({
+        "name": data["name"],
+        "symbol": data["symbol"].upper(),
+        "price_usd": md["current_price"].get("usd"),
+        "price_eur": md["current_price"].get("eur"),
+        "change_24h_pct": md.get("price_change_percentage_24h"),
+        "change_7d_pct": md.get("price_change_percentage_7d"),
+        "change_30d_pct": md.get("price_change_percentage_30d"),
+        "market_cap_usd": md["market_cap"].get("usd"),
+        "market_cap_rank": data.get("market_cap_rank"),
+    })
+    _price_cache[key] = (result, time.time())
+    return result
 
 
 async def _build_context() -> str:
@@ -65,20 +151,51 @@ async def _build_context() -> str:
 
 
 async def generate_reply(user_text: str) -> str:
-    """Generate a Claude reply for the given user text. Stores both messages in chat history."""
+    """Generate a Claude reply, with tool use for live crypto prices. Stores messages in chat history."""
     from . import cache
     cache.add_chat_message("user", user_text)
     context = await _build_context()
+    system = BOT_SYSTEM + f"\n\nCurrent data:\n{context}"
+    messages = [{"role": "user", "content": user_text}]
+
     try:
-        resp = await _claude.messages.create(
-            model="claude-haiku-4-5-20251001",
-            max_tokens=500,
-            system=BOT_SYSTEM + f"\n\nCurrent data:\n{context}",
-            messages=[{"role": "user", "content": user_text}],
-        )
-        reply = resp.content[0].text.strip()
+        for _ in range(5):  # max 5 agentic iterations
+            resp = await _claude.messages.create(
+                model="claude-haiku-4-5-20251001",
+                max_tokens=600,
+                system=system,
+                tools=_TOOLS,
+                messages=messages,
+            )
+
+            if resp.stop_reason == "tool_use":
+                # Append assistant turn (may contain both text and tool_use blocks)
+                messages.append({"role": "assistant", "content": resp.content})
+
+                # Execute all tool calls and collect results
+                tool_results = []
+                for block in resp.content:
+                    if block.type == "tool_use" and block.name == "get_crypto_price":
+                        result = await _fetch_crypto_price(block.input.get("query", ""))
+                        tool_results.append({
+                            "type": "tool_result",
+                            "tool_use_id": block.id,
+                            "content": result,
+                        })
+
+                messages.append({"role": "user", "content": tool_results})
+                continue
+
+            # stop_reason == "end_turn"
+            text_blocks = [b for b in resp.content if hasattr(b, "text")]
+            reply = text_blocks[0].text.strip() if text_blocks else "No response."
+            break
+        else:
+            reply = "Sorry, I hit a tool loop — please try again."
+
     except Exception as e:
         reply = f"Sorry, I hit an error: {e}"
+
     cache.add_chat_message("assistant", reply)
     return reply
 
@@ -190,7 +307,6 @@ async def notify_signals(tickers_data: dict):
     if push.is_configured():
         tokens_json = cache.get_setting("push_device_tokens")
         if tokens_json:
-            import json
             try:
                 tokens = json.loads(tokens_json)
             except Exception:
