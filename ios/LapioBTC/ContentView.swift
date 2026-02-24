@@ -18,6 +18,9 @@ struct ContentView: View {
                             Label("LAPIO ADVISOR", systemImage: "bubble.left.and.bubble.right")
                         }
                 }
+                .toolbarBackground(Color(red: 0.067, green: 0.067, blue: 0.067), for: .tabBar)
+                .toolbarBackground(.visible, for: .tabBar)
+                .toolbarColorScheme(.dark, for: .tabBar)
             } else {
                 LoginView(auth: auth)
             }
