@@ -832,14 +832,19 @@ header {
   height: 22px;
   background: var(--green);
   color: var(--bg);
-  display: flex;
-  align-items: center;
-  padding: 0 calc(max(0px, (100% - 1400px) / 2) + 1.5rem);
-  box-sizing: border-box;
   z-index: 300;
   font-size: 0.6rem;
   letter-spacing: 0.05em;
   user-select: none;
+  overflow: hidden;
+}
+#fkeyInner {
+  max-width: 1400px;
+  height: 22px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+  display: flex;
+  align-items: center;
 }
 
 .fkey { display: flex; align-items: stretch; cursor: pointer; }
