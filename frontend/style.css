@@ -83,13 +83,17 @@ header {
   position: sticky;
   top: 48px;
   z-index: 99;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+}
+.btc-ticker-inner {
+  max-width: 1400px;
+  margin: 0 auto;
   padding: 0.3rem 1.5rem;
   display: flex;
   align-items: center;
   gap: 0.6rem;
   flex-wrap: wrap;
-  font-size: 0.72rem;
-  letter-spacing: 0.04em;
 }
 .btc-pair {
   color: var(--muted);
