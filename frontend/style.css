@@ -833,18 +833,13 @@ header {
   background: var(--green);
   color: var(--bg);
   display: flex;
-  justify-content: center;
+  align-items: center;
+  padding: 0 max(0.75rem, calc((100% - 1400px) / 2 + 1.5rem));
+  box-sizing: border-box;
   z-index: 300;
   font-size: 0.6rem;
   letter-spacing: 0.05em;
   user-select: none;
-}
-#fkeyInner {
-  max-width: 1400px;
-  width: 100%;
-  display: flex;
-  align-items: center;
-  padding: 0 0.75rem;
 }
 
 .fkey { display: flex; align-items: stretch; cursor: pointer; }
