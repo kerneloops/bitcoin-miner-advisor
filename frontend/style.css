@@ -114,6 +114,9 @@ header {
 .page-tabs {
   background: var(--bg);
   border-bottom: 1px solid var(--border2);
+  position: sticky;
+  top: 48px;
+  z-index: 98;
 }
 .page-tabs-inner {
   max-width: 1400px;
