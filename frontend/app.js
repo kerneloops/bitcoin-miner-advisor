@@ -776,6 +776,10 @@ function renderSettings(s) {
       <span style="font-size:.65rem;color:var(--muted)">USD (used for position sizing)</span>
       <span id="capitalStatus" class="settings-status"></span>
     </div>
+    <div class="settings-row" style="border-top:1px solid var(--border2);margin-top:0.4rem;padding-top:0.75rem">
+      <span class="settings-label"></span>
+      <button onclick="tourStart(0)" style="font-size:0.62rem;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;background:none;border:none;cursor:pointer;font-family:inherit;padding:0">↩ Restart Tour</button>
+    </div>
   `;
 
   document.getElementById("capitalInput").addEventListener("blur", saveCapital);
@@ -1259,3 +1263,137 @@ if (UNIVERSE === 'tech') {
   document.addEventListener('DOMContentLoaded', syncTabAlignment);
   window.addEventListener('resize', syncTabAlignment);
 })();
+
+// ── Tour ──
+const _TOUR_KEY = 'lapio_tour_v1';
+const _TOUR_STEPS = [
+  {
+    target: '#analyzeBtn',
+    title: 'Run Analysis',
+    body: 'Hit this to kick off the full pipeline — live prices fetched, technical signals computed, and Claude AI generates a BUY/SELL/HOLD recommendation for every ticker. Takes about 15 seconds.',
+  },
+  {
+    target: '#dashboard',
+    title: 'Signal Cards',
+    body: 'Each card shows live signals for a ticker: RSI, moving averages, BTC correlation, and the AI recommendation. Green is bullish, red is bearish. Cards fill in after your first analysis run.',
+  },
+  {
+    target: '#macroPanel',
+    title: 'Macro Signals',
+    body: 'Broader market context: Fear & Greed, BTC funding rates, Puell Multiple, DVOL, and more. These appear after your first analysis run and help frame the ticker-level signals.',
+    fallback: '#macroBias',
+  },
+  {
+    target: '#tradeLogSection',
+    title: 'Trade Log',
+    body: 'Log every buy and sell here. The trade log is the single source of truth — it auto-computes cost basis, P&L, and drives the position sizing guidance shown on the cards.',
+  },
+  {
+    target: '#chatSection',
+    title: 'LAPIO Advisor',
+    body: 'Ask LAPIO Advisor anything about your positions, what signals mean, or what to watch. It has full context: your portfolio, recent signals, macro data, and the latest analysis.',
+  },
+];
+
+let _tourStep = 0;
+
+function tourStart(step) {
+  _tourStep = step === undefined ? 0 : step;
+  // Ensure overlay exists
+  if (!document.getElementById('tourOverlay')) {
+    const ov = document.createElement('div');
+    ov.id = 'tourOverlay';
+    document.body.appendChild(ov);
+  }
+  _tourRender();
+}
+
+function tourDone() {
+  localStorage.setItem(_TOUR_KEY, '1');
+  _tourCleanup();
+}
+
+function tourNav(dir) {
+  _tourStep += dir;
+  if (_tourStep < 0) _tourStep = 0;
+  if (_tourStep >= _TOUR_STEPS.length) { tourDone(); return; }
+  _tourRender();
+}
+
+function _tourCleanup() {
+  document.querySelectorAll('.tour-highlight').forEach(el => el.classList.remove('tour-highlight'));
+  const overlay = document.getElementById('tourOverlay');
+  if (overlay) overlay.classList.remove('active');
+  const card = document.getElementById('tourCard');
+  if (card) card.remove();
+}
+
+function _tourRender() {
+  _tourCleanup();
+
+  const step = _TOUR_STEPS[_tourStep];
+  let target = document.querySelector(step.target);
+  if (!target && step.fallback) target = document.querySelector(step.fallback);
+
+  // Check if target is actually visible in the layout
+  const isVisible = target && target.offsetParent !== null && target.getBoundingClientRect().width > 0;
+
+  if (isVisible) {
+    target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    target.classList.add('tour-highlight');
+  }
+
+  const overlay = document.getElementById('tourOverlay');
+  if (overlay) overlay.classList.add('active');
+
+  const isFirst = _tourStep === 0;
+  const isLast  = _tourStep === _TOUR_STEPS.length - 1;
+
+  const card = document.createElement('div');
+  card.id = 'tourCard';
+  card.className = 'tour-card';
+  card.innerHTML = `
+    <div class="tour-step-label">Step ${_tourStep + 1} / ${_TOUR_STEPS.length}</div>
+    <div class="tour-title">${step.title}</div>
+    <div class="tour-body">${step.body}</div>
+    <div class="tour-footer">
+      ${!isFirst ? '<button class="tour-btn secondary" onclick="tourNav(-1)">← Back</button>' : ''}
+      <button class="tour-btn" onclick="tourNav(1)">${isLast ? 'Done ✓' : 'Next →'}</button>
+      ${!isLast ? '<button class="tour-skip" onclick="tourDone()">Skip tour</button>' : ''}
+    </div>
+  `;
+  document.body.appendChild(card);
+
+  // Position card near target (or centered if not visible)
+  if (isVisible) {
+    // Wait one tick so the card has dimensions
+    requestAnimationFrame(() => {
+      const rect   = target.getBoundingClientRect();
+      const cardW  = card.offsetWidth  || 340;
+      const cardH  = card.offsetHeight || 220;
+      const margin = 14;
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+
+      let top = rect.bottom + margin;
+      if (top + cardH > vh - margin) top = rect.top - cardH - margin;
+      if (top < margin) top = margin;
+
+      let left = rect.left;
+      if (left + cardW > vw - margin) left = vw - cardW - margin;
+      if (left < margin) left = margin;
+
+      card.style.top  = top  + 'px';
+      card.style.left = left + 'px';
+    });
+  } else {
+    card.style.top       = '50%';
+    card.style.left      = '50%';
+    card.style.transform = 'translate(-50%, -50%)';
+  }
+}
+
+// Auto-trigger for first-time visitors (after boot sequence settles)
+setTimeout(() => {
+  if (!localStorage.getItem(_TOUR_KEY)) tourStart();
+}, 2800);

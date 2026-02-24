@@ -1219,6 +1219,92 @@ header {
   justify-self: start;
 }
 
+/* ── Tour ── */
+#tourOverlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: rgba(0,0,0,0.65);
+}
+#tourOverlay.active { display: block; }
+
+.tour-card {
+  position: fixed;
+  z-index: 2010;
+  background: var(--surface);
+  border: 1px solid var(--green);
+  padding: 1.2rem 1.4rem;
+  max-width: 340px;
+  width: calc(100vw - 2rem);
+  box-shadow: 0 0 24px rgba(0,210,106,0.18);
+}
+.tour-step-label {
+  font-size: 0.55rem;
+  color: var(--green);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  margin-bottom: 0.35rem;
+}
+.tour-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+}
+.tour-body {
+  font-size: 0.67rem;
+  color: var(--muted);
+  line-height: 1.65;
+  margin-bottom: 1rem;
+  letter-spacing: 0.02em;
+}
+.tour-footer {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.tour-btn {
+  background: var(--green);
+  color: var(--bg);
+  border: none;
+  padding: 0.35rem 0.9rem;
+  font-family: inherit;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.tour-btn:hover { background: var(--green-dim); }
+.tour-btn.secondary {
+  background: transparent;
+  border: 1px solid var(--border2);
+  color: var(--muted);
+}
+.tour-btn.secondary:hover { color: var(--text); border-color: var(--text); }
+.tour-skip {
+  margin-left: auto;
+  font-size: 0.55rem;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  padding: 0;
+}
+.tour-skip:hover { color: var(--text); }
+.tour-highlight {
+  outline: 2px solid var(--green) !important;
+  outline-offset: 4px;
+  position: relative !important;
+  z-index: 2001 !important;
+  box-shadow: 0 0 16px rgba(0,210,106,0.25) !important;
+}
+
 /* ── Mobile (WKWebView / narrow screens) ── */
 @media (max-width: 500px) {
   html { font-size: 15px; }
