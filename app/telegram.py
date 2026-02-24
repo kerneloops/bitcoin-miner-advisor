@@ -47,6 +47,10 @@ _TOOLS = [
 _price_cache: dict[str, tuple[str, float]] = {}
 _PRICE_CACHE_TTL = 60  # seconds
 
+# Context cache: avoid recomputing signals on every chat message
+_context_cache: dict[str, tuple[str, float]] = {}  # user_id -> (context, timestamp)
+_CONTEXT_CACHE_TTL = 300  # 5 minutes
+
 
 async def _fetch_crypto_price(query: str) -> str:
     """Search CoinGecko for any coin and return live price data as a JSON string."""
@@ -108,6 +112,10 @@ async def _fetch_crypto_price(query: str) -> str:
 
 async def _build_context() -> str:
     from . import cache
+    uid = cache.get_current_user_id()
+    cached = _context_cache.get(uid)
+    if cached and time.time() - cached[1] < _CONTEXT_CACHE_TTL:
+        return cached[0]
     from .data import TICKERS
     from .technicals import add_relative_strength, compute_signals
 
@@ -152,7 +160,9 @@ async def _build_context() -> str:
     if bias:
         lines.append(f"\n{bias}")
 
-    return "\n".join(lines) if lines else "No cached data available yet — run an analysis first."
+    result = "\n".join(lines) if lines else "No cached data available yet — run an analysis first."
+    _context_cache[uid] = (result, time.time())
+    return result
 
 
 async def generate_reply(user_text: str) -> tuple[str, int]:
@@ -160,8 +170,8 @@ async def generate_reply(user_text: str) -> tuple[str, int]:
     Returns (reply_text, user_msg_id) — user_msg_id lets the frontend skip
     the DB-stored user message it already rendered as an optimistic bubble."""
     from . import cache
-    # Load prior history before saving the new message
-    history = cache.get_chat_messages(limit=40)
+    # Load prior history before saving the new message (20 turns = enough context, not token-heavy)
+    history = cache.get_chat_messages(limit=20)
     user_msg_id = cache.add_chat_message("user", user_text)
     context = await _build_context()
     system = BOT_SYSTEM + f"\n\nCurrent data:\n{context}"
