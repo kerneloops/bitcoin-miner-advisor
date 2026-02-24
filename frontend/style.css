@@ -1221,7 +1221,7 @@ header {
 
 /* ── Mobile (WKWebView / narrow screens) ── */
 @media (max-width: 500px) {
-  html { font-size: 13px; }
+  html { font-size: 15px; }
 
   /* Hide desktop-only chrome */
   #fkeyBar   { display: none !important; }
