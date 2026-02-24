@@ -893,12 +893,27 @@ header {
   gap: 0.6rem;
   align-items: flex-end;
 }
-.chat-input {
+.chat-input-wrap {
   flex: 1;
+  position: relative;
+}
+.chat-input-wrap::before {
+  content: '█';
+  position: absolute;
+  left: 0.7rem;
+  top: 0.52rem;
+  color: var(--green);
+  font-size: 0.82rem;
+  line-height: 1.4;
+  pointer-events: none;
+  animation: blink 1.2s step-end infinite;
+}
+.chat-input {
+  width: 100%;
   background: var(--bg);
   border: 1px solid var(--border2);
   color: var(--text);
-  padding: 0.55rem 0.7rem;
+  padding: 0.55rem 0.7rem 0.55rem 1.6rem;
   font-family: inherit;
   font-size: 0.82rem;
   resize: none;
