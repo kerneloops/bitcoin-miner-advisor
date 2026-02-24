@@ -285,7 +285,7 @@ main {
 .fund-eli5 {
   font-size: 0.58rem;
   color: var(--muted);
-  margin-top: 0.25rem;
+  margin-top: auto;
   padding: 0.2rem 0.4rem;
   background: var(--dim);
   border-left: 2px solid var(--border2);
