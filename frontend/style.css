@@ -888,14 +888,30 @@ header {
   padding: 1rem 1.1rem;
   margin-bottom: 0.75rem;
   background: #091409;
-  border-radius: 6px;
+  border-radius: 16px / 10px;
   border: 1px solid #1a3a1a;
   position: relative;
-  /* vignette */
+  /* vignette — heavier at corners to sell the curve */
   box-shadow:
-    inset 0 0 90px rgba(0,0,0,0.55),
-    inset 0 0 25px rgba(0,35,0,0.4),
-    0 0 12px rgba(0,255,80,0.04);
+    inset 0 0 120px rgba(0,0,0,0.65),
+    inset 0 0 40px rgba(0,35,0,0.45),
+    0 0 16px rgba(0,255,80,0.05);
+}
+/* glass sheen — simulates convex screen reflection */
+.chat-messages::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 70% 35% at 50% 0%,
+      rgba(255,255,255,0.028) 0%,
+      transparent 70%),
+    radial-gradient(ellipse 40% 20% at 50% 100%,
+      rgba(255,255,255,0.010) 0%,
+      transparent 70%);
+  pointer-events: none;
+  z-index: 3;
+  border-radius: inherit;
 }
 /* scanlines overlay */
 .chat-messages::after {
