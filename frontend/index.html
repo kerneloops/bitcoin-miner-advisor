@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="icon" href="/static/favicon.ico" type="image/x-icon" />
-  <link rel="stylesheet" href="/static/style.css?v=37" />
+  <link rel="stylesheet" href="/static/style.css?v=41" />
 </head>
 <body>
   <header>
@@ -74,6 +74,17 @@
       <div id="historyContent"></div>
     </section>
 
+    <div id="chatSection" class="history-section">
+      <h2>AI Advisor</h2>
+      <div id="chatMessages" class="chat-messages"></div>
+      <div class="chat-input-bar">
+        <div class="chat-input-wrap">
+          <textarea id="chatInput" class="chat-input" rows="1" placeholder="Ask about your positions, signals, market conditions…"></textarea>
+        </div>
+        <button id="chatSendBtn" class="chat-send-btn" onclick="chatSend()">Send</button>
+      </div>
+    </div>
+
     <div id="settingsSection" class="history-section">
       <h2>Settings</h2>
       <div id="settingsContent"></div>
@@ -99,17 +110,6 @@
         <input id="tradeNotes"    type="text" placeholder="Notes (optional)">
         <button type="submit">Record Trade</button>
       </form>
-    </div>
-
-    <div id="chatSection" class="history-section">
-      <h2>Chat</h2>
-      <div id="chatMessages" class="chat-messages"></div>
-      <div class="chat-input-bar">
-        <div class="chat-input-wrap">
-          <textarea id="chatInput" class="chat-input" rows="1" placeholder="Ask about your positions, signals, market conditions…"></textarea>
-        </div>
-        <button id="chatSendBtn" class="chat-send-btn" onclick="chatSend()">Send</button>
-      </div>
     </div>
 
   </main>
@@ -147,7 +147,7 @@
   </div>
 
   <div id="tipPopup" class="tip-popup"></div>
-  <script src="/static/app.js?v=40"></script>
+  <script src="/static/app.js?v=41"></script>
   <script type="text/javascript">window.$crisp=[];window.CRISP_WEBSITE_ID="07663adf-eae7-4d8e-b98a-9bc183bdb3b2";(function(){d=document;s=d.createElement("script");s.src="https://client.crisp.chat/l.js";s.async=1;d.getElementsByTagName("head")[0].appendChild(s);})();</script>
 </body>
 </html>

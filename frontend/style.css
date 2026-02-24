@@ -874,9 +874,29 @@ header {
 
 /* ── Chat ───────────────────────────────────────────────────────────────── */
 
+#chatSection {
+  border-left: 3px solid var(--green-dim) !important;
+}
+#chatSection h2 {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+#chatSection h2::before {
+  content: '';
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 6px var(--green);
+  animation: blink 1.8s step-end infinite;
+  flex-shrink: 0;
+}
+
 .chat-messages {
-  min-height: 200px;
-  max-height: 480px;
+  min-height: 280px;
+  max-height: 560px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -904,6 +924,7 @@ header {
   align-self: flex-start;
   background: var(--surface);
   color: var(--text);
+  border-left: 2px solid var(--green-dim);
 }
 .chat-bubble-time {
   font-size: 0.58rem;
