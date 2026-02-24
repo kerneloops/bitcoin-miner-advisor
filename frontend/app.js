@@ -763,22 +763,6 @@ function renderSettings(s) {
     <button class="tier-btn ${t === s.risk_tier ? 'active' : ''}" onclick="setTier('${t}')" data-tip="${tierTips[t]}">${t}</button>
   `).join("");
 
-  const telegramRow = s.telegram_configured
-    ? `<div class="settings-row">
-        <span class="settings-label">Telegram</span>
-        <span style="color:var(--buy)">✓ connected</span>
-       </div>`
-    : `<div class="telegram-setup">
-        <strong style="color:var(--text)">Telegram Setup</strong> — get BUY/SELL alerts on your phone:
-        <ol>
-          <li>Message <strong>@BotFather</strong> → /newbot → copy token</li>
-          <li>Message your new bot once to activate it</li>
-          <li>Visit <code>https://api.telegram.org/bot{TOKEN}/getUpdates</code> → copy <code>id</code> from result</li>
-          <li>SSH to server and add to .env:<br><code>TELEGRAM_BOT_TOKEN=…</code><br><code>TELEGRAM_CHAT_ID=…</code></li>
-          <li>Restart service — Telegram will show ✓ connected here</li>
-        </ol>
-      </div>`;
-
   el.innerHTML = `
     <div class="settings-row">
       <span class="settings-label tip" data-tip="Controls position sizing guidance shown on BUY/SELL cards.&#10;Requires Total Capital to be set.&#10;&#10;CONSERVATIVE — HIGH confidence only&#10;Buy 3% of capital · max 5% position · sell 50%&#10;&#10;NEUTRAL — MEDIUM confidence or higher&#10;Buy 6% of capital · max 10% position · sell 75%&#10;&#10;AGGRESSIVE — any confidence (LOW+)&#10;Buy 12% of capital · max 20% position · sell 100%">Risk Tier</span>
@@ -792,7 +776,6 @@ function renderSettings(s) {
       <span style="font-size:.65rem;color:var(--muted)">USD (used for position sizing)</span>
       <span id="capitalStatus" class="settings-status"></span>
     </div>
-    ${telegramRow}
   `;
 
   document.getElementById("capitalInput").addEventListener("blur", saveCapital);
