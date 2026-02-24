@@ -840,6 +840,7 @@ header {
 }
 #fkeyInner {
   max-width: 1400px;
+  width: 100%;
   height: 22px;
   margin: 0 auto;
   padding: 0 1.5rem;
