@@ -153,7 +153,6 @@ h1 {
 
 h1::before {
   content: '█ ';
-  animation: blink 1.2s step-end infinite;
 }
 
 @keyframes blink { 50% { opacity: 0; } }
