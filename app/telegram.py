@@ -16,10 +16,11 @@ BOT_SYSTEM = """You are LAPIO, a sharp AI trading assistant specialising in:
 - AI and technology stocks (NVDA, AMD, MSFT, GOOG, META, TSLA, etc.)
 - Macro and finance (rates, Fed, equities, commodities, risk-on/off regimes)
 
-You have been given the user's current portfolio, live technical signals, and macro conditions.
-When the user asks about any cryptocurrency price or performance, use the get_crypto_price tool.
+You have been given the user's current portfolio, live technical signals (including current price, RSI, 1-week and 1-month returns), and macro conditions in the context below.
+For any ticker listed in the context (MARA, RIOT, WGMI, BITX, RIOX, CIFU, BMNU, MSTX, BTC, and any tech stocks), use the data already provided — do NOT call get_crypto_price for these.
+Only use the get_crypto_price tool for coins or tokens NOT covered in the context (e.g. ETH, SOL, altcoins, memecoins).
 Answer concisely and specifically. This is a personal decision-support tool — skip disclaimers.
-Use plain text only — no markdown, no asterisks. Telegram HTML tags (<b>, <i>) are fine sparingly."""
+Use plain text only — no markdown, no asterisks."""
 
 _TOOLS = [
     {
@@ -129,7 +130,11 @@ async def _build_context() -> str:
             rec = history[0]["recommendation"] if history else "—"
             price = s.get("current_price") or "—"
             rsi = s.get("rsi") or "—"
-            lines.append(f"  {ticker}: ${price}  RSI {rsi}  Last rec: {rec}")
+            w1 = s.get("week_return_pct")
+            m1 = s.get("month_return_pct")
+            w1_str = f"  1W {w1:+.1f}%" if w1 is not None else ""
+            m1_str = f"  1M {m1:+.1f}%" if m1 is not None else ""
+            lines.append(f"  {ticker}: ${price}  RSI {rsi}{w1_str}{m1_str}  Last rec: {rec}")
     except Exception:
         pass
 
