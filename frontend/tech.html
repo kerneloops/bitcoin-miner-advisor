@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="icon" href="/static/favicon.ico" type="image/x-icon" />
-  <link rel="stylesheet" href="/static/style.css?v=36" />
+  <link rel="stylesheet" href="/static/style.css?v=37" />
 </head>
 <body>
   <header>
@@ -24,8 +24,21 @@
         </button>
         <span id="status" class="status"></span>
         <span id="exportStatus" class="status export-status"></span>
-        <span id="liveClock"></span>
       </div>
+      <div id="btcTicker" class="btc-ticker">
+        <span class="btc-pair">BTC-USD</span>
+        <span class="btc-price" id="btcUsdPrice">—</span>
+        <span id="btcUsd24h" class="btc-change">—</span><span class="btc-period">24h</span>
+        <span id="btcUsd7d"  class="btc-change">—</span><span class="btc-period">7d</span>
+        <span id="btcUsd30d" class="btc-change">—</span><span class="btc-period">30d</span>
+        <span class="btc-sep">│</span>
+        <span class="btc-pair">BTC-EUR</span>
+        <span class="btc-price" id="btcEurPrice">—</span>
+        <span id="btcEur24h" class="btc-change">—</span><span class="btc-period">24h</span>
+        <span id="btcEur7d"  class="btc-change">—</span><span class="btc-period">7d</span>
+        <span id="btcEur30d" class="btc-change">—</span><span class="btc-period">30d</span>
+      </div>
+      <span id="liveClock"></span>
     </div>
   </header>
 
@@ -34,23 +47,6 @@
     <div style="background:var(--surface);border:1px solid var(--border2);padding:1.25rem 1.75rem;text-align:center;pointer-events:auto;max-width:340px;">
       <div style="font-size:0.6rem;color:var(--muted);letter-spacing:0.15em;text-transform:uppercase;margin-bottom:0.5rem">⏳ cooldown active</div>
       <div style="font-size:0.9rem;font-weight:700;color:var(--text);">Patience please, I'm still gathering data<span id="patienceTime" style="color:var(--green)"></span></div>
-    </div>
-  </div>
-
-  <div id="btcTicker" class="btc-ticker">
-    <div class="btc-ticker-inner">
-      <span class="btc-pair">BTC-USD</span>
-      <span class="btc-price" id="btcUsdPrice">—</span>
-      <span id="btcUsd24h" class="btc-change">—</span><span class="btc-period">24h</span>
-      <span id="btcUsd7d"  class="btc-change">—</span><span class="btc-period">7d</span>
-      <span id="btcUsd30d" class="btc-change">—</span><span class="btc-period">30d</span>
-      <span class="btc-sep">│</span>
-      <span class="btc-pair">BTC-EUR</span>
-      <span class="btc-price" id="btcEurPrice">—</span>
-      <span id="btcEur24h" class="btc-change">—</span><span class="btc-period">24h</span>
-      <span id="btcEur7d"  class="btc-change">—</span><span class="btc-period">7d</span>
-      <span id="btcEur30d" class="btc-change">—</span><span class="btc-period">30d</span>
-      <span class="btc-updated" id="btcUpdated"></span>
     </div>
   </div>
 

@@ -78,22 +78,15 @@ header {
 }
 
 .btc-ticker {
-  background: var(--surface);
-  border-bottom: 1px solid var(--border2);
-  position: sticky;
-  top: 48px;
-  z-index: 99;
-  font-size: 0.72rem;
-  letter-spacing: 0.04em;
-}
-.btc-ticker-inner {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 0.3rem 1.5rem;
+  flex: 1;
   display: flex;
   align-items: center;
-  gap: 0.6rem;
-  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  padding: 0 1rem;
+  overflow: hidden;
+  min-width: 0;
 }
 .btc-pair {
   color: var(--muted);
@@ -173,11 +166,11 @@ h1::before {
 }
 
 #liveClock {
-  margin-left: auto;
   font-size: 0.7rem;
   color: var(--muted);
   letter-spacing: 0.12em;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 /* ── Buttons ── */
