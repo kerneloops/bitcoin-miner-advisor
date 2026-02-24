@@ -894,3 +894,54 @@ function outcomeIcon(outcome) {
   document.addEventListener("mouseleave", hide, true);
   document.addEventListener("scroll", hide, true);
 })();
+
+// ── Support modal ────────────────────────────────────────────────────────────
+
+function openSupportModal() {
+  document.getElementById('supportModal').style.display = 'flex';
+  document.getElementById('supportForm').style.display = 'block';
+  document.getElementById('supportThanks').style.display = 'none';
+  document.getElementById('supportError').style.display = 'none';
+  document.getElementById('supportName').value = '';
+  document.getElementById('supportEmail').value = '';
+  document.getElementById('supportMessage').value = '';
+  setTimeout(() => document.getElementById('supportName').focus(), 50);
+}
+
+function closeSupportModal() {
+  document.getElementById('supportModal').style.display = 'none';
+}
+
+function submitSupport() {
+  const name = document.getElementById('supportName').value.trim();
+  const email = document.getElementById('supportEmail').value.trim();
+  const message = document.getElementById('supportMessage').value.trim();
+  const errEl = document.getElementById('supportError');
+
+  errEl.style.display = 'none';
+  if (!name || !email || !message) {
+    errEl.textContent = 'All fields are required.';
+    errEl.style.display = 'block';
+    return;
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    errEl.textContent = 'Enter a valid email address.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  const subject = encodeURIComponent(`[Lapio Support] Message from ${name}`);
+  const body = encodeURIComponent(`Name: ${name}\nEmail: ${email}\n\n${message}`);
+  window.location.href = `mailto:support@lapio.dev?subject=${subject}&body=${body}`;
+
+  // Show thanks after a brief delay (mail client opens in background)
+  setTimeout(() => {
+    document.getElementById('supportForm').style.display = 'none';
+    document.getElementById('supportThanks').style.display = 'block';
+  }, 500);
+}
+
+// Close modal on backdrop click
+document.getElementById('supportModal').addEventListener('click', function(e) {
+  if (e.target === this) closeSupportModal();
+});

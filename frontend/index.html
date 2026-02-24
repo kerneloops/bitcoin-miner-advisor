@@ -99,13 +99,45 @@
     <a href="https://discord.gg/xsYf2J6A" target="_blank" rel="noopener" class="fkey" style="text-decoration:none">
       <span class="fkey-num">DC</span><span class="fkey-label">DISCORD</span>
     </a>
-    <a href="mailto:support@lapio.dev" class="fkey" style="text-decoration:none">
+    <a href="#" onclick="openSupportModal();return false;" class="fkey" style="text-decoration:none">
       <span class="fkey-num">@</span><span class="fkey-label">SUPPORT</span>
     </a>
     <span id="fkeySep"></span>
     <span id="fkeySystem">LAPIO TRADING TERMINAL v2.0 &nbsp;|&nbsp; SESSION: ACTIVE</span>
     <div class="fkey" onclick="window.location='/logout'" style="margin-left:auto;color:var(--sell)">
       <span class="fkey-num" style="color:var(--sell)">F12</span><span class="fkey-label">LOGOUT</span>
+    </div>
+  </div>
+
+  <!-- Support modal -->
+  <div id="supportModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:1000;align-items:center;justify-content:center;">
+    <div style="width:380px;max-width:90vw;background:var(--surface);border:1px solid var(--border);padding:2rem;">
+      <div id="supportForm">
+        <div style="font-size:0.62rem;color:var(--green);letter-spacing:0.15em;text-transform:uppercase;font-weight:700;margin-bottom:0.25rem">Contact Support</div>
+        <div style="font-size:0.6rem;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:1.5rem">support@lapio.dev</div>
+
+        <label style="display:block;font-size:0.6rem;color:var(--muted);letter-spacing:0.13em;text-transform:uppercase;margin-bottom:0.35rem">Your name</label>
+        <input id="supportName" type="text" placeholder="" style="width:100%;box-sizing:border-box;background:var(--bg);border:1px solid var(--border2);color:var(--text);padding:0.5rem 0.6rem;font-family:inherit;font-size:0.82rem;outline:none;margin-bottom:1rem;" />
+
+        <label style="display:block;font-size:0.6rem;color:var(--muted);letter-spacing:0.13em;text-transform:uppercase;margin-bottom:0.35rem">Your email</label>
+        <input id="supportEmail" type="email" placeholder="" style="width:100%;box-sizing:border-box;background:var(--bg);border:1px solid var(--border2);color:var(--text);padding:0.5rem 0.6rem;font-family:inherit;font-size:0.82rem;outline:none;margin-bottom:1rem;" />
+
+        <label style="display:block;font-size:0.6rem;color:var(--muted);letter-spacing:0.13em;text-transform:uppercase;margin-bottom:0.35rem">Message</label>
+        <textarea id="supportMessage" rows="5" style="width:100%;box-sizing:border-box;background:var(--bg);border:1px solid var(--border2);color:var(--text);padding:0.5rem 0.6rem;font-family:inherit;font-size:0.82rem;outline:none;resize:vertical;margin-bottom:0.5rem;"></textarea>
+
+        <div id="supportError" style="font-size:0.6rem;color:var(--sell);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:0.75rem;display:none;"></div>
+
+        <div style="display:flex;gap:0.75rem;margin-top:0.5rem;">
+          <button onclick="submitSupport()" style="flex:1;background:var(--green);color:var(--bg);border:none;padding:0.5rem 1rem;font-family:inherit;font-size:0.7rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;">Send Message</button>
+          <button onclick="closeSupportModal()" style="background:none;color:var(--muted);border:1px solid var(--border2);padding:0.5rem 1rem;font-family:inherit;font-size:0.7rem;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;">Cancel</button>
+        </div>
+      </div>
+
+      <div id="supportThanks" style="display:none;text-align:center;padding:1rem 0;">
+        <div style="font-size:1rem;color:var(--green);font-weight:700;letter-spacing:0.05em;margin-bottom:0.75rem">Message sent ✓</div>
+        <div style="font-size:0.72rem;color:var(--muted);margin-bottom:1.5rem">We'll get back to you at the email you provided.</div>
+        <button onclick="closeSupportModal()" style="background:var(--green);color:var(--bg);border:none;padding:0.5rem 1.5rem;font-family:inherit;font-size:0.7rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;">Close</button>
+      </div>
     </div>
   </div>
 
