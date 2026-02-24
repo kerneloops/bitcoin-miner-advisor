@@ -670,7 +670,7 @@ main {
 }
 
 .cash-controls input[type="number"] {
-  background: var(--bg);
+  background: var(--surface);
   border: 1px solid var(--border2);
   color: var(--text);
   padding: 0.28rem 0.55rem;
@@ -679,6 +679,11 @@ main {
   outline: none;
 }
 .cash-controls input[type="number"]:focus { border-color: var(--green-dim); }
+.cash-controls input[type="number"]::-webkit-inner-spin-button,
+.cash-controls input[type="number"]::-webkit-outer-spin-button {
+  opacity: 1;
+  filter: invert(48%) sepia(79%) saturate(2476%) hue-rotate(110deg) brightness(118%) contrast(90%);
+}
 
 /* ── Benchmark ── */
 .benchmark-section {
