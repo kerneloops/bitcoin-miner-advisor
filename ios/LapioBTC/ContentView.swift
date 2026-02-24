@@ -15,7 +15,7 @@ struct ContentView: View {
 
                     ChatView(viewModel: chatVM)
                         .tabItem {
-                            Label("Chat", systemImage: "bubble.left.and.bubble.right")
+                            Label("LAPIO ADVISOR", systemImage: "bubble.left.and.bubble.right")
                         }
                 }
             } else {
