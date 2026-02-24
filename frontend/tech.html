@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="icon" href="/static/favicon.ico" type="image/x-icon" />
-  <link rel="stylesheet" href="/static/style.css?v=66" />
+  <link rel="stylesheet" href="/static/style.css?v=67" />
 </head>
 <body>
   <header>
@@ -39,6 +39,16 @@
         <span id="btcEur30d" class="btc-change">—</span><span class="btc-period">30d</span>
       </div>
       <span id="liveClock"></span>
+      <div id="userMenu" class="user-menu">
+        <button id="userMenuBtn" class="user-menu-btn" onclick="toggleUserMenu()">
+          <span id="userMenuLabel">—</span> ▾
+        </button>
+        <div id="userMenuDropdown" class="user-menu-dropdown">
+          <div id="userMenuName" class="user-menu-name"></div>
+          <a id="adminPanelLink" href="/admin" class="user-menu-item" style="display:none">⬡ Admin Panel</a>
+          <a href="/logout" class="user-menu-item user-menu-logout">→ Logout</a>
+        </div>
+      </div>
     </div>
   </header>
 
@@ -176,7 +186,7 @@
   </div>
 
   <div id="tipPopup" class="tip-popup"></div>
-  <script src="/static/app.js?v=48"></script>
+  <script src="/static/app.js?v=49"></script>
   <script type="text/javascript">window.$crisp=[];window.CRISP_WEBSITE_ID="07663adf-eae7-4d8e-b98a-9bc183bdb3b2";(function(){d=document;s=d.createElement("script");s.src="https://client.crisp.chat/l.js";s.async=1;d.getElementsByTagName("head")[0].appendChild(s);})();</script>
 </body>
 </html>

@@ -816,6 +816,34 @@ async function saveSettings(body) {
   });
 }
 
+// ── User profile ──
+async function loadUserProfile() {
+  try {
+    const resp = await fetch('/api/auth/me');
+    if (!resp.ok) return;
+    const user = await resp.json();
+    const label = document.getElementById('userMenuLabel');
+    const name  = document.getElementById('userMenuName');
+    const adminLink = document.getElementById('adminPanelLink');
+    if (label) label.textContent = user.username;
+    if (name)  name.textContent  = user.username;
+    if (adminLink && user.is_admin) adminLink.style.display = 'block';
+  } catch {}
+}
+
+function toggleUserMenu() {
+  const d = document.getElementById('userMenuDropdown');
+  if (d) d.classList.toggle('open');
+}
+
+document.addEventListener('click', (e) => {
+  const menu = document.getElementById('userMenu');
+  if (menu && !menu.contains(e.target)) {
+    const d = document.getElementById('userMenuDropdown');
+    if (d) d.classList.remove('open');
+  }
+});
+
 // ── Boot sequence ──
 const _statusEl = document.getElementById("status");
 const _bootMsgs = [
@@ -833,6 +861,7 @@ const _bootSeq = setInterval(() => {
   }
 }, 480);
 
+loadUserProfile();
 loadSettings();
 loadPortfolio();
 loadTrades();

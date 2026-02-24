@@ -110,6 +110,61 @@ header {
 .btc-sep { color: var(--border2); padding: 0 0.4rem; }
 .btc-updated { color: var(--muted); font-size: 0.58rem; margin-left: auto; }
 
+/* ── User menu ── */
+.user-menu {
+  position: relative;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.user-menu-btn {
+  background: none;
+  border: 1px solid var(--border2);
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 0.28rem 0.65rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  white-space: nowrap;
+}
+.user-menu-btn:hover { border-color: var(--green-dim); color: var(--text); }
+.user-menu-dropdown {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  min-width: 160px;
+  z-index: 200;
+}
+.user-menu-dropdown.open { display: block; }
+.user-menu-name {
+  font-size: 0.58rem;
+  color: var(--green);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 0.5rem 0.75rem 0.35rem;
+  border-bottom: 1px solid var(--border2);
+}
+.user-menu-item {
+  display: block;
+  font-size: 0.62rem;
+  color: var(--muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.45rem 0.75rem;
+  text-decoration: none;
+  cursor: pointer;
+}
+.user-menu-item:hover { color: var(--text); background: var(--bg); }
+.user-menu-logout { color: var(--sell) !important; }
+.user-menu-logout:hover { background: rgba(255,59,59,0.07) !important; }
+
 /* ── Page tab bar (sticky row below header) ── */
 .page-tabs {
   position: sticky;

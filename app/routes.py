@@ -143,7 +143,12 @@ async def api_me(request: Request):
     user = user_store.get_session(token)
     if not user:
         raise HTTPException(401, "Unauthorized")
-    return {"username": user["username"], "user_id": user["user_id"]}
+    primary_id = user_store.get_primary_user_id()
+    return {
+        "username": user["username"],
+        "user_id": user["user_id"],
+        "is_admin": user["user_id"] == primary_id,
+    }
 
 
 @router.post("/api/support")
