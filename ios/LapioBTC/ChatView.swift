@@ -55,7 +55,7 @@ struct ChatView: View {
             ScrollView {
                 LazyVStack(spacing: 10) {
                     if viewModel.messages.isEmpty {
-                        Text("Ask about positions, signals, or macro.")
+                        Text("Ask LAPIO Advisor")
                             .font(.system(size: 12, design: .monospaced))
                             .foregroundStyle(termMuted)
                             .multilineTextAlignment(.center)
