@@ -73,8 +73,8 @@ header {
   padding: 0 1.5rem;
   height: 48px;
   display: flex;
-  align-items: center;
-  gap: 1.25rem;
+  align-items: stretch;
+  gap: 0;
 }
 
 .btc-ticker {
@@ -110,33 +110,27 @@ header {
 .btc-sep { color: var(--border2); padding: 0 0.4rem; }
 .btc-updated { color: var(--muted); font-size: 0.58rem; margin-left: auto; }
 
-/* ── Page tab bar ── */
+/* ── Page tab bar (inline in header) ── */
 .page-tabs {
-  background: var(--bg);
-  border-bottom: 1px solid var(--border2);
-  position: sticky;
-  top: 48px;
-  z-index: 98;
-}
-.page-tabs-inner {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 0 1.5rem;
   display: flex;
-  gap: 0;
+  align-items: stretch;
+  border-left: 1px solid var(--border2);
+  border-right: 1px solid var(--border2);
 }
 .page-tab {
-  display: inline-block;
-  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  font-size: 0.72rem;
   font-weight: 700;
   font-family: inherit;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--dim);
-  padding: 0.7rem 1.5rem;
+  padding: 0 1.3rem;
   text-decoration: none;
   border-bottom: 3px solid transparent;
   transition: color 0.12s, border-color 0.12s;
+  white-space: nowrap;
 }
 .page-tab:hover { color: var(--text); }
 .page-tab.active {
@@ -152,11 +146,11 @@ h1 {
   letter-spacing: 0.18em;
   text-transform: uppercase;
   white-space: nowrap;
+  display: flex;
+  align-items: center;
+  padding-right: 1.25rem;
 }
 
-h1::before {
-  content: '█ ';
-}
 
 @keyframes blink { 50% { opacity: 0; } }
 
@@ -164,7 +158,7 @@ h1::before {
   display: flex;
   align-items: center;
   gap: 0.6rem;
-  flex: 1;
+  padding: 0 1.25rem;
 }
 
 #liveClock {
@@ -173,6 +167,8 @@ h1::before {
   letter-spacing: 0.12em;
   white-space: nowrap;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
 }
 
 /* ── Buttons ── */

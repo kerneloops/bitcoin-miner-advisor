@@ -25,6 +25,10 @@
         <span id="status" class="status"></span>
         <span id="exportStatus" class="status export-status"></span>
       </div>
+      <nav class="page-tabs">
+        <a href="/tech" class="page-tab active">Tech Stocks</a>
+        <a href="/" class="page-tab">Bitcoin Miners</a>
+      </nav>
       <div id="btcTicker" class="btc-ticker">
         <span class="btc-pair">BTC</span>
         <span class="btc-price" id="btcUsdPrice">—</span>
@@ -50,13 +54,6 @@
     </div>
   </div>
 
-  <nav class="page-tabs">
-    <div class="page-tabs-inner">
-      <a href="/tech" class="page-tab active">Tech Stocks</a>
-      <a href="/" class="page-tab">Bitcoin Miners</a>
-    </div>
-  </nav>
-
   <main>
     <div id="fundamentals" class="fundamentals" style="display:none"></div>
     <div id="macroPanel" class="fundamentals" style="display:none"></div>
@@ -64,7 +61,7 @@
 
     <div id="dashboard" class="dashboard">
       <div class="placeholder">
-        <p>Click <a onclick="runAnalysis()"><strong>Run Analysis</strong></a> to fetch the latest data and get AI recommendations.</p>
+        <p>Click <a onclick="runAnalysis()"><strong>Run Analysis</strong></a> to fetch the latest data and get LAPIO recommendations.</p>
       </div>
     </div>
 
@@ -75,7 +72,7 @@
     </section>
 
     <div id="chatSection" class="history-section">
-      <h2>AI Advisor</h2>
+      <h2>LAPIO Advisor</h2>
       <div id="chatMessages" class="chat-messages"></div>
       <div class="chat-input-bar">
         <div class="chat-input-wrap">
