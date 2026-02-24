@@ -887,15 +887,14 @@ header {
   gap: 0.7rem;
   padding: 1rem 1.1rem;
   margin-bottom: 0.75rem;
-  background: #091409;
+  background: var(--bg);
   border-radius: 16px / 10px;
-  border: 1px solid #1a3a1a;
+  border: 1px solid var(--border2);
   position: relative;
-  /* vignette — heavier at corners to sell the curve */
+  /* vignette — sells the curve */
   box-shadow:
-    inset 0 0 120px rgba(0,0,0,0.65),
-    inset 0 0 40px rgba(0,35,0,0.45),
-    0 0 16px rgba(0,255,80,0.05);
+    inset 0 0 80px rgba(0,0,0,0.45),
+    inset 0 0 20px rgba(0,0,0,0.25);
 }
 /* glass sheen — simulates convex screen reflection */
 .chat-messages::before {
@@ -943,24 +942,22 @@ header {
 }
 .chat-bubble.user {
   align-self: flex-end;
-  background: rgba(0, 180, 70, 0.18);
-  color: #7dff9a;
-  border: 1px solid rgba(0, 220, 80, 0.3);
+  background: var(--green-dim);
+  color: var(--bg);
+  border: 1px solid var(--green-dim);
   border-bottom-right-radius: 1px;
-  text-shadow: 0 0 8px rgba(0,255,100,0.4);
 }
 .chat-bubble.assistant {
   align-self: flex-start;
-  background: rgba(0, 20, 0, 0.5);
-  color: #b8e8b8;
-  border: 1px solid #1e3e1e;
-  border-left: 2px solid #3a7a3a;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border2);
+  border-left: 2px solid var(--green-dim);
   border-bottom-left-radius: 1px;
-  text-shadow: 0 0 6px rgba(0,200,80,0.2);
 }
 .chat-bubble-time {
   font-size: 0.56rem;
-  color: #3a6a3a;
+  color: var(--muted);
   margin-top: 0.15rem;
   letter-spacing: 0.05em;
   position: relative;
@@ -1022,7 +1019,7 @@ header {
 .chat-send-btn:disabled { opacity: 0.45; cursor: default; }
 .chat-typing {
   font-size: 0.72rem;
-  color: #3a7a3a;
+  color: var(--muted);
   letter-spacing: 0.08em;
   padding: 0.3rem 0;
   position: relative;
