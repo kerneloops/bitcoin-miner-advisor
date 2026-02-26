@@ -429,6 +429,17 @@ main {
 }
 .card:hover { background: var(--surface2); }
 
+.card-body {
+  max-height: 17rem;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+.card-body::-webkit-scrollbar { width: 3px; }
+.card-body::-webkit-scrollbar-track { background: transparent; }
+.card-body::-webkit-scrollbar-thumb { background: var(--border2); }
+.card-body::-webkit-scrollbar-thumb:hover { background: var(--green-dim); }
+.card-body { scrollbar-width: thin; scrollbar-color: var(--border2) transparent; }
+
 .card-header {
   display: flex;
   align-items: center;
@@ -953,8 +964,8 @@ header {
 
 /* CRT phosphor screen */
 .chat-messages {
-  min-height: 280px;
-  max-height: 560px;
+  min-height: 224px;
+  max-height: 448px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;

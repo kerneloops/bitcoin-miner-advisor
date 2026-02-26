@@ -249,46 +249,48 @@ function buildCard(d) {
       ${rec !== "—" ? `<span class="badge ${rec}">${rec}</span>` : ""}
     </div>
 
-    <div class="price">$${fmt(d.current_price)}</div>
+    <div class="card-body">
+      <div class="price">$${fmt(d.current_price)}</div>
 
-    <div class="signals">
-      <div class="signal-row">
-        <span class="tip" data-tip="14-period Relative Strength Index&#10;Scale: 0–100&#10;< 30  oversold (potential buy)&#10;> 70  overbought (potential sell)">RSI</span>
-        <span class="signal-val ${rsiColor(d.rsi)}">${d.rsi ?? "—"}</span>
+      <div class="signals">
+        <div class="signal-row">
+          <span class="tip" data-tip="14-period Relative Strength Index&#10;Scale: 0–100&#10;< 30  oversold (potential buy)&#10;> 70  overbought (potential sell)">RSI</span>
+          <span class="signal-val ${rsiColor(d.rsi)}">${d.rsi ?? "—"}</span>
+        </div>
+        <div class="signal-row">
+          <span class="tip" data-tip="20-day Simple Moving Average&#10;Short-term trend price level&#10;Acts as dynamic support / resistance">SMA20</span>
+          <span class="signal-val">${d.sma20 ? "$" + fmt(d.sma20) : "—"}</span>
+        </div>
+        <div class="signal-row">
+          <span class="tip" data-tip="Price vs 20-day moving average&#10;Above = short-term uptrend&#10;Below = short-term downtrend&#10;Crossovers are short-term signals">vs SMA20</span>
+          <span class="signal-val ${d.above_sma20 ? "pos" : "neg"}">${d.above_sma20 != null ? (d.above_sma20 ? "Above" : "Below") : "—"}</span>
+        </div>
+        <div class="signal-row">
+          <span class="tip" data-tip="Price vs 50-day moving average&#10;Above = medium-term uptrend&#10;Below = medium-term downtrend&#10;Stronger trend signal than SMA20">vs SMA50</span>
+          <span class="signal-val ${d.above_sma50 ? "pos" : "neg"}">${d.above_sma50 != null ? (d.above_sma50 ? "Above" : "Below") : "—"}</span>
+        </div>
+        <div class="signal-row">
+          <span class="tip" data-tip="Price change over the past 7 days&#10;+ green = price gained&#10;− red = price declined">1W return</span>
+          <span class="signal-val ${pctColor(d.week_return_pct)}">${pct(d.week_return_pct)}</span>
+        </div>
+        <div class="signal-row">
+          <span class="tip" data-tip="Price change over the past 30 days&#10;+ green = price gained&#10;− red = price declined">1M return</span>
+          <span class="signal-val ${pctColor(d.month_return_pct)}">${pct(d.month_return_pct)}</span>
+        </div>
+        <div class="signal-row">
+          <span class="tip" data-tip="30-day rolling correlation with Bitcoin&#10;+1.0 = moves in lockstep with BTC&#10; 0.0 = independent movement&#10;−1.0 = moves opposite to BTC&#10;Miners typically 0.6–0.9">BTC corr</span>
+          <span class="signal-val">${d.btc_correlation ?? "—"}</span>
+        </div>
+        ${d.btc_trend ? `<div class="signal-row" style="grid-column:1/-1"><span class="tip" data-tip="Bitcoin price change over past 7 days&#10;Context for miner stock moves&#10;Miners typically amplify BTC moves 2–4×">BTC 7d</span><span class="signal-val">${d.btc_trend}</span></div>` : ""}
+        ${d.vs_sector_1w != null ? `<div class="signal-row"><span class="tip" data-tip="This ticker's 1-week return&#10;minus the sector average 1-week return&#10;+ = outperforming peers this week&#10;− = lagging behind peers">vs Sector 1W</span><span class="signal-val ${pctColor(d.vs_sector_1w)}">${pct(d.vs_sector_1w)}</span></div>` : ""}
+        ${d.vs_sector_1m != null ? `<div class="signal-row"><span class="tip" data-tip="This ticker's 1-month return&#10;minus the sector average 1-month return&#10;+ = outperforming peers this month&#10;− = lagging behind peers">vs Sector 1M</span><span class="signal-val ${pctColor(d.vs_sector_1m)}">${pct(d.vs_sector_1m)}</span></div>` : ""}
       </div>
-      <div class="signal-row">
-        <span class="tip" data-tip="20-day Simple Moving Average&#10;Short-term trend price level&#10;Acts as dynamic support / resistance">SMA20</span>
-        <span class="signal-val">${d.sma20 ? "$" + fmt(d.sma20) : "—"}</span>
-      </div>
-      <div class="signal-row">
-        <span class="tip" data-tip="Price vs 20-day moving average&#10;Above = short-term uptrend&#10;Below = short-term downtrend&#10;Crossovers are short-term signals">vs SMA20</span>
-        <span class="signal-val ${d.above_sma20 ? "pos" : "neg"}">${d.above_sma20 != null ? (d.above_sma20 ? "Above" : "Below") : "—"}</span>
-      </div>
-      <div class="signal-row">
-        <span class="tip" data-tip="Price vs 50-day moving average&#10;Above = medium-term uptrend&#10;Below = medium-term downtrend&#10;Stronger trend signal than SMA20">vs SMA50</span>
-        <span class="signal-val ${d.above_sma50 ? "pos" : "neg"}">${d.above_sma50 != null ? (d.above_sma50 ? "Above" : "Below") : "—"}</span>
-      </div>
-      <div class="signal-row">
-        <span class="tip" data-tip="Price change over the past 7 days&#10;+ green = price gained&#10;− red = price declined">1W return</span>
-        <span class="signal-val ${pctColor(d.week_return_pct)}">${pct(d.week_return_pct)}</span>
-      </div>
-      <div class="signal-row">
-        <span class="tip" data-tip="Price change over the past 30 days&#10;+ green = price gained&#10;− red = price declined">1M return</span>
-        <span class="signal-val ${pctColor(d.month_return_pct)}">${pct(d.month_return_pct)}</span>
-      </div>
-      <div class="signal-row">
-        <span class="tip" data-tip="30-day rolling correlation with Bitcoin&#10;+1.0 = moves in lockstep with BTC&#10; 0.0 = independent movement&#10;−1.0 = moves opposite to BTC&#10;Miners typically 0.6–0.9">BTC corr</span>
-        <span class="signal-val">${d.btc_correlation ?? "—"}</span>
-      </div>
-      ${d.btc_trend ? `<div class="signal-row" style="grid-column:1/-1"><span class="tip" data-tip="Bitcoin price change over past 7 days&#10;Context for miner stock moves&#10;Miners typically amplify BTC moves 2–4×">BTC 7d</span><span class="signal-val">${d.btc_trend}</span></div>` : ""}
-      ${d.vs_sector_1w != null ? `<div class="signal-row"><span class="tip" data-tip="This ticker's 1-week return&#10;minus the sector average 1-week return&#10;+ = outperforming peers this week&#10;− = lagging behind peers">vs Sector 1W</span><span class="signal-val ${pctColor(d.vs_sector_1w)}">${pct(d.vs_sector_1w)}</span></div>` : ""}
-      ${d.vs_sector_1m != null ? `<div class="signal-row"><span class="tip" data-tip="This ticker's 1-month return&#10;minus the sector average 1-month return&#10;+ = outperforming peers this month&#10;− = lagging behind peers">vs Sector 1M</span><span class="signal-val ${pctColor(d.vs_sector_1m)}">${pct(d.vs_sector_1m)}</span></div>` : ""}
+
+      ${conf ? `<div class="confidence">Confidence: ${conf}</div>` : ""}
+      ${d.reasoning ? `<div class="reasoning">${d.reasoning}</div>` : ""}
+      ${d.key_risk ? `<div class="key-risk rec-${rec}">Risk: ${d.key_risk}</div>` : ""}
+      ${buildGuidance(d.position_guidance, currentSettings.risk_tier)}
     </div>
-
-    ${conf ? `<div class="confidence">Confidence: ${conf}</div>` : ""}
-    ${d.reasoning ? `<div class="reasoning">${d.reasoning}</div>` : ""}
-    ${d.key_risk ? `<div class="key-risk rec-${rec}">Risk: ${d.key_risk}</div>` : ""}
-    ${buildGuidance(d.position_guidance, currentSettings.risk_tier)}
   `;
   return card;
 }
