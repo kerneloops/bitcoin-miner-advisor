@@ -908,11 +908,28 @@ function toggleUserMenu() {
   if (d) d.classList.toggle('open');
 }
 
+function openSettings() {
+  const overlay = document.getElementById('settingsOverlay');
+  if (overlay) overlay.classList.add('open');
+  const d = document.getElementById('userMenuDropdown');
+  if (d) d.classList.remove('open');
+  loadSettings();
+}
+
+function closeSettings() {
+  const overlay = document.getElementById('settingsOverlay');
+  if (overlay) overlay.classList.remove('open');
+}
+
 document.addEventListener('click', (e) => {
   const menu = document.getElementById('userMenu');
   if (menu && !menu.contains(e.target)) {
     const d = document.getElementById('userMenuDropdown');
     if (d) d.classList.remove('open');
+  }
+  const overlay = document.getElementById('settingsOverlay');
+  if (overlay && overlay.classList.contains('open') && e.target === overlay) {
+    closeSettings();
   }
 });
 

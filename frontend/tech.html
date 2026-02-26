@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="icon" href="/static/favicon.ico" type="image/x-icon" />
-  <link rel="stylesheet" href="/static/style.css?v=68" />
+  <link rel="stylesheet" href="/static/style.css?v=69" />
 </head>
 <body>
   <header>
@@ -46,6 +46,7 @@
         <div id="userMenuDropdown" class="user-menu-dropdown">
           <div id="userMenuName" class="user-menu-name"></div>
           <a id="adminPanelLink" href="/admin" class="user-menu-item" style="display:none">⬡ Admin Panel</a>
+          <a class="user-menu-item" onclick="openSettings()">&#9881; Settings</a>
           <a href="/logout" class="user-menu-item user-menu-logout">→ Logout</a>
         </div>
       </div>
@@ -94,11 +95,6 @@
         </div>
         <button id="chatSendBtn" class="chat-send-btn" onclick="chatSend()">Send</button>
       </div>
-    </div>
-
-    <div id="settingsSection" class="history-section">
-      <h2>Settings</h2>
-      <div id="settingsContent"></div>
     </div>
 
     <div id="portfolioSection" class="history-section">
@@ -186,8 +182,18 @@
     </div>
   </div>
 
+  <div id="settingsOverlay" class="settings-overlay">
+    <div class="settings-modal">
+      <div class="settings-modal-header">
+        <span>SETTINGS</span>
+        <button class="settings-close" onclick="closeSettings()">&times;</button>
+      </div>
+      <div id="settingsContent"></div>
+    </div>
+  </div>
+
   <div id="tipPopup" class="tip-popup"></div>
-  <script src="/static/app.js?v=51"></script>
+  <script src="/static/app.js?v=52"></script>
   <script type="text/javascript">window.$crisp=[];window.CRISP_WEBSITE_ID="07663adf-eae7-4d8e-b98a-9bc183bdb3b2";(function(){d=document;s=d.createElement("script");s.src="https://client.crisp.chat/l.js";s.async=1;d.getElementsByTagName("head")[0].appendChild(s);})();</script>
 </body>
 </html>

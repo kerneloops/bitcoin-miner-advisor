@@ -1293,6 +1293,14 @@ header {
   justify-self: start;
 }
 
+/* ── Settings modal ── */
+.settings-overlay { display:none; position:fixed; inset:0; z-index:2000; background:rgba(0,0,0,0.65); }
+.settings-overlay.open { display:flex; align-items:center; justify-content:center; }
+.settings-modal { background:var(--surface); border:1px solid var(--border2); padding:1.25rem 1.5rem; min-width:340px; max-width:420px; width:90vw; }
+.settings-modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; font-size:0.6rem; letter-spacing:0.15em; color:var(--muted); }
+.settings-close { background:none; border:none; color:var(--muted); font-size:1.1rem; cursor:pointer; padding:0 0.25rem; }
+.settings-close:hover { color:var(--text); }
+
 /* ── Tour ── */
 #tourOverlay {
   display: none;
