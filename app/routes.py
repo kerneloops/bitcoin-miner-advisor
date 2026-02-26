@@ -447,6 +447,14 @@ async def analyze(universe: str = Query("miners")):
     return {"tickers": results, "fundamentals": fundamentals, "macro": macro, "macro_bias": macro_bias}
 
 
+@router.get("/api/accuracy")
+def get_accuracy(universe: str = Query("miners")):
+    """Return aggregate accuracy stats for the given universe."""
+    base_tickers, _, _ = get_tickers_for_universe(universe)
+    active_tickers = cache.get_active_tickers(base_tickers)
+    return cache.get_accuracy_summary(active_tickers)
+
+
 @router.get("/api/signals")
 async def get_signals(universe: str = Query("miners")):
     """Return current computed signals from cached data (no API calls)."""

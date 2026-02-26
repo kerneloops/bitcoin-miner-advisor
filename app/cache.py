@@ -166,6 +166,17 @@ def init_db():
                 "ALTER TABLE chat_messages ADD COLUMN user_id TEXT NOT NULL DEFAULT ''"
             )
 
+        # ── Add confidence + key_risk to analyses (accuracy tracker) ──────
+        analyses_cols = _table_columns(conn, "analyses")
+        if "confidence" not in analyses_cols:
+            conn.execute(
+                "ALTER TABLE analyses ADD COLUMN confidence TEXT"
+            )
+        if "key_risk" not in analyses_cols:
+            conn.execute(
+                "ALTER TABLE analyses ADD COLUMN key_risk TEXT"
+            )
+
         # ── One-time cash_balance backfill for user_id='' ───────────────────
         has_cash = conn.execute(
             "SELECT 1 FROM settings WHERE user_id = '' AND key = 'cash_balance'"
@@ -215,12 +226,13 @@ def get_latest_date(ticker: str) -> str | None:
     return row["d"] if row and row["d"] else None
 
 
-def save_analysis(run_date: str, ticker: str, signals: dict, recommendation: str, reasoning: str):
+def save_analysis(run_date: str, ticker: str, signals: dict, recommendation: str, reasoning: str,
+                   confidence: str | None = None, key_risk: str | None = None):
     with get_conn() as conn:
         conn.execute(
-            """INSERT INTO analyses (run_date, ticker, signals, recommendation, reasoning)
-               VALUES (?, ?, ?, ?, ?)""",
-            (run_date, ticker, json.dumps(signals), recommendation, reasoning),
+            """INSERT INTO analyses (run_date, ticker, signals, recommendation, reasoning, confidence, key_risk)
+               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            (run_date, ticker, json.dumps(signals), recommendation, reasoning, confidence, key_risk),
         )
 
 
@@ -623,5 +635,107 @@ def get_analysis_history(ticker: str, limit: int = 12) -> list[dict]:
 
         result.append(d)
     return result
+
+
+def get_accuracy_summary(tickers: list[str]) -> dict:
+    """Aggregate accuracy stats across all analyses for the given tickers."""
+    today = date.today().isoformat()
+    with get_conn() as conn:
+        rows = conn.execute(
+            f"SELECT * FROM analyses WHERE ticker IN ({','.join('?' for _ in tickers)}) ORDER BY run_date ASC",
+            tickers,
+        ).fetchall()
+
+    total = 0
+    correct = 0
+    incorrect = 0
+    pending = 0
+    by_rec = {}    # {BUY: {correct, incorrect, pending}, ...}
+    by_conf = {}   # {HIGH: {correct, incorrect, pending}, ...}
+    outcomes_ordered = []  # list of True/False for streak calc
+
+    for r in rows:
+        signals = json.loads(r["signals"])
+        rec = r["recommendation"]
+        confidence = r["confidence"]  # may be None for old rows
+        target_date = (date.fromisoformat(r["run_date"]) + timedelta(days=14)).isoformat()
+        entry_price = signals.get("current_price")
+
+        if not entry_price or target_date > today:
+            outcome = "pending"
+        else:
+            exit_price = get_price_on_or_after(r["ticker"], target_date)
+            if exit_price is None:
+                outcome = "pending"
+            else:
+                ret = (exit_price / entry_price - 1) * 100
+                if rec == "BUY":
+                    is_correct = ret > 0
+                elif rec == "SELL":
+                    is_correct = ret < 0
+                else:
+                    is_correct = -5.0 <= ret <= 5.0
+                outcome = "correct" if is_correct else "incorrect"
+
+        total += 1
+        if outcome == "pending":
+            pending += 1
+        elif outcome == "correct":
+            correct += 1
+            outcomes_ordered.append(True)
+        else:
+            incorrect += 1
+            outcomes_ordered.append(False)
+
+        # By recommendation
+        if rec not in by_rec:
+            by_rec[rec] = {"correct": 0, "incorrect": 0, "pending": 0}
+        by_rec[rec][outcome] += 1
+
+        # By confidence (skip None)
+        if confidence:
+            if confidence not in by_conf:
+                by_conf[confidence] = {"correct": 0, "incorrect": 0, "pending": 0}
+            by_conf[confidence][outcome] += 1
+
+    resolved = correct + incorrect
+    win_rate_pct = round(correct / resolved * 100, 1) if resolved else None
+
+    # Streak: count from the end of outcomes_ordered
+    streak = 0
+    if outcomes_ordered:
+        last = outcomes_ordered[-1]
+        for o in reversed(outcomes_ordered):
+            if o == last:
+                streak += 1
+            else:
+                break
+        if not last:
+            streak = -streak
+
+    # Win rates per bucket
+    def _bucket_stats(d: dict) -> dict:
+        out = {}
+        for k, v in d.items():
+            res = v["correct"] + v["incorrect"]
+            out[k] = {
+                "correct": v["correct"],
+                "incorrect": v["incorrect"],
+                "pending": v["pending"],
+                "win_rate_pct": round(v["correct"] / res * 100, 1) if res else None,
+            }
+        return out
+
+    return {
+        "total": total,
+        "resolved": resolved,
+        "correct": correct,
+        "incorrect": incorrect,
+        "pending": pending,
+        "win_rate_pct": win_rate_pct,
+        "streak": streak,
+        "by_recommendation": _bucket_stats(by_rec),
+        "by_confidence": _bucket_stats(by_conf),
+    }
 
 

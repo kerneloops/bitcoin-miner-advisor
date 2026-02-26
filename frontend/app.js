@@ -83,6 +83,7 @@ async function runAnalysis() {
     document.getElementById("historySection").style.display = "block";
     await loadPortfolio();
     await loadTrades();
+    fetchAccuracy();
     localStorage.setItem(_COOLDOWN_AT, new Date().toISOString());
     localStorage.setItem(_COOLDOWN_DATE, localDateStr());
     updateRunTimer();
@@ -93,6 +94,75 @@ async function runAnalysis() {
   } finally {
     btn.disabled = false;
   }
+}
+
+function renderAccuracy(data) {
+  const el = document.getElementById("accuracyPanel");
+  if (!el) return;
+  if (!data || data.total === 0) {
+    el.style.display = "none";
+    return;
+  }
+
+  const wr = data.win_rate_pct;
+  const wrColor = wr == null ? "" : wr >= 60 ? "pos" : wr < 40 ? "neg" : "";
+  const wrText = wr != null ? wr.toFixed(1) + "%" : "—";
+
+  const streakText = data.streak > 0 ? "+" + data.streak : data.streak < 0 ? String(data.streak) : "0";
+  const streakColor = data.streak > 0 ? "pos" : data.streak < 0 ? "neg" : "";
+
+  // By recommendation
+  let recHtml = "";
+  for (const r of ["BUY", "SELL", "HOLD"]) {
+    const b = (data.by_recommendation || {})[r];
+    if (!b) continue;
+    const bwr = b.win_rate_pct != null ? b.win_rate_pct.toFixed(0) + "%" : "—";
+    const bwrColor = b.win_rate_pct == null ? "" : b.win_rate_pct >= 60 ? "pos" : b.win_rate_pct < 40 ? "neg" : "";
+    const resolved = b.correct + b.incorrect;
+    recHtml += `<div class="fund-item"><div class="fund-label">${r}</div><div class="fund-value ${bwrColor}">${bwr}</div><div class="fund-sub">${resolved} resolved, ${b.pending} pending</div></div>`;
+  }
+
+  // By confidence
+  let confHtml = "";
+  for (const c of ["HIGH", "MEDIUM", "LOW"]) {
+    const b = (data.by_confidence || {})[c];
+    if (!b) continue;
+    const bwr = b.win_rate_pct != null ? b.win_rate_pct.toFixed(0) + "%" : "—";
+    const bwrColor = b.win_rate_pct == null ? "" : b.win_rate_pct >= 60 ? "pos" : b.win_rate_pct < 40 ? "neg" : "";
+    const resolved = b.correct + b.incorrect;
+    confHtml += `<div class="fund-item"><div class="fund-label">${c}</div><div class="fund-value ${bwrColor}">${bwr}</div><div class="fund-sub">${resolved} resolved, ${b.pending} pending</div></div>`;
+  }
+
+  el.style.display = "";
+  el.innerHTML = `
+    <div class="panel-header">SIGNAL ACCURACY (14-DAY)</div>
+    <div class="fund-grid">
+      <div class="fund-item">
+        <div class="fund-label">Win Rate</div>
+        <div class="fund-value ${wrColor}">${wrText}</div>
+        <div class="fund-sub">${data.correct} correct / ${data.resolved} resolved</div>
+      </div>
+      <div class="fund-item">
+        <div class="fund-label">Signals</div>
+        <div class="fund-value">${data.total}</div>
+        <div class="fund-sub">${data.resolved} resolved, ${data.pending} pending</div>
+      </div>
+      <div class="fund-item">
+        <div class="fund-label">Streak</div>
+        <div class="fund-value ${streakColor}">${streakText}</div>
+        <div class="fund-sub">consecutive ${data.streak >= 0 ? "correct" : "incorrect"}</div>
+      </div>
+      ${recHtml}
+      ${confHtml}
+    </div>
+  `;
+}
+
+function fetchAccuracy() {
+  fetch("/api/accuracy?universe=" + UNIVERSE)
+    .then(r => r.json())
+    .then(renderAccuracy)
+    .catch(() => {});
 }
 
 function renderFundamentals(f) {
@@ -872,6 +942,7 @@ setInterval(updateRunTimer, 1000);
 
 // Load cached macro on page load (no API calls)
 fetch("/api/macro").then(r => r.json()).then(renderMacro).catch(() => {});
+fetchAccuracy();
 
 // ── Keyboard shortcuts ──
 document.addEventListener("keydown", (e) => {

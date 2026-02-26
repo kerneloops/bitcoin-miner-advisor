@@ -158,7 +158,8 @@ async def run_analysis(all_signals: dict, fundamentals: dict | None = None, macr
 
         rec = await get_recommendation(ticker, signals, btc_trend, fundamentals, macro, universe)
         cache.save_analysis(
-            run_date, ticker, signals, rec["recommendation"], rec.get("reasoning", "")
+            run_date, ticker, signals, rec["recommendation"], rec.get("reasoning", ""),
+            confidence=rec.get("confidence"), key_risk=rec.get("key_risk"),
         )
         results[ticker] = {**signals, **rec, "btc_trend": btc_trend}
 
