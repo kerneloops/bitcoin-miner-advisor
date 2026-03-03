@@ -463,6 +463,20 @@ async def get_signals(universe: str = Query("miners")):
     return add_relative_strength({ticker: compute_signals(ticker) for ticker in active_tickers})
 
 
+@router.get("/api/latest-analysis")
+def latest_analysis(universe: str = Query("miners")):
+    """Return the most recent stored analysis per ticker (no API calls)."""
+    base_tickers, _, _ = get_tickers_for_universe(universe)
+    active_tickers = cache.get_active_tickers(base_tickers)
+    tickers = cache.get_latest_analysis(active_tickers)
+    if not tickers:
+        return {"tickers": None}
+    macro = cache.get_latest_macro() or {}
+    bias_key = "macro_bias_tech" if universe == "tech" else "macro_bias"
+    macro_bias = cache.get_setting(bias_key)
+    return {"tickers": tickers, "macro": macro, "macro_bias": macro_bias}
+
+
 # ── Settings ──────────────────────────────────────────────────────────────────
 
 @router.get("/api/settings")

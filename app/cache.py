@@ -236,6 +236,30 @@ def save_analysis(run_date: str, ticker: str, signals: dict, recommendation: str
         )
 
 
+def get_latest_analysis(tickers: list[str]) -> dict[str, dict]:
+    """Return the most recent analysis row for each ticker (keyed by ticker)."""
+    result = {}
+    with get_conn() as conn:
+        for t in tickers:
+            row = conn.execute(
+                "SELECT * FROM analyses WHERE ticker = ? ORDER BY run_date DESC LIMIT 1",
+                (t,),
+            ).fetchone()
+            if row:
+                d = dict(row)
+                signals = json.loads(d["signals"])
+                result[t] = {
+                    "ticker": t,
+                    "run_date": d["run_date"],
+                    "recommendation": d["recommendation"],
+                    "confidence": d.get("confidence"),
+                    "reasoning": d.get("reasoning"),
+                    "key_risk": d.get("key_risk"),
+                    **signals,
+                }
+    return result
+
+
 def get_price_on_or_after(ticker: str, target_date: str) -> float | None:
     """Return closing price on or after target_date (handles weekends/holidays)."""
     with get_conn() as conn:

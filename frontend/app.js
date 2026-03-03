@@ -993,7 +993,20 @@ loadTrades();
 updateRunTimer();
 setInterval(updateRunTimer, 1000);
 
-// Auto-render cached analysis on page load (instant, no API calls)
+// Auto-render analysis on page load: try localStorage first, then server
+function _renderAnalysisData(data) {
+  lastAnalysisData = data;
+  const exportBtn = document.getElementById("exportBtn");
+  if (exportBtn) exportBtn.style.display = "";
+  const csvBtn = document.getElementById("csvBtn");
+  if (csvBtn) csvBtn.style.display = "";
+  if (data.fundamentals) renderFundamentals(data.fundamentals);
+  renderMacro({...data.macro, macro_bias: data.macro_bias});
+  renderDashboard(data.tickers);
+  document.getElementById("historySection").style.display = "block";
+  loadHistory(activeHistoryTicker);
+}
+
 const _cachedAnalysis = (() => {
   try {
     const raw = localStorage.getItem(`lastAnalysis_${UNIVERSE}`);
@@ -1005,19 +1018,22 @@ const _cachedAnalysis = (() => {
 })();
 
 if (_cachedAnalysis) {
-  lastAnalysisData = _cachedAnalysis;
-  const exportBtn = document.getElementById("exportBtn");
-  if (exportBtn) exportBtn.style.display = "";
-  const csvBtn = document.getElementById("csvBtn");
-  if (csvBtn) csvBtn.style.display = "";
-  renderFundamentals(_cachedAnalysis.fundamentals);
-  renderMacro({..._cachedAnalysis.macro, macro_bias: _cachedAnalysis.macro_bias});
-  renderDashboard(_cachedAnalysis.tickers);
-  document.getElementById("historySection").style.display = "block";
-  loadHistory(activeHistoryTicker);
+  _renderAnalysisData(_cachedAnalysis);
 } else {
-  // No cached analysis — load macro signals only (lightweight GET)
-  fetch("/api/macro").then(r => r.json()).then(renderMacro).catch(() => {});
+  // No localStorage cache — fetch latest analysis from server (covers scheduled runs)
+  fetch(`/api/latest-analysis?universe=${UNIVERSE}`)
+    .then(r => r.json())
+    .then(data => {
+      if (data.tickers) {
+        _renderAnalysisData(data);
+      } else {
+        // No analysis at all — show macro signals only
+        fetch("/api/macro").then(r => r.json()).then(renderMacro).catch(() => {});
+      }
+    })
+    .catch(() => {
+      fetch("/api/macro").then(r => r.json()).then(renderMacro).catch(() => {});
+    });
 }
 fetchAccuracy();
 
