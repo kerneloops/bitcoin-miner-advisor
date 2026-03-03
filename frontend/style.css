@@ -1317,6 +1317,13 @@ header {
 .settings-close { background:none; border:none; color:var(--muted); font-size:1.1rem; cursor:pointer; padding:0 0.25rem; }
 .settings-close:hover { color:var(--text); }
 
+/* ── Watchlist ── */
+.watchlist-group { margin-bottom: 0.5rem; }
+.watchlist-group-label { font-size: 0.58rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 0.25rem; }
+.watchlist-tickers { display: flex; flex-wrap: wrap; gap: 0.15rem 0.6rem; }
+.watchlist-item { display: flex; align-items: center; gap: 0.3rem; font-size: 0.68rem; cursor: pointer; }
+.watchlist-item input[type="checkbox"] { accent-color: var(--green); width: 13px; height: 13px; }
+
 /* ── Tour ── */
 #tourOverlay {
   display: none;

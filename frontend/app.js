@@ -913,12 +913,18 @@ function renderSettings(s) {
       </div>
       <span id="rsiStatus" class="settings-status"></span>
     </div>
+    <div class="settings-row" style="flex-direction:column;align-items:flex-start">
+      <span class="settings-label" style="margin-bottom:0.35rem">Watchlist</span>
+      <div id="watchlistContent" style="width:100%"><span style="font-size:.62rem;color:var(--muted)">Loading…</span></div>
+      <span id="watchlistStatus" class="settings-status"></span>
+    </div>
     <div class="settings-row" style="border-top:1px solid var(--border2);margin-top:0.4rem;padding-top:0.75rem">
       <span class="settings-label"></span>
       <button onclick="tourStart(0)" style="font-size:0.62rem;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;background:none;border:none;cursor:pointer;font-family:inherit;padding:0">↩ Restart Tour</button>
     </div>
   `;
 
+  renderWatchlist();
   document.getElementById("capitalInput").addEventListener("blur", saveCapital);
   document.getElementById("capitalInput").addEventListener("keydown", (e) => {
     if (e.key === "Enter") saveCapital();
@@ -976,6 +982,63 @@ function saveRsiLevels() {
     const el = document.getElementById("rsiStatus");
     if (el) { el.textContent = "Saved."; setTimeout(() => { el.textContent = ""; }, 1500); }
   });
+}
+
+async function renderWatchlist() {
+  const el = document.getElementById("watchlistContent");
+  if (!el) return;
+  try {
+    const resp = await fetch(`/api/ticker-universe?universe=${UNIVERSE}`);
+    const data = await resp.json();
+    const activeSet = new Set(data.active || []);
+    const groups = data.universe || {};
+    let html = '';
+    for (const [group, tickers] of Object.entries(groups)) {
+      html += `<div class="watchlist-group">`;
+      html += `<div class="watchlist-group-label">${group}</div>`;
+      html += `<div class="watchlist-tickers">`;
+      for (const t of tickers) {
+        const checked = activeSet.has(t) ? 'checked' : '';
+        html += `<label class="watchlist-item"><input type="checkbox" ${checked} onchange="toggleWatchlistTicker('${t}', this.checked)">${t}</label>`;
+      }
+      html += `</div></div>`;
+    }
+    el.innerHTML = html;
+  } catch (e) {
+    el.innerHTML = '<span style="font-size:.62rem;color:var(--sell)">Failed to load watchlist</span>';
+  }
+}
+
+async function toggleWatchlistTicker(ticker, enabled) {
+  const statusEl = document.getElementById("watchlistStatus");
+  try {
+    const method = enabled ? "POST" : "DELETE";
+    const url = enabled
+      ? `/api/tickers?universe=${UNIVERSE}`
+      : `/api/tickers/${ticker}?universe=${UNIVERSE}`;
+    const opts = { method };
+    if (enabled) {
+      opts.headers = { "Content-Type": "application/json" };
+      opts.body = JSON.stringify({ ticker });
+    }
+    const resp = await fetch(url, opts);
+    if (!resp.ok) {
+      const err = await resp.json();
+      throw new Error(err.detail || "Failed");
+    }
+    if (statusEl) {
+      statusEl.textContent = enabled ? `${ticker} added` : `${ticker} removed`;
+      setTimeout(() => { statusEl.textContent = ""; }, 2000);
+    }
+  } catch (e) {
+    if (statusEl) {
+      statusEl.textContent = `Error: ${e.message}`;
+      statusEl.style.color = "var(--sell)";
+      setTimeout(() => { statusEl.textContent = ""; statusEl.style.color = ""; }, 3000);
+    }
+    // Re-render to reset checkbox state
+    renderWatchlist();
+  }
 }
 
 async function saveSettings(body) {

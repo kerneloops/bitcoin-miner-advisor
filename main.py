@@ -88,13 +88,13 @@ logger = logging.getLogger(__name__)
 async def _run_universe(universe: str):
     """Run analysis for a single universe (miners or tech)."""
     from app.advisor import run_analysis
-    from app.data import fetch_btc_prices, refresh_all, get_universe
+    from app.data import fetch_btc_prices, refresh_all, get_tickers_for_universe
     from app.macro import fetch_all_macro
     from app.miners import fetch_miner_fundamentals
     from app.technicals import add_relative_strength, compute_signals
 
-    base_tickers, _, _ = get_universe(universe)
-    active_tickers = cache.get_active_tickers(base_tickers)
+    base_tickers, _, _ = get_tickers_for_universe(universe)
+    active_tickers = cache.get_active_tickers(base_tickers, universe)
 
     logger.info(f"Scheduled {universe} analysis: fetching prices…")
     await fetch_btc_prices()
