@@ -724,6 +724,12 @@ main {
 
 .history-table tr:last-child td { border-bottom: none; }
 
+/* Cap analysis history height — show ~1 row, scroll for the rest */
+#historyContent {
+  max-height: 12rem;
+  overflow-y: auto;
+}
+
 /* History reasoning: collapsed by default for older rows */
 .history-reasoning-toggle {
   cursor: pointer;
