@@ -303,17 +303,42 @@ function renderMacro(m) {
   el.innerHTML = `<div class="panel-header">MACRO SIGNALS</div><div class="fund-grid">${items}</div>`;
 }
 
+let _lastDashboardData = null;
+
 function renderDashboard(data) {
+  _lastDashboardData = data;
   const el = document.getElementById("dashboard");
   el.innerHTML = "";
   el.className = "dashboard";
 
-  // Use active tickers order from the server response (preserves backend ordering)
-  for (const ticker of Object.keys(data)) {
-    const d = data[ticker];
-    if (!d) continue;
+  const sortSel = document.getElementById("cardSort");
+  if (sortSel) sortSel.value = localStorage.getItem("cardSort") || "watchlist";
+
+  const entries = Object.entries(data).filter(([, d]) => d);
+  sortCardEntries(entries);
+
+  for (const [, d] of entries) {
     el.appendChild(buildCard(d));
   }
+}
+
+function sortCardEntries(entries) {
+  const mode = localStorage.getItem("cardSort") || "watchlist";
+  const recOrder = { BUY: 0, HOLD: 1, SELL: 2 };
+  if (mode === "recommendation") {
+    entries.sort(([, a], [, b]) => (recOrder[a.recommendation] ?? 3) - (recOrder[b.recommendation] ?? 3));
+  } else if (mode === "confidence") {
+    entries.sort(([, a], [, b]) => (b.confidence || 0) - (a.confidence || 0));
+  } else if (mode === "alpha") {
+    entries.sort(([a], [b]) => a.localeCompare(b));
+  } else if (mode === "performance") {
+    entries.sort(([, a], [, b]) => (b.week_return_pct || -999) - (a.week_return_pct || -999));
+  }
+}
+
+function changeCardSort(value) {
+  localStorage.setItem("cardSort", value);
+  if (_lastDashboardData) renderDashboard(_lastDashboardData);
 }
 
 function buildCard(d) {

@@ -342,6 +342,20 @@ main {
 .panel-header::before { content: '─['; color: var(--border2); margin-right: 0.15rem; }
 .panel-header::after  { content: ']─'; color: var(--border2); margin-left: 0.15rem; }
 
+.card-sort {
+  margin-left: auto;
+  background: var(--bg);
+  color: var(--muted);
+  border: 1px solid var(--border2);
+  font-family: inherit;
+  font-size: 0.55rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.1rem 0.3rem;
+  cursor: pointer;
+}
+.card-sort:focus { outline: 1px solid var(--green-dim); }
+
 .fund-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(155px, 1fr));

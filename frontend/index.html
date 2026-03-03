@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="icon" href="/static/favicon.ico" type="image/x-icon" />
-  <link rel="stylesheet" href="/static/style.css?v=80" />
+  <link rel="stylesheet" href="/static/style.css?v=81" />
 </head>
 <body>
   <header>
@@ -98,7 +98,15 @@
     <div id="accuracyPanel" class="fundamentals" style="display:none"></div>
 
     <div class="dashboard-wrap">
-      <div class="panel-header">SIGNAL CARDS</div>
+      <div class="panel-header">SIGNAL CARDS
+        <select id="cardSort" class="card-sort" onchange="changeCardSort(this.value)">
+          <option value="watchlist">Watchlist</option>
+          <option value="recommendation">Recommendation</option>
+          <option value="confidence">Confidence</option>
+          <option value="alpha">A–Z</option>
+          <option value="performance">1W Return</option>
+        </select>
+      </div>
       <div id="dashboard" class="dashboard">
         <div class="placeholder">
           <p>Click <a onclick="runAnalysis()"><strong>Run Analysis</strong></a> to fetch the latest data and get LAPIO recommendations.</p>
@@ -219,7 +227,7 @@
   </div>
 
   <div id="tipPopup" class="tip-popup"></div>
-  <script src="/static/app.js?v=63"></script>
+  <script src="/static/app.js?v=64"></script>
   <script type="text/javascript">
     window.$crisp = [];
     window.CRISP_WEBSITE_ID = "07663adf-eae7-4d8e-b98a-9bc183bdb3b2";
