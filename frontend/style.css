@@ -256,7 +256,7 @@ button:disabled:hover { background: transparent; color: var(--green); }
 .export-btn:hover { background: var(--muted); color: var(--bg); }
 
 /* ── Status ── */
-.status { font-size: 0.68rem; color: var(--muted); letter-spacing: 0.05em; }
+.status { font-size: 0.68rem; color: var(--muted); letter-spacing: 0.05em; white-space: nowrap; }
 
 .run-timer { font-size: 0.65rem; letter-spacing: 0.06em; }
 .run-timer.rdy     { color: var(--green-dim); }

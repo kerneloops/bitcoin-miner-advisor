@@ -60,10 +60,10 @@ async function runAnalysis() {
   btn.disabled = true;
   const _start = Date.now();
   let _elapsed = 0;
-  status.textContent = "Analyzing both universes… 0s";
+  status.textContent = "Analyzing… 0s";
   const _timer = setInterval(() => {
     _elapsed = Math.round((Date.now() - _start) / 1000);
-    status.textContent = `Analyzing both universes… ${_elapsed}s`;
+    status.textContent = `Analyzing… ${_elapsed}s`;
   }, 1000);
 
   try {
@@ -122,8 +122,8 @@ async function runAnalysis() {
     updateRunTimer();
 
     const otherOk = otherResult.status === 'fulfilled' && otherResult.value;
-    const label = otherOk ? "both universes" : UNIVERSE;
-    status.textContent = `Updated ${label} ${new Date().toLocaleDateString()} · ran in ${_took}s`;
+    const label = otherOk ? "both" : UNIVERSE;
+    status.textContent = `Done ${new Date().toLocaleDateString()} · ${_took}s`;
   } catch (e) {
     clearInterval(_timer);
     status.textContent = `Error: ${e.message}`;
