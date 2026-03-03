@@ -482,49 +482,46 @@ def set_setting(key: str, value: str) -> None:
         )
 
 
-def get_active_tickers(default: list[str], universe: str = "miners") -> list[str]:
-    key = f"active_tickers_{universe}"
-    val = get_setting(key)
+def get_active_tickers(default: list[str]) -> list[str]:
+    val = get_setting("active_tickers")
     if val:
         try:
             return json.loads(val)
         except Exception:
             pass
-    # Lazy migration: check old unscoped key
-    old_val = get_setting("active_tickers")
-    if old_val:
+    # Lazy migration: merge old universe-scoped keys into unified key
+    miners_val = get_setting("active_tickers_miners")
+    tech_val = get_setting("active_tickers_tech")
+    if miners_val or tech_val:
         try:
-            old_list = json.loads(old_val)
-            # Split old list by checking membership in each universe's flat list
-            from .data import TICKER_UNIVERSE_FLAT, TECH_TICKER_UNIVERSE_FLAT
-            miners_list = [t for t in old_list if t in TICKER_UNIVERSE_FLAT]
-            tech_list = [t for t in old_list if t in TECH_TICKER_UNIVERSE_FLAT]
-            # Save both scoped keys
-            if miners_list:
-                set_setting("active_tickers_miners", json.dumps(miners_list))
-            if tech_list:
-                set_setting("active_tickers_tech", json.dumps(tech_list))
-            # Return the correct one
-            scoped = miners_list if universe == "miners" else tech_list
-            if scoped:
-                return scoped
+            merged = []
+            seen = set()
+            for raw in (miners_val, tech_val):
+                if raw:
+                    for t in json.loads(raw):
+                        if t not in seen:
+                            merged.append(t)
+                            seen.add(t)
+            if merged:
+                set_setting("active_tickers", json.dumps(merged))
+                return merged
         except Exception:
             pass
     return list(default)
 
 
-def add_active_ticker(ticker: str, default: list[str], universe: str = "miners") -> None:
-    current = get_active_tickers(default, universe)
+def add_active_ticker(ticker: str, default: list[str]) -> None:
+    current = get_active_tickers(default)
     if ticker not in current:
         current.append(ticker)
-        set_setting(f"active_tickers_{universe}", json.dumps(current))
+        set_setting("active_tickers", json.dumps(current))
 
 
-def remove_active_ticker(ticker: str, default: list[str], universe: str = "miners") -> list[str]:
-    current = get_active_tickers(default, universe)
+def remove_active_ticker(ticker: str, default: list[str]) -> list[str]:
+    current = get_active_tickers(default)
     if ticker in current:
         current.remove(ticker)
-        set_setting(f"active_tickers_{universe}", json.dumps(current))
+        set_setting("active_tickers", json.dumps(current))
     return current
 
 

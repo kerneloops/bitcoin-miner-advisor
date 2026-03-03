@@ -1,18 +1,17 @@
-const UNIVERSE = document.documentElement.dataset.universe || 'miners';
-const _MINERS_TICKERS = ["WGMI", "MARA", "RIOT", "BITX", "RIOX", "CIFU", "BMNU", "MSTX"];
-const _TECH_TICKERS   = ["NVDA", "AMD", "MSFT", "GOOGL", "META", "TSLA", "AMZN", "AAPL", "PLTR", "ARM"];
-const TICKERS = UNIVERSE === 'tech' ? _TECH_TICKERS : _MINERS_TICKERS;
+// Default tickers — will be overridden by server on boot
+let TICKERS = ["WGMI", "MARA", "RIOT", "BITX", "RIOX", "CIFU", "BMNU", "MSTX",
+               "NVDA", "AMD", "MSFT", "GOOGL", "META", "TSLA", "AMZN", "AAPL", "PLTR", "ARM", "ANET", "VRT", "NBIS"];
 let activeHistoryTicker = TICKERS[0];
 let lastAnalysisData = null;
 let currentSettings = { risk_tier: "neutral", total_capital: 0, trading_style: "balanced", rsi_overbought: 70, rsi_oversold: 30 };
 
-const OTHER_UNIVERSE = UNIVERSE === 'miners' ? 'tech' : 'miners';
-
 const COOLDOWN_MS = 2 * 60 * 1000;
-const _COOLDOWN_AT   = `lastRunAt_${UNIVERSE}`;
-const _COOLDOWN_DATE = `lastRunDate_${UNIVERSE}`;
-const _OTHER_COOLDOWN_AT   = `lastRunAt_${OTHER_UNIVERSE}`;
-const _OTHER_COOLDOWN_DATE = `lastRunDate_${OTHER_UNIVERSE}`;
+const _COOLDOWN_AT   = 'lastRunAt';
+const _COOLDOWN_DATE = 'lastRunDate';
+
+// Clean up old universe-scoped localStorage keys
+['lastRunAt_miners', 'lastRunAt_tech', 'lastRunDate_miners', 'lastRunDate_tech',
+ 'lastAnalysis_miners', 'lastAnalysis_tech'].forEach(k => localStorage.removeItem(k));
 
 function localDateStr() {
   const d = new Date();
@@ -67,24 +66,11 @@ async function runAnalysis() {
   }, 1000);
 
   try {
-    // Fire both universe analyses in parallel
-    const [currentResult, otherResult] = await Promise.allSettled([
-      fetch("/api/analyze?universe=" + UNIVERSE, { method: "POST" }).then(async r => {
-        if (!r.ok) { const err = await r.json(); throw new Error(err.detail || "Request failed"); }
-        return r.json();
-      }),
-      fetch("/api/analyze?universe=" + OTHER_UNIVERSE, { method: "POST" }).then(async r => {
-        if (!r.ok) return null;
-        return r.json();
-      }),
-    ]);
-
+    const resp = await fetch("/api/analyze", { method: "POST" });
     clearInterval(_timer);
+    if (!resp.ok) { const err = await resp.json(); throw new Error(err.detail || "Request failed"); }
+    const data = await resp.json();
 
-    // Current universe must succeed
-    if (currentResult.status === 'rejected') throw currentResult.reason;
-
-    const data = currentResult.value;
     const _took = Math.round((Date.now() - _start) / 1000);
     lastAnalysisData = data;
     const exportBtn = document.getElementById("exportBtn");
@@ -100,29 +86,16 @@ async function runAnalysis() {
     await loadTrades();
     fetchAccuracy();
 
-    // Cache current universe results
-    localStorage.setItem(`lastAnalysis_${UNIVERSE}`, JSON.stringify({
+    localStorage.setItem('lastAnalysis', JSON.stringify({
       date: localDateStr(), data: data,
     }));
 
-    // Cache other universe results if successful
-    if (otherResult.status === 'fulfilled' && otherResult.value) {
-      localStorage.setItem(`lastAnalysis_${OTHER_UNIVERSE}`, JSON.stringify({
-        date: localDateStr(), data: otherResult.value,
-      }));
-    }
-
-    // Set cooldown for BOTH universes
     const now = new Date().toISOString();
     const today = localDateStr();
     localStorage.setItem(_COOLDOWN_AT, now);
     localStorage.setItem(_COOLDOWN_DATE, today);
-    localStorage.setItem(_OTHER_COOLDOWN_AT, now);
-    localStorage.setItem(_OTHER_COOLDOWN_DATE, today);
     updateRunTimer();
 
-    const otherOk = otherResult.status === 'fulfilled' && otherResult.value;
-    const label = otherOk ? "both" : UNIVERSE;
     status.textContent = `Done ${new Date().toLocaleDateString()} · ${_took}s`;
   } catch (e) {
     clearInterval(_timer);
@@ -195,7 +168,7 @@ function renderAccuracy(data) {
 }
 
 function fetchAccuracy() {
-  fetch("/api/accuracy?universe=" + UNIVERSE)
+  fetch("/api/accuracy")
     .then(r => r.json())
     .then(renderAccuracy)
     .catch(() => {});
@@ -235,8 +208,7 @@ function renderFundamentals(f) {
   `;
 }
 
-function eli5Macro(key, value, tech = false) {
-  const isTech = tech;
+function eli5Macro(key, value) {
   const v = parseFloat(value);
   if (isNaN(v)) return "";
   switch (key) {
@@ -267,19 +239,19 @@ function eli5Macro(key, value, tech = false) {
     case "vix":
       if (v < 15) return "stocks calm — risk-on environment";
       if (v < 20) return "normal equity vol — no concern";
-      if (v < 30) return isTech ? "stocks nervous — growth stocks at risk" : "stocks nervous — watch crypto correlation";
-      if (v < 40) return isTech ? "equity fear — tech valuations under pressure" : "equity fear — likely crypto headwind";
+      if (v < 30) return "stocks nervous — risk-off pressure building";
+      if (v < 40) return "equity fear — headwind for risk assets";
       return "stock market panic — extreme risk-off";
     case "yield":
       if (v < 2.0) return "easy money — friendly for risk assets";
       if (v < 3.5) return "moderate rates — neutral";
-      if (v < 4.5) return isTech ? "tight money — pressure on growth multiples" : "tight money — headwind for crypto";
-      return isTech ? "high rates — significant drag on tech valuations" : "high rates — significant pressure on risk assets";
+      if (v < 4.5) return "tight money — headwind for risk assets";
+      return "high rates — significant pressure on risk assets";
     case "dxy":
-      if (v < 95)  return isTech ? "weak dollar — tailwind for multinationals" : "weak dollar — historically bullish for crypto";
+      if (v < 95)  return "weak dollar — tailwind for risk assets";
       if (v < 100) return "moderate dollar — neutral";
-      if (v < 105) return isTech ? "strong dollar — headwind for multinationals" : "strong dollar — headwind for crypto";
-      return isTech ? "very strong dollar — multinational earnings headwind" : "very strong dollar — significant crypto headwind";
+      if (v < 105) return "strong dollar — headwind for risk assets";
+      return "very strong dollar — significant headwind";
     case "hy":
       if (v < 3.0) return "credit calm — risk-on";
       if (v < 5.0) return "normal spreads — neutral";
@@ -312,17 +284,14 @@ function renderMacro(m) {
     : "";
   const vixColor = m.vix != null ? (m.vix > 30 ? "neg" : m.vix < 20 ? "pos" : "") : "";
 
-  const isTech = UNIVERSE === 'tech';
   const items = [
-    // Crypto / miner signals — hidden on tech page
-    !isTech && m.btc_dvol       != null ? `<div class="fund-item"><div class="fund-label tip" data-tip="BTC 30-day Implied Volatility (Deribit DVOL)&#10;Scale: ~30–150&#10;< 40  very calm — quiet market&#10;40–60  normal crypto vol&#10;60–80  elevated uncertainty&#10;> 80  extreme — big moves expected">BTC IV (DVOL)</div><div class="fund-value">${m.btc_dvol}</div><div class="fund-sub">30-day implied vol</div><div class="fund-eli5">${eli5Macro("dvol", m.btc_dvol)}</div></div>` : "",
-    !isTech && m.btc_funding_rate_pct != null ? `<div class="fund-item"><div class="fund-label tip" data-tip="BTC perpetual futures 8h funding rate&#10;+ = longs pay shorts (market is bullish)&#10;− = shorts pay longs (market is bearish)&#10;&#10;> 0.05%  longs crowded → watch pullback&#10;< −0.01%  shorts dominate → squeeze risk">Funding Rate</div><div class="fund-value ${fundingColor}">${m.btc_funding_rate_pct > 0 ? "+" : ""}${m.btc_funding_rate_pct}%</div><div class="fund-sub">BTC perp 8h rate</div><div class="fund-eli5">${eli5Macro("funding", m.btc_funding_rate_pct)}</div></div>` : "",
-    !isTech && m.fear_greed_value != null ? `<div class="fund-item"><div class="fund-label tip" data-tip="Crypto market sentiment composite index&#10;Scale: 1–100&#10;  1 = extreme fear (max pessimism)&#10;100 = extreme greed (max optimism)&#10;&#10;< 25  extreme fear → historically bullish&#10;> 75  extreme greed → historically bearish">Fear &amp; Greed</div><div class="fund-value ${fgColor}">${m.fear_greed_value}</div><div class="fund-sub">${m.fear_greed_label ?? ""}</div><div class="fund-eli5">${eli5Macro("fg", m.fear_greed_value)}</div></div>` : "",
-    !isTech && m.puell_multiple  != null ? `<div class="fund-item"><div class="fund-label tip" data-tip="Daily miner revenue ÷ 365-day moving avg&#10;Scale: 0–5+&#10;&#10;< 0.5  miner stress — cycle bottom zone&#10;0.5–1.5  normal range&#10;1.5–2.0  miners thriving&#10;> 2.0  historically near cycle tops">Puell Multiple</div><div class="fund-value ${puellColor}">${m.puell_multiple}</div><div class="fund-sub">miner revenue vs 365d avg</div><div class="fund-eli5">${eli5Macro("puell", m.puell_multiple)}</div></div>` : "",
-    // Macro signals — shown on both pages, with universe-appropriate tooltip copy
-    m.vix != null ? `<div class="fund-item"><div class="fund-label tip" data-tip="S&amp;P 500 30-day Implied Volatility&#10;Scale: 10–80+&#10;< 15  very calm — risk-on&#10;15–20  normal equity vol&#10;20–30  elevated — caution&#10;> 30  equity fear → ${isTech ? "tech sell-off risk" : "crypto headwind"}&#10;> 40  panic — extreme risk-off">VIX</div><div class="fund-value ${vixColor}">${m.vix}</div><div class="fund-eli5">${eli5Macro("vix", m.vix, isTech)}</div></div>` : "",
-    m.us_2y_yield != null ? `<div class="fund-item"><div class="fund-label tip" data-tip="US 2-Year Treasury Yield (%)&#10;Reflects short-term rate expectations&#10;Higher = tighter monetary policy&#10;&#10;< 3.5%  neutral for risk assets&#10;3.5–4.5%  elevated pressure&#10;> 4.5%  ${isTech ? "headwind for growth / tech valuations" : "significant headwind for crypto"}">US 2Y Yield</div><div class="fund-value">${m.us_2y_yield}%</div><div class="fund-eli5">${eli5Macro("yield", m.us_2y_yield, isTech)}</div></div>` : "",
-    m.dxy != null ? `<div class="fund-item"><div class="fund-label tip" data-tip="US Dollar Index vs basket of 6 currencies&#10;Scale: ~85–115&#10;&#10;${isTech ? "< 95  weak dollar → tailwind for overseas earnings&#10;95–105  neutral&#10;> 105  strong dollar → headwind for multinationals" : "< 95  weak dollar → bullish for BTC&#10;95–105  neutral range&#10;> 105  strong dollar → headwind for BTC"}&#10;Rising DXY = risk-off pressure">DXY</div><div class="fund-value">${m.dxy}</div><div class="fund-eli5">${eli5Macro("dxy", m.dxy, isTech)}</div></div>` : "",
+    m.btc_dvol       != null ? `<div class="fund-item"><div class="fund-label tip" data-tip="BTC 30-day Implied Volatility (Deribit DVOL)&#10;Scale: ~30–150&#10;< 40  very calm — quiet market&#10;40–60  normal crypto vol&#10;60–80  elevated uncertainty&#10;> 80  extreme — big moves expected">BTC IV (DVOL)</div><div class="fund-value">${m.btc_dvol}</div><div class="fund-sub">30-day implied vol</div><div class="fund-eli5">${eli5Macro("dvol", m.btc_dvol)}</div></div>` : "",
+    m.btc_funding_rate_pct != null ? `<div class="fund-item"><div class="fund-label tip" data-tip="BTC perpetual futures 8h funding rate&#10;+ = longs pay shorts (market is bullish)&#10;− = shorts pay longs (market is bearish)&#10;&#10;> 0.05%  longs crowded → watch pullback&#10;< −0.01%  shorts dominate → squeeze risk">Funding Rate</div><div class="fund-value ${fundingColor}">${m.btc_funding_rate_pct > 0 ? "+" : ""}${m.btc_funding_rate_pct}%</div><div class="fund-sub">BTC perp 8h rate</div><div class="fund-eli5">${eli5Macro("funding", m.btc_funding_rate_pct)}</div></div>` : "",
+    m.fear_greed_value != null ? `<div class="fund-item"><div class="fund-label tip" data-tip="Crypto market sentiment composite index&#10;Scale: 1–100&#10;  1 = extreme fear (max pessimism)&#10;100 = extreme greed (max optimism)&#10;&#10;< 25  extreme fear → historically bullish&#10;> 75  extreme greed → historically bearish">Fear &amp; Greed</div><div class="fund-value ${fgColor}">${m.fear_greed_value}</div><div class="fund-sub">${m.fear_greed_label ?? ""}</div><div class="fund-eli5">${eli5Macro("fg", m.fear_greed_value)}</div></div>` : "",
+    m.puell_multiple  != null ? `<div class="fund-item"><div class="fund-label tip" data-tip="Daily miner revenue ÷ 365-day moving avg&#10;Scale: 0–5+&#10;&#10;< 0.5  miner stress — cycle bottom zone&#10;0.5–1.5  normal range&#10;1.5–2.0  miners thriving&#10;> 2.0  historically near cycle tops">Puell Multiple</div><div class="fund-value ${puellColor}">${m.puell_multiple}</div><div class="fund-sub">miner revenue vs 365d avg</div><div class="fund-eli5">${eli5Macro("puell", m.puell_multiple)}</div></div>` : "",
+    m.vix != null ? `<div class="fund-item"><div class="fund-label tip" data-tip="S&amp;P 500 30-day Implied Volatility&#10;Scale: 10–80+&#10;< 15  very calm — risk-on&#10;15–20  normal equity vol&#10;20–30  elevated — caution&#10;> 30  equity fear → risk-off&#10;> 40  panic — extreme risk-off">VIX</div><div class="fund-value ${vixColor}">${m.vix}</div><div class="fund-eli5">${eli5Macro("vix", m.vix)}</div></div>` : "",
+    m.us_2y_yield != null ? `<div class="fund-item"><div class="fund-label tip" data-tip="US 2-Year Treasury Yield (%)&#10;Reflects short-term rate expectations&#10;Higher = tighter monetary policy&#10;&#10;< 3.5%  neutral for risk assets&#10;3.5–4.5%  elevated pressure&#10;> 4.5%  significant headwind for risk assets">US 2Y Yield</div><div class="fund-value">${m.us_2y_yield}%</div><div class="fund-eli5">${eli5Macro("yield", m.us_2y_yield)}</div></div>` : "",
+    m.dxy != null ? `<div class="fund-item"><div class="fund-label tip" data-tip="US Dollar Index vs basket of 6 currencies&#10;Scale: ~85–115&#10;&#10;< 95  weak dollar → tailwind for risk assets&#10;95–105  neutral range&#10;> 105  strong dollar → headwind for risk assets&#10;Rising DXY = risk-off pressure">DXY</div><div class="fund-value">${m.dxy}</div><div class="fund-eli5">${eli5Macro("dxy", m.dxy)}</div></div>` : "",
     m.hy_spread != null ? `<div class="fund-item"><div class="fund-label tip" data-tip="High-yield credit spread over Treasuries (%)&#10;Measures credit market stress&#10;&#10;< 3%  calm — risk-on environment&#10;3–5%  normal — neutral&#10;5–7%  stress building — caution&#10;> 7%  credit crunch → strong risk-off">HY Spread</div><div class="fund-value">${m.hy_spread}%</div><div class="fund-eli5">${eli5Macro("hy", m.hy_spread)}</div></div>` : "",
   ].filter(Boolean).join("");
 
@@ -388,8 +357,8 @@ function buildCard(d) {
           <span class="signal-val">${d.btc_correlation ?? "—"}</span>
         </div>
         ${d.btc_trend ? `<div class="signal-row" style="grid-column:1/-1"><span class="tip" data-tip="Bitcoin price change over past 7 days&#10;Context for miner stock moves&#10;Miners typically amplify BTC moves 2–4×">BTC 7d</span><span class="signal-val">${d.btc_trend}</span></div>` : ""}
-        ${d.vs_sector_1w != null ? `<div class="signal-row"><span class="tip" data-tip="This ticker's 1-week return&#10;minus the sector average 1-week return&#10;+ = outperforming peers this week&#10;− = lagging behind peers">vs Sector 1W</span><span class="signal-val ${pctColor(d.vs_sector_1w)}">${pct(d.vs_sector_1w)}</span></div>` : ""}
-        ${d.vs_sector_1m != null ? `<div class="signal-row"><span class="tip" data-tip="This ticker's 1-month return&#10;minus the sector average 1-month return&#10;+ = outperforming peers this month&#10;− = lagging behind peers">vs Sector 1M</span><span class="signal-val ${pctColor(d.vs_sector_1m)}">${pct(d.vs_sector_1m)}</span></div>` : ""}
+        ${d.vs_sector_1w != null ? `<div class="signal-row"><span class="tip" data-tip="This ticker's 1-week return&#10;minus the sector average 1-week return&#10;+ = outperforming peers this week&#10;− = lagging behind peers">vs Peers 1W</span><span class="signal-val ${pctColor(d.vs_sector_1w)}">${pct(d.vs_sector_1w)}</span></div>` : ""}
+        ${d.vs_sector_1m != null ? `<div class="signal-row"><span class="tip" data-tip="This ticker's 1-month return&#10;minus the sector average 1-month return&#10;+ = outperforming peers this month&#10;− = lagging behind peers">vs Peers 1M</span><span class="signal-val ${pctColor(d.vs_sector_1m)}">${pct(d.vs_sector_1m)}</span></div>` : ""}
       </div>
 
       ${conf ? `<div class="confidence">Confidence: ${conf}</div>` : ""}
@@ -428,7 +397,7 @@ async function loadHistory(ticker) {
   activeHistoryTicker = ticker;
   updateHistoryTabs();
 
-  const resp = await fetch(`/api/history/${ticker}?universe=${UNIVERSE}`);
+  const resp = await fetch(`/api/history/${ticker}`);
   const rows = await resp.json();
 
   const el = document.getElementById("historyContent");
@@ -547,7 +516,7 @@ function exportCSV() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `lapio-analysis-${today}-${UNIVERSE}.csv`;
+  a.download = `lapio-analysis-${today}.csv`;
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -758,7 +727,7 @@ async function deleteHolding(ticker) {
 
 async function loadTrades() {
   try {
-    const uResp = await fetch("/api/ticker-universe?universe=" + UNIVERSE);
+    const uResp = await fetch("/api/ticker-universe");
     const { universe, active } = await uResp.json();
     const activeSet = new Set(active);
     let opts = `<optgroup label="Active">` +
@@ -988,11 +957,14 @@ async function renderWatchlist() {
   const el = document.getElementById("watchlistContent");
   if (!el) return;
   try {
-    const resp = await fetch(`/api/ticker-universe?universe=${UNIVERSE}`);
+    const resp = await fetch("/api/ticker-universe");
     const data = await resp.json();
     const activeSet = new Set(data.active || []);
     const groups = data.universe || {};
-    let html = '';
+    let html = `<div class="ticker-search-wrap">
+      <input id="tickerSearchInput" type="text" class="settings-capital-input" style="width:100%;margin-bottom:0.5rem" placeholder="Search any stock (e.g. COIN, SQ, UBER)…">
+      <div id="tickerSearchResults" class="ticker-search-results"></div>
+    </div>`;
     for (const [group, tickers] of Object.entries(groups)) {
       html += `<div class="watchlist-group">`;
       html += `<div class="watchlist-group-label">${group}</div>`;
@@ -1004,8 +976,73 @@ async function renderWatchlist() {
       html += `</div></div>`;
     }
     el.innerHTML = html;
+
+    // Wire up ticker search with debounce
+    const searchInput = document.getElementById("tickerSearchInput");
+    let _searchTimer = null;
+    if (searchInput) {
+      searchInput.addEventListener("input", () => {
+        clearTimeout(_searchTimer);
+        _searchTimer = setTimeout(() => tickerSearch(searchInput.value.trim()), 400);
+      });
+    }
   } catch (e) {
     el.innerHTML = '<span style="font-size:.62rem;color:var(--sell)">Failed to load watchlist</span>';
+  }
+}
+
+async function tickerSearch(query) {
+  const resultsEl = document.getElementById("tickerSearchResults");
+  if (!resultsEl) return;
+  if (!query || query.length < 1) { resultsEl.innerHTML = ""; return; }
+  try {
+    const resp = await fetch(`/api/ticker-search?q=${encodeURIComponent(query)}`);
+    if (!resp.ok) { resultsEl.innerHTML = ""; return; }
+    const results = await resp.json();
+    if (!results.length) {
+      resultsEl.innerHTML = '<div class="ticker-search-result" style="color:var(--muted)">No results</div>';
+      return;
+    }
+    resultsEl.innerHTML = results.map(r => `
+      <div class="ticker-search-result">
+        <span class="tsr-ticker">${r.ticker}</span>
+        <span class="tsr-name">${r.name}</span>
+        <button class="tsr-add" onclick="addSearchedTicker('${r.ticker}')">+ Add</button>
+      </div>
+    `).join("");
+  } catch {
+    resultsEl.innerHTML = "";
+  }
+}
+
+async function addSearchedTicker(ticker) {
+  const statusEl = document.getElementById("watchlistStatus");
+  try {
+    const resp = await fetch("/api/tickers", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ticker }),
+    });
+    if (!resp.ok) {
+      const err = await resp.json();
+      throw new Error(err.detail || "Failed");
+    }
+    if (statusEl) {
+      statusEl.textContent = `${ticker} added`;
+      setTimeout(() => { statusEl.textContent = ""; }, 2000);
+    }
+    // Clear search and refresh watchlist
+    const searchInput = document.getElementById("tickerSearchInput");
+    if (searchInput) searchInput.value = "";
+    const resultsEl = document.getElementById("tickerSearchResults");
+    if (resultsEl) resultsEl.innerHTML = "";
+    renderWatchlist();
+  } catch (e) {
+    if (statusEl) {
+      statusEl.textContent = `Error: ${e.message}`;
+      statusEl.style.color = "var(--sell)";
+      setTimeout(() => { statusEl.textContent = ""; statusEl.style.color = ""; }, 3000);
+    }
   }
 }
 
@@ -1014,8 +1051,8 @@ async function toggleWatchlistTicker(ticker, enabled) {
   try {
     const method = enabled ? "POST" : "DELETE";
     const url = enabled
-      ? `/api/tickers?universe=${UNIVERSE}`
-      : `/api/tickers/${ticker}?universe=${UNIVERSE}`;
+      ? "/api/tickers"
+      : `/api/tickers/${ticker}`;
     const opts = { method };
     if (enabled) {
       opts.headers = { "Content-Type": "application/json" };
@@ -1118,6 +1155,15 @@ loadTrades();
 updateRunTimer();
 setInterval(updateRunTimer, 1000);
 
+// Load active tickers from server to update TICKERS + history tabs
+fetch("/api/ticker-universe").then(r => r.json()).then(data => {
+  if (data.active && data.active.length) {
+    TICKERS = data.active;
+    activeHistoryTicker = TICKERS[0];
+    updateHistoryTabs();
+  }
+}).catch(() => {});
+
 // Auto-render analysis on page load: try localStorage first, then server
 function _renderAnalysisData(data) {
   lastAnalysisData = data;
@@ -1134,7 +1180,7 @@ function _renderAnalysisData(data) {
 
 const _cachedAnalysis = (() => {
   try {
-    const raw = localStorage.getItem(`lastAnalysis_${UNIVERSE}`);
+    const raw = localStorage.getItem('lastAnalysis');
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     if (parsed.date !== localDateStr() || !parsed.data) return null;
@@ -1146,7 +1192,7 @@ if (_cachedAnalysis) {
   _renderAnalysisData(_cachedAnalysis);
 } else {
   // No localStorage cache — fetch latest analysis from server (covers scheduled runs)
-  fetch(`/api/latest-analysis?universe=${UNIVERSE}`)
+  fetch("/api/latest-analysis")
     .then(r => r.json())
     .then(data => {
       if (data.tickers) {
@@ -1520,10 +1566,8 @@ if (_pmForm) {
   });
 }
 
-// Boot: load private markets on tech page
-if (UNIVERSE === 'tech') {
-  window.addEventListener('load', loadPrivateMarkets);
-}
+// Boot: load private markets
+window.addEventListener('load', loadPrivateMarkets);
 
 // ── BTC ticker ───────────────────────────────────────────────────────────────
 
@@ -1572,16 +1616,6 @@ if (UNIVERSE === 'tech') {
     setInterval(loadBtcTicker, 120_000);
   });
 
-  // Align first tab's right edge with the start of .controls (RUN ANALYSIS)
-  function syncTabAlignment() {
-    const h1 = document.querySelector('.header-inner h1');
-    const firstTab = document.querySelector('.page-tab');
-    if (!h1 || !firstTab) return;
-    const gap = parseFloat(getComputedStyle(document.querySelector('.header-inner')).columnGap) || 20;
-    firstTab.style.minWidth = (h1.offsetWidth + gap) + 'px';
-  }
-  document.addEventListener('DOMContentLoaded', syncTabAlignment);
-  window.addEventListener('resize', syncTabAlignment);
 })();
 
 // ── Tour ──

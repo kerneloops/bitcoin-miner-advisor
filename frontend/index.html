@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-universe="miners">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="icon" href="/static/favicon.ico" type="image/x-icon" />
-  <link rel="stylesheet" href="/static/style.css?v=75" />
+  <link rel="stylesheet" href="/static/style.css?v=76" />
 </head>
 <body>
   <header>
@@ -52,13 +52,6 @@
       </div>
     </div>
   </header>
-
-  <nav class="page-tabs">
-    <div class="page-tabs-inner">
-      <a href="/tech" class="page-tab">Stocks</a>
-      <a href="/" class="page-tab active">Crypto</a>
-    </div>
-  </nav>
 
   <!-- Patience modal -->
   <div id="patienceModal" style="display:none;position:fixed;inset:0;z-index:1000;align-items:center;justify-content:center;pointer-events:none;">
@@ -122,6 +115,33 @@
       </form>
     </div>
 
+    <section id="privateMarketsSection" class="history-section">
+      <h2>Pre-IPO / Private Markets</h2>
+      <p class="pm-disclaimer">Last-round valuations from public announcements. Secondary prices entered manually — check <a href="https://forgeglobal.com" target="_blank" rel="noopener">Forge Global</a>, <a href="https://equityzen.com" target="_blank" rel="noopener">EquityZen</a>, or <a href="https://www.hiive.com" target="_blank" rel="noopener">Hiive</a> if you have accounts there.</p>
+      <div id="privateMarketsContent"></div>
+
+      <details class="pm-add-details">
+        <summary class="pm-add-toggle">+ Add / update company</summary>
+        <form id="pmAddForm" class="pm-add-form">
+          <input id="pmName"      type="text"   placeholder="Company name *" required>
+          <input id="pmSector"    type="text"   placeholder="Sector (e.g. AI Infrastructure)">
+          <select id="pmStage">
+            <option value="Pre-IPO">Pre-IPO</option>
+            <option value="S-1 Filed">S-1 Filed</option>
+            <option value="Acquired">Acquired</option>
+            <option value="Public">Public</option>
+          </select>
+          <input id="pmValuation" type="number" step="any" min="0" placeholder="Valuation ($B)">
+          <input id="pmRoundType" type="text"   placeholder="Round type (e.g. Series C)">
+          <input id="pmRoundAmt"  type="number" step="any" min="0" placeholder="Round size ($M)">
+          <input id="pmRoundDate" type="text"   placeholder="Round date (YYYY-MM)">
+          <input id="pmNotes"     type="text"   placeholder="Notes">
+          <input id="pmForgeUrl"  type="url"    placeholder="Forge listing URL (optional)">
+          <button type="submit">Save</button>
+        </form>
+      </details>
+    </section>
+
   </main>
 
   <div id="fkeyBar">
@@ -169,7 +189,7 @@
   </div>
 
   <div id="tipPopup" class="tip-popup"></div>
-  <script src="/static/app.js?v=58"></script>
+  <script src="/static/app.js?v=59"></script>
   <script type="text/javascript">
     window.$crisp = [];
     window.CRISP_WEBSITE_ID = "07663adf-eae7-4d8e-b98a-9bc183bdb3b2";

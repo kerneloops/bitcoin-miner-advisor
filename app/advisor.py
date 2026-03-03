@@ -47,11 +47,15 @@ def _build_style_section(signal_prefs: dict | None) -> str:
     return "\n".join(parts)
 
 
-SYSTEM_PROMPT = """You are a disciplined, data-driven investment advisor specializing in Bitcoin miner ETFs and stocks.
+CRYPTO_SYSTEM_PROMPT = """You are a disciplined, data-driven investment advisor specializing in Bitcoin miner ETFs and stocks.
 You analyze technical signals and provide clear, reasoned daily buy/sell/hold recommendations.
 Be concise, specific, and honest about uncertainty. Never give financial advice disclaimers — the user understands this is a personal decision-support tool."""
 
 TECH_SYSTEM_PROMPT = """You are a disciplined, data-driven investment advisor specializing in AI, semiconductor, and technology stocks.
+You analyze technical signals and provide clear, reasoned daily buy/sell/hold recommendations.
+Be concise, specific, and honest about uncertainty. Never give financial advice disclaimers — the user understands this is a personal decision-support tool."""
+
+GENERIC_SYSTEM_PROMPT = """You are a disciplined, data-driven investment advisor.
 You analyze technical signals and provide clear, reasoned daily buy/sell/hold recommendations.
 Be concise, specific, and honest about uncertainty. Never give financial advice disclaimers — the user understands this is a personal decision-support tool."""
 
@@ -94,14 +98,19 @@ def _macro_summary(macro: dict) -> str:
     return "\nMacro & market context:\n" + "\n".join(lines) if lines else ""
 
 
-async def get_recommendation(ticker: str, signals: dict, btc_trend: str, fundamentals: dict | None = None, macro: dict | None = None, universe: str = "miners", signal_prefs: dict | None = None) -> dict:
-    if universe == "tech":
+async def get_recommendation(ticker: str, signals: dict, btc_trend: str, fundamentals: dict | None = None, macro: dict | None = None, ticker_category: str = "crypto", signal_prefs: dict | None = None) -> dict:
+    if ticker_category == "tech":
         system = TECH_SYSTEM_PROMPT
         btc_line = f"BTC 7-day trend (macro context): {btc_trend}"
         sector_hint = "Consider the broader AI/tech sector momentum, rates environment, and any ticker-specific catalysts implied by the signals."
         fund_section = ""
-    else:
-        system = SYSTEM_PROMPT
+    elif ticker_category == "generic":
+        system = GENERIC_SYSTEM_PROMPT
+        btc_line = f"BTC 7-day trend (macro context): {btc_trend}"
+        sector_hint = "Consider the broader market environment, sector dynamics, and any ticker-specific catalysts implied by the signals."
+        fund_section = ""
+    else:  # crypto
+        system = CRYPTO_SYSTEM_PROMPT
         btc_line = f"BTC 7-day trend: {btc_trend}"
         sector_hint = "Consider how hashprice trend and the upcoming difficulty adjustment affect miner profitability and sector sentiment."
         fund_section = ""
@@ -148,7 +157,7 @@ Respond ONLY with valid JSON (no markdown):
     return json.loads(text.strip())
 
 
-async def generate_macro_bias(macro: dict, results: dict, universe: str = "miners") -> str:
+async def generate_macro_bias(macro: dict, results: dict) -> str:
     """One-sentence synthesis of macro environment vs ticker recommendations."""
     rec_counts = {}
     for d in results.values():
@@ -159,12 +168,7 @@ async def generate_macro_bias(macro: dict, results: dict, universe: str = "miner
     rec_summary = ", ".join(f"{k}: {v}" for k, v in sorted(rec_counts.items()))
     macro_section = _macro_summary(macro)
 
-    if universe == "tech":
-        context_hint = "Focus on implications for AI/semiconductor/tech equities (valuations, growth stocks, rate sensitivity, dollar impact on multinationals)."
-        sys_prompt = TECH_SYSTEM_PROMPT
-    else:
-        context_hint = "Focus on implications for Bitcoin miners and crypto assets (BTC price sensitivity, risk-on/off, DXY headwinds)."
-        sys_prompt = SYSTEM_PROMPT
+    context_hint = "The user holds a mixed portfolio (crypto miners, tech stocks, and others). Focus on the cross-asset macro picture — rates, risk appetite, dollar strength, crypto sentiment — and how it affects their positions."
 
     prompt = f"""Given these macro signals:
 {macro_section}
@@ -181,14 +185,15 @@ Respond with only the sentence, no JSON, no markdown."""
     message = await client.messages.create(
         model="claude-haiku-4-5-20251001",
         max_tokens=80,
-        system=sys_prompt,
+        system=GENERIC_SYSTEM_PROMPT,
         messages=[{"role": "user", "content": prompt}],
     )
     return message.content[0].text.strip()
 
 
-async def run_analysis(all_signals: dict, fundamentals: dict | None = None, macro: dict | None = None, universe: str = "miners", signal_prefs: dict | None = None) -> dict:
+async def run_analysis(all_signals: dict, fundamentals: dict | None = None, macro: dict | None = None, signal_prefs: dict | None = None) -> dict:
     from datetime import date
+    from .data import classify_ticker
 
     btc_trend = _btc_trend_summary()
     run_date = date.today().isoformat()
@@ -199,7 +204,9 @@ async def run_analysis(all_signals: dict, fundamentals: dict | None = None, macr
             results[ticker] = signals
             continue
 
-        rec = await get_recommendation(ticker, signals, btc_trend, fundamentals, macro, universe, signal_prefs)
+        category = classify_ticker(ticker)
+        ticker_fundamentals = fundamentals if category == "crypto" else None
+        rec = await get_recommendation(ticker, signals, btc_trend, ticker_fundamentals, macro, category, signal_prefs)
         cache.save_analysis(
             run_date, ticker, signals, rec["recommendation"], rec.get("reasoning", ""),
             confidence=rec.get("confidence"), key_risk=rec.get("key_risk"),
@@ -210,9 +217,8 @@ async def run_analysis(all_signals: dict, fundamentals: dict | None = None, macr
         try:
             holdings = cache.get_all_holdings()
             held_results = {t: d for t, d in results.items() if t in holdings} if holdings else results
-            bias = await generate_macro_bias(macro, held_results, universe)
-            bias_key = "macro_bias_tech" if universe == "tech" else "macro_bias"
-            cache.set_setting(bias_key, bias)
+            bias = await generate_macro_bias(macro, held_results)
+            cache.set_setting("macro_bias", bias)
         except Exception:
             pass
 

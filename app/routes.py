@@ -14,10 +14,9 @@ _limiter = Limiter(key_func=get_remote_address)
 
 from .advisor import run_analysis
 from .data import (
-    TICKERS, TICKER_UNIVERSE, TICKER_UNIVERSE_FLAT,
-    TECH_TICKERS, TECH_TICKER_UNIVERSE_FLAT,
+    DEFAULT_TICKERS, TICKER_UNIVERSE, TICKER_UNIVERSE_FLAT,
     BENCHMARK_TICKER, fetch_btc_prices, refresh_all, refresh_benchmark, refresh_ticker,
-    get_tickers_for_universe,
+    classify_ticker, search_tickers,
 )
 from .macro import fetch_all_macro
 from .miners import fetch_miner_fundamentals
@@ -42,7 +41,7 @@ def login_page():
 
 @router.get("/tech")
 def tech_page():
-    return FileResponse(_frontend / "tech.html", headers=_NO_CACHE)
+    return RedirectResponse(url="/", status_code=301)
 
 
 @router.post("/login")
@@ -379,12 +378,13 @@ def delete_private_market(company_id: int):
 # ── Analysis ──────────────────────────────────────────────────────────────────
 
 @router.post("/api/analyze")
-async def analyze(universe: str = Query("miners")):
+async def analyze():
     """Fetch latest data and run AI analysis for all tickers."""
-    base_tickers, _, _ = get_tickers_for_universe(universe)
-    active_tickers = cache.get_active_tickers(base_tickers, universe)
+    active_tickers = cache.get_active_tickers(DEFAULT_TICKERS)
 
-    if universe == "miners":
+    has_crypto = any(classify_ticker(t) == "crypto" for t in active_tickers)
+
+    if has_crypto:
         try:
             await fetch_btc_prices()
         except Exception as e:
@@ -398,7 +398,7 @@ async def analyze(universe: str = Query("miners")):
     signals = add_relative_strength({ticker: compute_signals(ticker) for ticker in active_tickers})
 
     fundamentals = None
-    if universe == "miners":
+    if has_crypto:
         try:
             btc_rows = cache.get_prices("BTC", limit=2)
             btc_price = float(btc_rows[-1]["close"]) if btc_rows else 0
@@ -420,7 +420,7 @@ async def analyze(universe: str = Query("miners")):
         "rsi_oversold": int(cache.get_setting("rsi_oversold", "30") or "30"),
     }
     try:
-        results = await run_analysis(signals, fundamentals, macro, universe=universe, signal_prefs=signal_prefs)
+        results = await run_analysis(signals, fundamentals, macro, signal_prefs=signal_prefs)
     except Exception as e:
         raise HTTPException(502, f"AI analysis failed: {e}")
 
@@ -450,38 +450,33 @@ async def analyze(universe: str = Query("miners")):
     except Exception as e:
         logger.warning(f"Telegram notification failed (non-fatal): {e}")
 
-    bias_key = "macro_bias_tech" if universe == "tech" else "macro_bias"
-    macro_bias = cache.get_setting(bias_key)
+    macro_bias = cache.get_setting("macro_bias")
     return {"tickers": results, "fundamentals": fundamentals, "macro": macro, "macro_bias": macro_bias}
 
 
 @router.get("/api/accuracy")
-def get_accuracy(universe: str = Query("miners")):
-    """Return aggregate accuracy stats for the given universe."""
-    base_tickers, _, _ = get_tickers_for_universe(universe)
-    active_tickers = cache.get_active_tickers(base_tickers, universe)
+def get_accuracy():
+    """Return aggregate accuracy stats."""
+    active_tickers = cache.get_active_tickers(DEFAULT_TICKERS)
     return cache.get_accuracy_summary(active_tickers)
 
 
 @router.get("/api/signals")
-async def get_signals(universe: str = Query("miners")):
+async def get_signals():
     """Return current computed signals from cached data (no API calls)."""
-    base_tickers, _, _ = get_tickers_for_universe(universe)
-    active_tickers = cache.get_active_tickers(base_tickers, universe)
+    active_tickers = cache.get_active_tickers(DEFAULT_TICKERS)
     return add_relative_strength({ticker: compute_signals(ticker) for ticker in active_tickers})
 
 
 @router.get("/api/latest-analysis")
-def latest_analysis(universe: str = Query("miners")):
+def latest_analysis():
     """Return the most recent stored analysis per ticker (no API calls)."""
-    base_tickers, _, _ = get_tickers_for_universe(universe)
-    active_tickers = cache.get_active_tickers(base_tickers, universe)
+    active_tickers = cache.get_active_tickers(DEFAULT_TICKERS)
     tickers = cache.get_latest_analysis(active_tickers)
     if not tickers:
         return {"tickers": None}
     macro = cache.get_latest_macro() or {}
-    bias_key = "macro_bias_tech" if universe == "tech" else "macro_bias"
-    macro_bias = cache.get_setting(bias_key)
+    macro_bias = cache.get_setting("macro_bias")
     return {"tickers": tickers, "macro": macro, "macro_bias": macro_bias}
 
 
@@ -546,11 +541,16 @@ def get_macro():
 
 
 @router.get("/api/ticker-universe")
-def get_ticker_universe(universe: str = Query("miners")):
+def get_ticker_universe():
     """Return the full ticker universe grouped by category and the current active list."""
-    base_tickers, universe_dict, _ = get_tickers_for_universe(universe)
-    active = cache.get_active_tickers(base_tickers, universe)
-    return {"universe": universe_dict, "active": active}
+    active = cache.get_active_tickers(DEFAULT_TICKERS)
+    # Add "Custom" group for active tickers not in any predefined group
+    universe_flat_set = set(TICKER_UNIVERSE_FLAT)
+    custom = [t for t in active if t not in universe_flat_set]
+    result = dict(TICKER_UNIVERSE)
+    if custom:
+        result["Custom"] = custom
+    return {"universe": result, "active": active}
 
 
 class TickerIn(BaseModel):
@@ -558,30 +558,36 @@ class TickerIn(BaseModel):
 
 
 @router.post("/api/tickers")
-async def add_ticker(body: TickerIn, universe: str = Query("miners")):
+async def add_ticker(body: TickerIn):
     """Add a ticker to the user's active watchlist."""
-    base_tickers, _, universe_flat = get_tickers_for_universe(universe)
-    ticker = body.ticker.upper()
-    if ticker not in universe_flat:
-        raise HTTPException(400, f"{ticker} is not in the {universe} universe")
-    cache.add_active_ticker(ticker, base_tickers, universe)
+    ticker = body.ticker.upper().strip()
+    if not ticker.isalpha() or len(ticker) > 10:
+        raise HTTPException(400, f"Invalid ticker: {ticker}")
+    cache.add_active_ticker(ticker, DEFAULT_TICKERS)
     try:
         await refresh_ticker(ticker)
     except Exception as e:
         logger.warning(f"Price backfill for {ticker} (non-fatal): {e}")
-    active = cache.get_active_tickers(base_tickers, universe)
+    active = cache.get_active_tickers(DEFAULT_TICKERS)
     return {"active": active}
 
 
 @router.delete("/api/tickers/{ticker}")
-def delete_ticker(ticker: str, universe: str = Query("miners")):
+def delete_ticker(ticker: str):
     """Remove a ticker from the user's active watchlist."""
-    base_tickers, _, universe_flat = get_tickers_for_universe(universe)
     ticker = ticker.upper()
-    if ticker not in universe_flat:
-        raise HTTPException(400, f"{ticker} is not in the {universe} universe")
-    remaining = cache.remove_active_ticker(ticker, base_tickers, universe)
+    remaining = cache.remove_active_ticker(ticker, DEFAULT_TICKERS)
     return {"active": remaining}
+
+
+@router.get("/api/ticker-search")
+async def ticker_search(q: str = Query("")):
+    """Search Polygon for tickers matching query."""
+    q = q.strip()
+    if len(q) < 1:
+        return []
+    results = await search_tickers(q, limit=8)
+    return results
 
 
 @router.get("/api/benchmark")
@@ -666,12 +672,7 @@ def get_benchmark_chart():
 
 
 @router.get("/api/history/{ticker}")
-async def get_history(ticker: str, universe: str = Query("miners")):
-    base_tickers, _, universe_flat = get_tickers_for_universe(universe)
-    active_tickers = cache.get_active_tickers(base_tickers, universe)
-    all_valid = set(active_tickers) | set(universe_flat)
-    if ticker.upper() not in all_valid:
-        raise HTTPException(404, f"Unknown ticker: {ticker}")
+async def get_history(ticker: str):
     return cache.get_analysis_history(ticker.upper())
 
 
@@ -760,19 +761,13 @@ async def create_trade(body: TradeIn):
                 f"Cannot sell {body.quantity} shares of {body.ticker} — only {held} held. "
                 "Record a BUY trade first if you have an existing position with no purchase history."
             )
-    active_miners = cache.get_active_tickers(TICKERS, "miners")
-    active_tech = cache.get_active_tickers(TECH_TICKERS, "tech")
-    active_all = set(active_miners) | set(active_tech)
-    if body.ticker not in active_all:
-        if body.ticker in TICKER_UNIVERSE_FLAT:
-            cache.add_active_ticker(body.ticker, TICKERS, "miners")
-        elif body.ticker in TECH_TICKER_UNIVERSE_FLAT:
-            cache.add_active_ticker(body.ticker, TECH_TICKERS, "tech")
-        if body.ticker in TICKER_UNIVERSE_FLAT or body.ticker in TECH_TICKER_UNIVERSE_FLAT:
-            try:
-                await refresh_ticker(body.ticker)
-            except Exception as e:
-                logger.warning(f"Price fetch for new ticker {body.ticker} (non-fatal): {e}")
+    active_all = set(cache.get_active_tickers(DEFAULT_TICKERS))
+    if body.ticker not in active_all and body.ticker in TICKER_UNIVERSE_FLAT:
+        cache.add_active_ticker(body.ticker, DEFAULT_TICKERS)
+        try:
+            await refresh_ticker(body.ticker)
+        except Exception as e:
+            logger.warning(f"Price fetch for new ticker {body.ticker} (non-fatal): {e}")
     cache.add_trade(body.ticker, body.date, body.trade_type, body.price, body.quantity, body.notes)
     return {"ok": True}
 

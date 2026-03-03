@@ -165,42 +165,44 @@ header {
 .user-menu-logout { color: var(--sell) !important; }
 .user-menu-logout:hover { background: rgba(255,59,59,0.07) !important; }
 
-/* ── Page tab bar (sticky row below header) ── */
-.page-tabs {
-  position: sticky;
-  top: 48px;
-  z-index: 98;
-  background: var(--bg);
-  border-bottom: 1px solid var(--border2);
+/* ── Ticker search (settings watchlist) ── */
+.ticker-search-wrap { position: relative; }
+.ticker-search-results {
+  position: absolute;
+  z-index: 10;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  max-height: 220px;
+  overflow-y: auto;
 }
-.page-tabs-inner {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 0 1.5rem;
+.ticker-search-results:empty { display: none; }
+.ticker-search-result {
   display: flex;
-}
-.page-tab {
-  display: inline-flex;
   align-items: center;
-  font-size: 0.72rem;
-  font-weight: 700;
-  font-family: inherit;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--dim);
-  padding: 0.65rem 1.3rem 0.65rem 0;
-  text-decoration: none;
-  border-bottom: 3px solid transparent;
-  transition: color 0.12s, border-color 0.12s;
-  white-space: nowrap;
-  margin-right: 1.3rem;
+  gap: 0.5rem;
+  padding: 0.35rem 0.6rem;
+  font-size: 0.68rem;
+  border-bottom: 1px solid var(--dim);
 }
-.page-tab:hover { color: var(--text); }
-.page-tab.active {
+.ticker-search-result:last-child { border-bottom: none; }
+.ticker-search-result:hover { background: var(--surface2); }
+.tsr-ticker { font-weight: 700; color: var(--green); min-width: 50px; letter-spacing: 0.06em; }
+.tsr-name { color: var(--muted); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tsr-add {
+  background: transparent;
+  border: 1px solid var(--green-dim);
   color: var(--green);
-  border-bottom-color: var(--green);
-  text-shadow: 0 0 12px rgba(0,255,136,0.35);
+  font-family: inherit;
+  font-size: 0.6rem;
+  padding: 0.15rem 0.5rem;
+  cursor: pointer;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
 }
+.tsr-add:hover { background: var(--green); color: var(--bg); }
 
 h1 {
   font-size: 0.78rem;
@@ -1428,10 +1430,6 @@ header {
   .header-inner { flex-wrap: wrap; gap: 0.4rem; padding: 0.6rem 1rem; }
   h1 { font-size: 0.85rem; }
   .controls { flex-wrap: wrap; gap: 0.4rem; }
-
-  /* Tabs: tighter */
-  .page-tabs-inner { padding: 0 1rem; }
-  .page-tab { padding: 0.5rem 1rem 0.5rem 0; font-size: 0.6rem; }
 
   /* Cards: single column */
   .dashboard { grid-template-columns: 1fr; }

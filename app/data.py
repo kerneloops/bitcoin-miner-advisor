@@ -12,36 +12,65 @@ logger = logging.getLogger(__name__)
 POLYGON_BASE = "https://api.polygon.io"
 COINGECKO_BASE = "https://api.coingecko.com/api/v3"
 
-TICKERS = ["WGMI", "MARA", "RIOT", "BITX", "RIOX", "CIFU", "BMNU", "MSTX"]
+DEFAULT_TICKERS = [
+    "WGMI", "MARA", "RIOT", "BITX", "RIOX", "CIFU", "BMNU", "MSTX",
+    "NVDA", "AMD", "MSFT", "GOOGL", "META", "TSLA", "AMZN", "AAPL", "PLTR", "ARM", "ANET", "VRT", "NBIS",
+]
 
-# Expanded universe the user can opt into via the trade form dropdown.
-# Grouped by category for the frontend optgroups.
+# Full ticker universe grouped by category — merged crypto + tech
 TICKER_UNIVERSE: dict[str, list[str]] = {
     "Bitcoin Miners": ["WGMI", "MARA", "RIOT", "RIOX", "CIFU", "BMNU", "CLSK", "HUT", "IREN", "CORZ", "BTBT"],
     "Bitcoin ETFs": ["BITX", "MSTX", "IBIT", "FBTC"],
-}
-# Flat list for membership checks
-TICKER_UNIVERSE_FLAT: list[str] = [t for tickers in TICKER_UNIVERSE.values() for t in tickers]
-
-# ── Tech stocks universe ───────────────────────────────────────────────────────
-
-TECH_TICKERS = ["NVDA", "AMD", "MSFT", "GOOGL", "META", "TSLA", "AMZN", "AAPL", "PLTR", "ARM", "ANET", "VRT", "NBIS"]
-
-TECH_TICKER_UNIVERSE: dict[str, list[str]] = {
     "AI & Semiconductors": ["NVDA", "AMD", "INTC", "QCOM", "AVGO", "ARM", "MRVL", "AMAT", "LRCX"],
     "AI Infrastructure": ["VRT", "ANET", "NBIS", "SMCI", "DELL"],
     "Mega Cap Tech": ["AAPL", "MSFT", "GOOGL", "GOOG", "META", "AMZN", "TSLA"],
     "AI Pure Plays": ["PLTR", "AI", "BBAI", "PATH", "SOUN"],
     "Enterprise & Cloud": ["CRM", "ORCL", "NOW", "SNOW", "NET", "DDOG"],
 }
-TECH_TICKER_UNIVERSE_FLAT: list[str] = [t for tickers in TECH_TICKER_UNIVERSE.values() for t in tickers]
+TICKER_UNIVERSE_FLAT: list[str] = [t for tickers in TICKER_UNIVERSE.values() for t in tickers]
+
+# Category groups for classify_ticker()
+_CRYPTO_GROUPS = {"Bitcoin Miners", "Bitcoin ETFs"}
+_TECH_GROUPS = {"AI & Semiconductors", "AI Infrastructure", "Mega Cap Tech", "AI Pure Plays", "Enterprise & Cloud"}
+
+# Pre-built lookup: ticker → category name
+_TICKER_TO_CATEGORY: dict[str, str] = {}
+for _cat, _tlist in TICKER_UNIVERSE.items():
+    for _t in _tlist:
+        _TICKER_TO_CATEGORY[_t] = _cat
 
 
-def get_tickers_for_universe(universe: str) -> tuple[list[str], dict[str, list[str]], list[str]]:
-    """Return (base_tickers, universe_dict, universe_flat) for the given universe slug."""
-    if universe == "tech":
-        return TECH_TICKERS, TECH_TICKER_UNIVERSE, TECH_TICKER_UNIVERSE_FLAT
-    return TICKERS, TICKER_UNIVERSE, TICKER_UNIVERSE_FLAT
+def classify_ticker(ticker: str) -> str:
+    """Return 'crypto', 'tech', or 'generic' based on universe group membership."""
+    cat = _TICKER_TO_CATEGORY.get(ticker)
+    if cat in _CRYPTO_GROUPS:
+        return "crypto"
+    if cat in _TECH_GROUPS:
+        return "tech"
+    return "generic"
+
+
+async def search_tickers(query: str, limit: int = 8) -> list[dict]:
+    """Search Polygon for tickers matching query. Returns [{ticker, name, market, type}]."""
+    api_key = os.environ.get("POLYGON_API_KEY", "")
+    if not api_key or not query:
+        return []
+    url = f"{POLYGON_BASE}/v3/reference/tickers"
+    async with httpx.AsyncClient(timeout=15) as client:
+        resp = await client.get(url, params={
+            "search": query,
+            "active": "true",
+            "market": "stocks",
+            "limit": limit,
+            "apiKey": api_key,
+        })
+        if resp.status_code != 200:
+            return []
+        data = resp.json()
+    return [
+        {"ticker": r["ticker"], "name": r.get("name", ""), "market": r.get("market", ""), "type": r.get("type", "")}
+        for r in data.get("results", [])
+    ]
 
 
 BENCHMARK_TICKER = "SPY"
@@ -97,7 +126,7 @@ async def refresh_ticker(ticker: str):
 
 
 async def refresh_all(tickers: list[str] | None = None):
-    for ticker in (tickers or TICKERS):
+    for ticker in (tickers or DEFAULT_TICKERS):
         await refresh_ticker(ticker)
 
 
