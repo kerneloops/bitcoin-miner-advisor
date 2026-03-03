@@ -443,7 +443,7 @@ async function loadHistory(ticker) {
         <tr><th>Date</th><th>Rec</th><th>Price</th><th>RSI</th><th>1W%</th><th>2W%</th><th>Outcome</th><th>Reasoning</th></tr>
       </thead>
       <tbody>
-        ${rows.map(r => `
+        ${rows.map((r, i) => `
           <tr>
             <td>${r.run_date}</td>
             <td class="rec-${r.recommendation}">${r.recommendation}</td>
@@ -452,7 +452,7 @@ async function loadHistory(ticker) {
             <td class="${pctColor(r.signals.week_return_pct)}">${pct(r.signals.week_return_pct)}</td>
             <td class="${pctColor(r.outcome_return_pct)}">${pct(r.outcome_return_pct)}</td>
             <td class="outcome-${r.outcome ?? 'pending'}">${outcomeIcon(r.outcome)}</td>
-            <td>${r.reasoning || "—"}</td>
+            <td>${i === 0 ? (r.reasoning || "—") : (r.reasoning ? `<span class="history-reasoning-toggle" onclick="this.parentElement.classList.toggle('expanded')">${r.reasoning.slice(0, 30)}…</span><span class="history-reasoning-full">${r.reasoning}</span>` : "—")}</td>
           </tr>
         `).join("")}
       </tbody>

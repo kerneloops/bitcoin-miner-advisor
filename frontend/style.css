@@ -724,6 +724,16 @@ main {
 
 .history-table tr:last-child td { border-bottom: none; }
 
+/* History reasoning: collapsed by default for older rows */
+.history-reasoning-toggle {
+  cursor: pointer;
+  color: var(--muted);
+  border-bottom: 1px dotted var(--muted);
+}
+.history-reasoning-full { display: none; }
+td.expanded .history-reasoning-toggle { display: none; }
+td.expanded .history-reasoning-full { display: inline; }
+
 /* ── Cash controls ── */
 .cash-controls {
   display: flex;
