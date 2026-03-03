@@ -165,38 +165,40 @@ header {
 .user-menu-logout { color: var(--sell) !important; }
 .user-menu-logout:hover { background: rgba(255,59,59,0.07) !important; }
 
-/* ── Header ticker search ── */
-.header-search {
+/* ── Ticker search bar (main content) ── */
+.ticker-search-bar {
   position: relative;
-  margin-left: auto;
+  margin-bottom: 1rem;
 }
-.header-search-input {
-  background: var(--bg);
+.ticker-search-bar-input {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--surface);
   border: 1px solid var(--border2);
   color: var(--text);
   font-family: inherit;
-  font-size: 0.65rem;
-  padding: 0.22rem 0.6rem;
-  width: 130px;
+  font-size: 0.7rem;
+  padding: 0.45rem 0.8rem;
   outline: none;
   letter-spacing: 0.04em;
-  transition: border-color 0.12s, width 0.2s;
+  transition: border-color 0.15s;
 }
-.header-search-input::placeholder { color: var(--muted); }
-.header-search-input:focus { border-color: var(--green-dim); width: 180px; }
-.header-search-results {
+.ticker-search-bar-input::placeholder { color: var(--muted); }
+.ticker-search-bar-input:focus { border-color: var(--green-dim); }
+.ticker-search-bar-results {
   position: absolute;
   z-index: 200;
   top: 100%;
+  left: 0;
   right: 0;
-  width: 280px;
   background: var(--surface);
   border: 1px solid var(--border2);
-  max-height: 260px;
+  border-top: none;
+  max-height: 300px;
   overflow-y: auto;
   box-shadow: 0 8px 32px rgba(0,0,0,0.6);
 }
-.header-search-results:empty { display: none; }
+.ticker-search-bar-results:empty { display: none; }
 
 /* ── Ticker search (settings watchlist) ── */
 .ticker-search-wrap { position: relative; }

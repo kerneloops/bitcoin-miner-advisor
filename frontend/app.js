@@ -1586,7 +1586,7 @@ window.addEventListener('load', loadPrivateMarkets);
 
   // Close results when clicking outside
   document.addEventListener('click', (e) => {
-    if (!e.target.closest('.header-search')) results.innerHTML = '';
+    if (!e.target.closest('.ticker-search-bar')) results.innerHTML = '';
   });
 
   async function headerTickerSearch(query) {
