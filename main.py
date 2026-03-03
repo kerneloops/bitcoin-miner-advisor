@@ -85,73 +85,81 @@ class AuthMiddleware(BaseHTTPMiddleware):
 logger = logging.getLogger(__name__)
 
 
-async def _scheduled_analysis():
+async def _run_universe(universe: str):
+    """Run analysis for a single universe (miners or tech)."""
     from app.advisor import run_analysis
-    from app.data import TICKERS, fetch_btc_prices, refresh_all
+    from app.data import fetch_btc_prices, refresh_all, get_universe
     from app.macro import fetch_all_macro
     from app.miners import fetch_miner_fundamentals
     from app.technicals import add_relative_strength, compute_signals
 
-    primary = _users.get_primary_user_id()
-    if primary:
-        cache.set_current_user_id(primary)
+    base_tickers, _, _ = get_universe(universe)
+    active_tickers = cache.get_active_tickers(base_tickers)
 
-    logger.info("Scheduled analysis starting…")
-    active_tickers = cache.get_active_tickers(TICKERS)
-    try:
-        await fetch_btc_prices()
-        await refresh_all(active_tickers)
-    except Exception as e:
-        logger.error(f"Scheduled fetch failed: {e}")
-        return
+    logger.info(f"Scheduled {universe} analysis: fetching prices…")
+    await fetch_btc_prices()
+    await refresh_all(active_tickers)
 
-    signals = add_relative_strength({ticker: compute_signals(ticker) for ticker in active_tickers})
+    signals = add_relative_strength({t: compute_signals(t) for t in active_tickers})
 
     fundamentals = None
-    try:
-        btc_rows = cache.get_prices("BTC", limit=2)
-        btc_price = float(btc_rows[-1]["close"]) if btc_rows else 0
-        fundamentals = await fetch_miner_fundamentals(btc_price)
-    except Exception as e:
-        logger.warning(f"Scheduled fundamentals fetch failed (non-fatal): {e}")
+    if universe == "miners":
+        try:
+            btc_rows = cache.get_prices("BTC", limit=2)
+            btc_price = float(btc_rows[-1]["close"]) if btc_rows else 0
+            fundamentals = await fetch_miner_fundamentals(btc_price)
+        except Exception as e:
+            logger.warning(f"Scheduled {universe} fundamentals failed (non-fatal): {e}")
 
     macro = None
     try:
         macro = await fetch_all_macro()
     except Exception as e:
-        logger.warning(f"Scheduled macro fetch failed (non-fatal): {e}")
+        logger.warning(f"Scheduled {universe} macro failed (non-fatal): {e}")
+
+    from app import sizing, telegram
+
+    results = await run_analysis(signals, fundamentals, macro)
+
+    tier_name = cache.get_setting("risk_tier", "neutral")
+    cap_str = cache.get_setting("total_capital")
+    total_capital = float(cap_str) if cap_str else None
+    holdings = cache.get_all_holdings()
+    for ticker, d in results.items():
+        try:
+            d["position_guidance"] = sizing.compute_guidance(
+                ticker=ticker,
+                rec=d.get("recommendation"),
+                confidence=d.get("confidence"),
+                price=d.get("current_price"),
+                shares_held=holdings.get(ticker, 0),
+                tier_name=tier_name,
+                total_capital=total_capital,
+            )
+        except Exception:
+            d["position_guidance"] = None
 
     try:
-        from app import sizing, telegram
-
-        results = await run_analysis(signals, fundamentals, macro)
-
-        tier_name = cache.get_setting("risk_tier", "neutral")
-        cap_str = cache.get_setting("total_capital")
-        total_capital = float(cap_str) if cap_str else None
-        holdings = cache.get_all_holdings()
-        for ticker, d in results.items():
-            try:
-                d["position_guidance"] = sizing.compute_guidance(
-                    ticker=ticker,
-                    rec=d.get("recommendation"),
-                    confidence=d.get("confidence"),
-                    price=d.get("current_price"),
-                    shares_held=holdings.get(ticker, 0),
-                    tier_name=tier_name,
-                    total_capital=total_capital,
-                )
-            except Exception:
-                d["position_guidance"] = None
-
-        try:
-            await telegram.notify_signals(results)
-        except Exception as e:
-            logger.warning(f"Scheduled Telegram notification failed (non-fatal): {e}")
-
-        logger.info("Scheduled analysis complete.")
+        await telegram.notify_signals(results)
     except Exception as e:
-        logger.error(f"Scheduled AI analysis failed: {e}")
+        logger.warning(f"Scheduled {universe} Telegram failed (non-fatal): {e}")
+
+    logger.info(f"Scheduled {universe} analysis complete.")
+    return results
+
+
+async def _scheduled_analysis():
+    primary = _users.get_primary_user_id()
+    if primary:
+        cache.set_current_user_id(primary)
+
+    logger.info("Scheduled analysis starting (both universes)…")
+    for universe in ("miners", "tech"):
+        try:
+            await _run_universe(universe)
+        except Exception as e:
+            logger.error(f"Scheduled {universe} analysis failed: {e}")
+    logger.info("Scheduled analysis complete (both universes).")
 
 
 @asynccontextmanager
@@ -164,7 +172,7 @@ async def lifespan(app: FastAPI):
             scheduler = AsyncIOScheduler()
             scheduler.add_job(
                 _scheduled_analysis,
-                CronTrigger(hour=int(hour), minute=int(minute)),
+                CronTrigger(day_of_week="mon-fri", hour=int(hour), minute=int(minute)),
                 id="daily_analysis",
                 replace_existing=True,
             )
