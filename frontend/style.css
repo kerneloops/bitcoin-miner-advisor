@@ -1447,6 +1447,113 @@ header {
   box-shadow: 0 0 16px rgba(0,210,106,0.25) !important;
 }
 
+/* ── Subscription / Tier ── */
+
+.trial-banner {
+  background: var(--surface);
+  border-bottom: 1px solid var(--green-dim);
+  padding: 0.3rem 1.5rem;
+  font-size: 0.62rem;
+  color: var(--green);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  justify-content: center;
+}
+.trial-banner-link {
+  color: var(--text);
+  text-decoration: underline;
+  font-weight: 600;
+}
+
+.tier-badge {
+  font-size: 0.52rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 0.12rem 0.45rem;
+  border: 1px solid;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.tier-badge.tier-trial      { color: var(--green); border-color: var(--green); }
+.tier-badge.tier-hashrate   { color: var(--muted); border-color: var(--muted); }
+.tier-badge.tier-blockrate  { color: var(--green); border-color: var(--green); }
+.tier-badge.tier-difficulty { color: var(--hold);  border-color: var(--hold); }
+.tier-badge.tier-admin      { color: var(--sell);  border-color: var(--sell); }
+.tier-badge.tier-expired    { color: var(--sell);  border-color: var(--sell); }
+
+.upgrade-prompt {
+  text-align: center;
+  padding: 1.5rem 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+}
+.upgrade-prompt-text {
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin-bottom: 0.75rem;
+}
+.upgrade-link {
+  display: inline-block;
+  background: var(--green);
+  color: var(--bg);
+  padding: 0.4rem 1rem;
+  font-family: inherit;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-decoration: none;
+}
+.upgrade-link:hover { background: var(--green-dim); color: var(--bg); text-decoration: none; }
+
+.expired-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 5000;
+  background: rgba(6,9,6,0.95);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.expired-overlay-box {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  padding: 2.5rem 2rem;
+  text-align: center;
+  max-width: 420px;
+  width: 90%;
+}
+.expired-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 0.08em;
+  margin-bottom: 0.75rem;
+}
+.expired-sub {
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin-bottom: 1.5rem;
+  line-height: 1.6;
+}
+.plan-cta-link {
+  display: inline-block;
+  background: var(--green);
+  color: var(--bg);
+  padding: 0.55rem 1.5rem;
+  font-family: inherit;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-decoration: none;
+}
+.plan-cta-link:hover { background: var(--green-dim); color: var(--bg); text-decoration: none; }
+
 /* ── Mobile (WKWebView / narrow screens) ── */
 @media (max-width: 500px) {
   html { font-size: 15px; }

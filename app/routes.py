@@ -13,6 +13,11 @@ from slowapi.util import get_remote_address
 _limiter = Limiter(key_func=get_remote_address)
 
 from .advisor import run_analysis
+from .billing import (
+    HASHRATE_PRESET_TICKERS, TIER_PRICES, get_tier_limits, get_tier_level,
+    require_tier, create_checkout_session, create_portal_session,
+    handle_webhook_event,
+)
 from .data import (
     DEFAULT_TICKERS, TICKER_UNIVERSE, TICKER_UNIVERSE_FLAT,
     BENCHMARK_TICKER, fetch_btc_prices, refresh_all, refresh_benchmark, refresh_ticker,
@@ -143,10 +148,12 @@ async def api_me(request: Request):
     if not user:
         raise HTTPException(401, "Unauthorized")
     primary_id = user_store.get_primary_user_id()
+    tier = user_store.get_user_tier(user["user_id"])
     return {
         "username": user["username"],
         "user_id": user["user_id"],
         "is_admin": user["user_id"] == primary_id,
+        "tier": tier,
     }
 
 
@@ -214,6 +221,111 @@ async def telegram_webhook(request: Request):
     update = await request.json()
     await telegram.handle_update(update)
     return {"ok": True}
+
+
+def _current_user_tier() -> str:
+    """Return the effective subscription tier for the current user."""
+    uid = cache.get_current_user_id()
+    if not uid:
+        return "expired"
+    return user_store.get_user_tier(uid)
+
+
+# ── Subscription / Billing ───────────────────────────────────────────────────
+
+@router.get("/api/subscription")
+def get_subscription():
+    """Return current user's subscription info."""
+    uid = cache.get_current_user_id()
+    if not uid:
+        raise HTTPException(401, "Unauthorized")
+    user = user_store.get_user_by_id(uid)
+    if not user:
+        raise HTTPException(401, "Unauthorized")
+    tier = user_store.get_user_tier(uid)
+    limits = get_tier_limits(tier)
+    return {
+        "tier": tier,
+        "status": user.get("subscription_status", "trialing"),
+        "trial_ends_at": user.get("trial_ends_at"),
+        "subscription_ends_at": user.get("subscription_ends_at"),
+        "limits": limits,
+        "stripe_subscription_id": user.get("stripe_subscription_id"),
+    }
+
+
+@router.get("/api/pricing")
+def get_pricing():
+    """Return tier info and Stripe price IDs for frontend."""
+    return {
+        "tiers": TIER_PRICES,
+        "stripe_publishable_key": os.getenv("STRIPE_PUBLISHABLE_KEY", ""),
+        "price_ids": {
+            "hashrate_monthly": os.getenv("STRIPE_PRICE_HASHRATE_MONTHLY", ""),
+            "hashrate_annual": os.getenv("STRIPE_PRICE_HASHRATE_ANNUAL", ""),
+            "blockrate_monthly": os.getenv("STRIPE_PRICE_BLOCKRATE_MONTHLY", ""),
+            "blockrate_annual": os.getenv("STRIPE_PRICE_BLOCKRATE_ANNUAL", ""),
+            "difficulty_monthly": os.getenv("STRIPE_PRICE_DIFFICULTY_MONTHLY", ""),
+            "difficulty_annual": os.getenv("STRIPE_PRICE_DIFFICULTY_ANNUAL", ""),
+        },
+    }
+
+
+class CheckoutIn(BaseModel):
+    price_id: str
+
+
+@router.post("/api/billing/checkout")
+def billing_checkout(body: CheckoutIn, request: Request):
+    """Create a Stripe Checkout session."""
+    uid = cache.get_current_user_id()
+    if not uid:
+        raise HTTPException(401, "Unauthorized")
+    base_url = os.getenv("APP_BASE_URL", "https://lapio.dev")
+    try:
+        url = create_checkout_session(
+            user_id=uid,
+            price_id=body.price_id,
+            success_url=f"{base_url}/?checkout=success",
+            cancel_url=f"{base_url}/pricing?checkout=cancel",
+        )
+    except Exception as e:
+        logger.error(f"Stripe checkout failed: {e}")
+        raise HTTPException(502, f"Checkout failed: {e}")
+    return {"url": url}
+
+
+@router.post("/api/billing/portal")
+def billing_portal():
+    """Create a Stripe Customer Portal session."""
+    uid = cache.get_current_user_id()
+    if not uid:
+        raise HTTPException(401, "Unauthorized")
+    base_url = os.getenv("APP_BASE_URL", "https://lapio.dev")
+    try:
+        url = create_portal_session(uid, return_url=base_url)
+    except Exception as e:
+        logger.error(f"Stripe portal failed: {e}")
+        raise HTTPException(502, f"Portal failed: {e}")
+    return {"url": url}
+
+
+@router.post("/api/billing/webhook")
+async def billing_webhook(request: Request):
+    """Handle Stripe webhook events."""
+    payload = await request.body()
+    sig = request.headers.get("stripe-signature", "")
+    try:
+        result = handle_webhook_event(payload, sig)
+        return result
+    except Exception as e:
+        logger.error(f"Stripe webhook error: {e}")
+        raise HTTPException(400, f"Webhook error: {e}")
+
+
+@router.get("/pricing")
+def pricing_page():
+    return FileResponse(_frontend / "pricing.html", headers=_NO_CACHE)
 
 
 # ── Pydantic models ───────────────────────────────────────────────────────────
@@ -329,6 +441,21 @@ async def get_chat_messages(limit: int = 100):
 
 @router.post("/api/chat/send")
 async def send_chat_message(body: ChatSendIn):
+    tier = _current_user_tier()
+    require_tier(tier, 2, "chat")
+    limits = get_tier_limits(tier)
+
+    # Enforce daily chat limit (0 = disabled, 999 = unlimited)
+    if limits["chat_daily"] < 999:
+        uid = cache.get_current_user_id()
+        count = user_store.increment_chat_count(uid)
+        if count > limits["chat_daily"]:
+            raise HTTPException(429, detail={
+                "code": "chat_limit_reached",
+                "limit": limits["chat_daily"],
+                "current_tier": tier,
+            })
+
     text = body.text.strip()
     if not text:
         raise HTTPException(400, "text must not be empty")
@@ -360,6 +487,7 @@ def get_private_markets():
 
 @router.post("/api/private-markets")
 def upsert_private_market(body: PrivateCompanyIn):
+    require_tier(_current_user_tier(), 3, "private_markets_edit")
     return cache.upsert_private_company(body.model_dump())
 
 
@@ -380,7 +508,14 @@ def delete_private_market(company_id: int):
 @router.post("/api/analyze")
 async def analyze():
     """Fetch latest data and run AI analysis for all tickers."""
+    tier = _current_user_tier()
+    require_tier(tier, 1, "analysis")
+    limits = get_tier_limits(tier)
+
     active_tickers = cache.get_active_tickers(DEFAULT_TICKERS)
+    # Clip to allowed ticker count
+    if len(active_tickers) > limits["max_tickers"]:
+        active_tickers = active_tickers[:limits["max_tickers"]]
 
     has_crypto = any(classify_ticker(t) == "crypto" for t in active_tickers)
 
@@ -429,7 +564,13 @@ async def analyze():
     total_capital = float(cap_str) if cap_str else None
     holdings = cache.get_all_holdings()
 
+    # Position sizing only for tier >= 2 (blockrate+)
+    skip_sizing = get_tier_level(tier) < 2
+
     for ticker, d in results.items():
+        if skip_sizing:
+            d["position_guidance"] = None
+            continue
         try:
             guidance = sizing.compute_guidance(
                 ticker=ticker,
@@ -550,7 +691,9 @@ def get_ticker_universe():
     result = dict(TICKER_UNIVERSE)
     if custom:
         result["Custom"] = custom
-    return {"universe": result, "active": active}
+    tier = _current_user_tier()
+    limits = get_tier_limits(tier)
+    return {"universe": result, "active": active, "tier": tier, "limits": limits}
 
 
 class TickerIn(BaseModel):
@@ -560,9 +703,30 @@ class TickerIn(BaseModel):
 @router.post("/api/tickers")
 async def add_ticker(body: TickerIn):
     """Add a ticker to the user's active watchlist."""
+    tier = _current_user_tier()
+    require_tier(tier, 1, "watchlist")
+    limits = get_tier_limits(tier)
+
     ticker = body.ticker.upper().strip()
     if not ticker.isalpha() or len(ticker) > 10:
         raise HTTPException(400, f"Invalid ticker: {ticker}")
+
+    # Hashrate tier: only preset tickers allowed
+    if get_tier_level(tier) == 1 and ticker not in HASHRATE_PRESET_TICKERS:
+        raise HTTPException(403, detail={
+            "code": "preset_only",
+            "message": f"Hashrate plan only allows preset tickers: {', '.join(HASHRATE_PRESET_TICKERS)}",
+        })
+
+    # Enforce max tickers
+    active = cache.get_active_tickers(DEFAULT_TICKERS)
+    if len(active) >= limits["max_tickers"] and ticker not in active:
+        raise HTTPException(403, detail={
+            "code": "ticker_limit_reached",
+            "max": limits["max_tickers"],
+            "current_tier": tier,
+        })
+
     cache.add_active_ticker(ticker, DEFAULT_TICKERS)
     try:
         await refresh_ticker(ticker)
@@ -583,6 +747,8 @@ def delete_ticker(ticker: str):
 @router.get("/api/ticker-search")
 async def ticker_search(q: str = Query("")):
     """Search Polygon for tickers matching query."""
+    tier = _current_user_tier()
+    require_tier(tier, 2, "ticker_search")
     q = q.strip()
     if len(q) < 1:
         return []

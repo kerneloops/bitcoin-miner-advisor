@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lapio — Pricing</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="icon" href="/static/favicon.ico" type="image/x-icon" />
+  <link rel="stylesheet" href="/static/style.css?v=78" />
+  <style>
+    body { display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; flex-direction: column; padding: 2rem 1rem; }
+
+    .pricing-header { text-align: center; margin-bottom: 2rem; }
+    .pricing-logo {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--green);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 0.25rem;
+      text-shadow: 0 0 14px var(--green), 0 0 4px var(--green);
+    }
+    .pricing-sub {
+      font-size: 0.62rem;
+      color: var(--muted);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+    }
+
+    .billing-toggle {
+      display: flex;
+      gap: 1px;
+      background: var(--border2);
+      width: fit-content;
+      margin: 0 auto 1.5rem;
+    }
+    .billing-toggle button {
+      border: none;
+      background: var(--surface);
+      color: var(--muted);
+      padding: 0.35rem 1.2rem;
+      font-family: inherit;
+      font-size: 0.65rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+    .billing-toggle button:hover { background: var(--surface2); color: var(--text); }
+    .billing-toggle button.active { background: var(--green); color: var(--bg); font-weight: 700; }
+
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1px;
+      background: var(--border2);
+      border: 1px solid var(--border2);
+      max-width: 900px;
+      width: 100%;
+    }
+
+    .pricing-card {
+      background: var(--surface);
+      padding: 1.5rem 1.25rem;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+    .pricing-card.popular {
+      border-top: 2px solid var(--green);
+    }
+
+    .popular-badge {
+      position: absolute;
+      top: -1px;
+      right: 0.75rem;
+      background: var(--green);
+      color: var(--bg);
+      font-size: 0.5rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      padding: 0.15rem 0.5rem;
+    }
+
+    .plan-name {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      margin-bottom: 0.35rem;
+    }
+
+    .plan-price {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: var(--green);
+      margin-bottom: 0.15rem;
+      text-shadow: 0 0 6px rgba(0,210,106,0.25);
+    }
+    .plan-price .period {
+      font-size: 0.62rem;
+      font-weight: 400;
+      color: var(--muted);
+    }
+
+    .plan-annual-note {
+      font-size: 0.58rem;
+      color: var(--muted);
+      margin-bottom: 1rem;
+      min-height: 1em;
+    }
+
+    .plan-features {
+      list-style: none;
+      padding: 0;
+      margin: 0 0 1.25rem;
+      flex: 1;
+    }
+    .plan-features li {
+      font-size: 0.65rem;
+      color: var(--text);
+      padding: 0.3rem 0;
+      border-bottom: 1px solid var(--dim);
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .plan-features li:last-child { border-bottom: none; }
+    .plan-features .check { color: var(--green); font-weight: 700; }
+    .plan-features .cross { color: var(--muted); opacity: 0.5; }
+    .plan-features .limit { color: var(--hold); font-size: 0.58rem; }
+
+    .plan-cta {
+      width: 100%;
+      background: transparent;
+      border: 1px solid var(--green-dim);
+      color: var(--green);
+      padding: 0.5rem 1rem;
+      font-family: inherit;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+    .plan-cta:hover { background: var(--green); color: var(--bg); }
+    .plan-cta.primary {
+      background: var(--green);
+      color: var(--bg);
+      border-color: var(--green);
+    }
+    .plan-cta.primary:hover { background: var(--green-dim); }
+    .plan-cta:disabled { opacity: 0.4; cursor: default; }
+    .plan-cta:disabled:hover { background: transparent; color: var(--green); }
+
+    .current-plan-badge {
+      font-size: 0.55rem;
+      color: var(--hold);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      text-align: center;
+      padding: 0.5rem 0 0;
+    }
+
+    .pricing-footer {
+      margin-top: 1.5rem;
+      text-align: center;
+    }
+    .pricing-footer a {
+      font-size: 0.6rem;
+      color: var(--muted);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      text-decoration: none;
+    }
+    .pricing-footer a:hover { color: var(--text); }
+
+    .trial-info {
+      font-size: 0.62rem;
+      color: var(--muted);
+      text-align: center;
+      margin-top: 1rem;
+      letter-spacing: 0.04em;
+    }
+
+    .pricing-error {
+      font-size: 0.62rem;
+      color: var(--sell);
+      text-align: center;
+      margin-top: 0.75rem;
+      display: none;
+    }
+
+    @media (max-width: 700px) {
+      .pricing-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="pricing-header">
+    <div class="pricing-logo">Hash &amp; Burn</div>
+    <div class="pricing-sub">Choose Your Signal Tier</div>
+  </div>
+
+  <div class="billing-toggle" id="billingToggle">
+    <button class="active" onclick="setBilling('monthly')">Monthly</button>
+    <button onclick="setBilling('annual')">Annual (save ~22%)</button>
+  </div>
+
+  <div class="pricing-grid" id="pricingGrid">
+    <!-- Populated by JS -->
+  </div>
+
+  <div class="trial-info">14-day free trial with Blockrate features. No credit card required to start.</div>
+  <div class="pricing-error" id="pricingError"></div>
+
+  <div class="pricing-footer">
+    <a href="/">← Back to Terminal</a>
+    <span style="color:var(--border2);margin:0 0.5rem">|</span>
+    <a href="https://discord.gg/xsYf2J6A" target="_blank" rel="noopener">Discord</a>
+    <span style="color:var(--border2);margin:0 0.5rem">|</span>
+    <a href="mailto:support@lapio.dev">Support</a>
+  </div>
+
+  <script>
+    let billing = 'monthly';
+    let pricingData = null;
+    let currentSubscription = null;
+
+    async function loadData() {
+      try {
+        const [pResp, sResp] = await Promise.all([
+          fetch('/api/pricing'),
+          fetch('/api/subscription').catch(() => ({ ok: false })),
+        ]);
+        pricingData = await pResp.json();
+        if (sResp.ok) currentSubscription = await sResp.json();
+      } catch (e) {
+        console.error('Failed to load pricing data:', e);
+      }
+      render();
+    }
+
+    function setBilling(mode) {
+      billing = mode;
+      document.querySelectorAll('#billingToggle button').forEach(b => {
+        b.classList.toggle('active', b.textContent.toLowerCase().includes(mode));
+      });
+      render();
+    }
+
+    function render() {
+      if (!pricingData) return;
+      const grid = document.getElementById('pricingGrid');
+      const tiers = pricingData.tiers;
+      const ids = pricingData.price_ids;
+      const currentTier = currentSubscription?.tier || 'expired';
+
+      const plans = [
+        {
+          name: 'Hashrate',
+          key: 'hashrate',
+          price: billing === 'monthly' ? tiers.hashrate.monthly : tiers.hashrate.annual,
+          priceId: billing === 'monthly' ? ids.hashrate_monthly : ids.hashrate_annual,
+          popular: false,
+          features: [
+            { text: '10 curated tickers', check: true },
+            { text: 'Custom ticker search', check: false },
+            { text: '1x daily analysis', check: true },
+            { text: 'Basic macro (F&G, VIX)', check: true },
+            { text: 'Chat advisor', check: false },
+            { text: 'Position sizing', check: false },
+            { text: 'Portfolio (view only)', check: true, limit: 'view' },
+            { text: 'Scheduled analysis', check: false },
+            { text: 'Telegram alerts', check: false },
+            { text: 'CSV export', check: false },
+            { text: 'Private markets', check: false },
+          ],
+        },
+        {
+          name: 'Blockrate',
+          key: 'blockrate',
+          price: billing === 'monthly' ? tiers.blockrate.monthly : tiers.blockrate.annual,
+          priceId: billing === 'monthly' ? ids.blockrate_monthly : ids.blockrate_annual,
+          popular: true,
+          features: [
+            { text: '15 tickers from full universe', check: true },
+            { text: 'Custom ticker search', check: true },
+            { text: 'Unlimited analysis (2-min cooldown)', check: true },
+            { text: 'Full macro (all 8 signals)', check: true },
+            { text: 'Chat advisor (20 msgs/day)', check: true },
+            { text: 'Position sizing', check: true },
+            { text: 'Full portfolio + trades', check: true },
+            { text: 'Scheduled analysis', check: false },
+            { text: 'Telegram alerts', check: false },
+            { text: 'CSV export', check: true },
+            { text: 'Private markets (view)', check: true, limit: 'view' },
+          ],
+        },
+        {
+          name: 'Difficulty',
+          key: 'difficulty',
+          price: billing === 'monthly' ? tiers.difficulty.monthly : tiers.difficulty.annual,
+          priceId: billing === 'monthly' ? ids.difficulty_monthly : ids.difficulty_annual,
+          popular: false,
+          features: [
+            { text: 'Unlimited tickers', check: true },
+            { text: 'Custom ticker search', check: true },
+            { text: 'Unlimited analysis', check: true },
+            { text: 'Full macro (all 8 signals)', check: true },
+            { text: 'Unlimited chat advisor', check: true },
+            { text: 'Position sizing', check: true },
+            { text: 'Full portfolio + trades', check: true },
+            { text: 'Scheduled daily analysis', check: true },
+            { text: 'Telegram alerts', check: true },
+            { text: 'CSV export', check: true },
+            { text: 'Full private markets', check: true },
+          ],
+        },
+      ];
+
+      grid.innerHTML = plans.map(plan => {
+        const isCurrent = currentTier === plan.key;
+        const periodLabel = billing === 'monthly' ? '/mo' : '/yr';
+        const annualNote = billing === 'annual'
+          ? `$${(plan.price / 12).toFixed(0)}/mo effective`
+          : '';
+
+        return `
+          <div class="pricing-card ${plan.popular ? 'popular' : ''}">
+            ${plan.popular ? '<div class="popular-badge">Most Popular</div>' : ''}
+            <div class="plan-name">${plan.name}</div>
+            <div class="plan-price">$${plan.price}<span class="period">${periodLabel}</span></div>
+            <div class="plan-annual-note">${annualNote}</div>
+            <ul class="plan-features">
+              ${plan.features.map(f => `
+                <li>
+                  <span class="${f.check ? 'check' : 'cross'}">${f.check ? '>' : '—'}</span>
+                  ${f.text}
+                  ${f.limit ? '<span class="limit">(' + f.limit + ')</span>' : ''}
+                </li>
+              `).join('')}
+            </ul>
+            ${isCurrent
+              ? '<div class="current-plan-badge">Current Plan</div>'
+              : `<button class="plan-cta ${plan.popular ? 'primary' : ''}"
+                   onclick="subscribe('${plan.priceId}')"
+                   ${!plan.priceId ? 'disabled' : ''}>
+                   Subscribe
+                 </button>`
+            }
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function subscribe(priceId) {
+      if (!priceId) return;
+      const errEl = document.getElementById('pricingError');
+      errEl.style.display = 'none';
+      try {
+        const resp = await fetch('/api/billing/checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ price_id: priceId }),
+        });
+        if (!resp.ok) {
+          const err = await resp.json();
+          throw new Error(err.detail || 'Checkout failed');
+        }
+        const data = await resp.json();
+        if (data.url) {
+          window.location.href = data.url;
+        }
+      } catch (e) {
+        errEl.textContent = e.message;
+        errEl.style.display = 'block';
+      }
+    }
+
+    loadData();
+
+    // Check for cancel param
+    if (new URLSearchParams(window.location.search).get('checkout') === 'cancel') {
+      const errEl = document.getElementById('pricingError');
+      errEl.textContent = 'Checkout cancelled. Choose a plan when you are ready.';
+      errEl.style.display = 'block';
+      errEl.style.color = 'var(--hold)';
+    }
+  </script>
+</body>
+</html>

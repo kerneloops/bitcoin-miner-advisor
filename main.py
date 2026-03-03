@@ -24,12 +24,15 @@ from app.routes import router
 _PUBLIC_PATHS = {
     "/login",
     "/logout",
+    "/pricing",
     "/api/auth/login",
     "/api/auth/register",
     "/api/auth/me",
     "/api/auth/logout",
     "/api/support",
     "/api/telegram/webhook",
+    "/api/billing/webhook",
+    "/api/pricing",
 }
 
 
@@ -44,7 +47,8 @@ class CSRFMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
         # Auth endpoints are rate-limited separately; skip CSRF for them
         _csrf_exempt = {"/api/auth/login", "/api/auth/register",
-                        "/api/auth/logout", "/api/telegram/webhook"}
+                        "/api/auth/logout", "/api/telegram/webhook",
+                        "/api/billing/webhook"}
         if request.url.path in _csrf_exempt:
             return await call_next(request)
         origin = request.headers.get("Origin") or request.headers.get("Referer", "")
@@ -96,6 +100,11 @@ async def _scheduled_analysis():
     primary = _users.get_primary_user_id()
     if primary:
         cache.set_current_user_id(primary)
+        # Only run scheduler for difficulty or admin tier
+        tier = _users.get_user_tier(primary)
+        if tier not in ("difficulty", "admin"):
+            logger.info(f"Scheduled analysis skipped: primary user tier={tier} (requires difficulty or admin)")
+            return
 
     active_tickers = cache.get_active_tickers(DEFAULT_TICKERS)
     has_crypto = any(classify_ticker(t) == "crypto" for t in active_tickers)

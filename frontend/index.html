@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="icon" href="/static/favicon.ico" type="image/x-icon" />
-  <link rel="stylesheet" href="/static/style.css?v=78" />
+  <link rel="stylesheet" href="/static/style.css?v=79" />
 </head>
 <body>
   <header>
@@ -39,6 +39,7 @@
         <span id="btcEur30d" class="btc-change">—</span><span class="btc-period">30d</span>
       </div>
       <span id="liveClock"></span>
+      <span id="tierBadge" class="tier-badge" style="display:none"></span>
       <div id="userMenu" class="user-menu">
         <button id="userMenuBtn" class="user-menu-btn" onclick="toggleUserMenu()">
           <span id="userMenuLabel">—</span> ▾
@@ -47,6 +48,7 @@
           <div id="userMenuName" class="user-menu-name"></div>
           <a id="adminPanelLink" href="/admin" class="user-menu-item" style="display:none">⬡ Admin Panel</a>
           <a class="user-menu-item" onclick="openSettings()">&#9881; Settings</a>
+          <a id="billingLink" class="user-menu-item" onclick="manageBilling()" style="display:none">$ Billing</a>
           <a href="/logout" class="user-menu-item user-menu-logout">→ Logout</a>
         </div>
       </div>
@@ -58,6 +60,33 @@
     <div style="background:var(--surface);border:1px solid var(--border2);padding:1.25rem 1.75rem;text-align:center;pointer-events:auto;max-width:340px;">
       <div style="font-size:0.6rem;color:var(--muted);letter-spacing:0.15em;text-transform:uppercase;margin-bottom:0.5rem">⏳ cooldown active</div>
       <div style="font-size:0.9rem;font-weight:700;color:var(--text);">Patience please, I'm still gathering data<span id="patienceTime" style="color:var(--green)"></span></div>
+    </div>
+  </div>
+
+  <div id="trialBanner" class="trial-banner" style="display:none">
+    <span id="trialBannerText"></span>
+    <a href="/pricing" class="trial-banner-link">View Plans</a>
+  </div>
+
+  <div id="expiredOverlay" class="expired-overlay" style="display:none">
+    <div class="expired-overlay-box">
+      <div class="expired-title">Subscription Required</div>
+      <div class="expired-sub">Your trial has ended. Choose a plan to continue using Lapio.</div>
+      <a href="/pricing" class="plan-cta-link">Choose a Plan</a>
+    </div>
+  </div>
+
+  <div id="upgradeModal" class="settings-overlay">
+    <div class="settings-modal" style="max-width:400px;text-align:center">
+      <div class="settings-modal-header">
+        <span>UPGRADE REQUIRED</span>
+        <button class="settings-close" onclick="closeUpgradeModal()">&times;</button>
+      </div>
+      <div id="upgradeModalMessage" style="font-size:0.72rem;color:var(--text);margin-bottom:1.25rem;line-height:1.6"></div>
+      <div style="display:flex;gap:0.5rem;justify-content:center">
+        <a href="/pricing" style="background:var(--green);color:var(--bg);border:none;padding:0.5rem 1.2rem;font-family:inherit;font-size:0.65rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;text-decoration:none;display:inline-block">View Plans</a>
+        <button onclick="closeUpgradeModal()" style="font-size:0.62rem;color:var(--muted);border:1px solid var(--border2);background:none;padding:0.5rem 1rem;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;font-family:inherit">Dismiss</button>
+      </div>
     </div>
   </div>
 
@@ -194,7 +223,7 @@
   </div>
 
   <div id="tipPopup" class="tip-popup"></div>
-  <script src="/static/app.js?v=61"></script>
+  <script src="/static/app.js?v=62"></script>
   <script type="text/javascript">
     window.$crisp = [];
     window.CRISP_WEBSITE_ID = "07663adf-eae7-4d8e-b98a-9bc183bdb3b2";

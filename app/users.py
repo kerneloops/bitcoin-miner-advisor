@@ -21,6 +21,11 @@ def _get_conn() -> sqlite3.Connection:
     return conn
 
 
+def _column_exists(conn, table: str, column: str) -> bool:
+    cols = conn.execute(f"PRAGMA table_info({table})").fetchall()
+    return any(c["name"] == column for c in cols)
+
+
 def init_users_db():
     with _get_conn() as conn:
         conn.execute("""
@@ -42,6 +47,39 @@ def init_users_db():
                 user_agent TEXT NOT NULL DEFAULT ''
             )
         """)
+
+        # ── Subscription columns migration ──
+        new_cols = [
+            ("stripe_customer_id", "TEXT"),
+            ("stripe_subscription_id", "TEXT"),
+            ("subscription_tier", "TEXT NOT NULL DEFAULT 'trial'"),
+            ("subscription_status", "TEXT NOT NULL DEFAULT 'trialing'"),
+            ("trial_ends_at", "TEXT"),
+            ("subscription_ends_at", "TEXT"),
+            ("chat_messages_today", "INTEGER NOT NULL DEFAULT 0"),
+            ("chat_messages_date", "TEXT"),
+        ]
+        for col_name, col_def in new_cols:
+            if not _column_exists(conn, "users", col_name):
+                conn.execute(f"ALTER TABLE users ADD COLUMN {col_name} {col_def}")
+
+        # Auto-promote existing users to admin
+        conn.execute("""
+            UPDATE users
+            SET subscription_tier = 'admin', subscription_status = 'active'
+            WHERE subscription_tier = 'trial'
+              AND created_at < (SELECT MIN(created_at) FROM users WHERE subscription_tier = 'admin')
+        """)
+        # If no admin exists yet, promote all existing users
+        admin_count = conn.execute(
+            "SELECT COUNT(*) as n FROM users WHERE subscription_tier = 'admin'"
+        ).fetchone()["n"]
+        if admin_count == 0:
+            conn.execute("""
+                UPDATE users
+                SET subscription_tier = 'admin', subscription_status = 'active'
+                WHERE is_active = 1
+            """)
 
 
 def count_users() -> int:
@@ -94,15 +132,18 @@ def create_user(username: str, password: str, max_users: int) -> dict:
         ).fetchone()
         if existing:
             raise RegistrationError("username_taken")
-        from datetime import datetime, timezone
+        from datetime import datetime, timedelta, timezone
         user_id = secrets.token_hex(16)
         salt = secrets.token_hex(16)
         pw_hash = _hash_password(password, salt)
-        now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        now = datetime.now(timezone.utc)
+        now_iso = now.isoformat(timespec="seconds")
+        trial_end = (now + timedelta(days=14)).isoformat(timespec="seconds")
         conn.execute(
-            "INSERT INTO users (id, username, pw_hash, pw_salt, created_at, is_active)"
-            " VALUES (?, ?, ?, ?, ?, 1)",
-            (user_id, username, pw_hash, salt, now),
+            "INSERT INTO users (id, username, pw_hash, pw_salt, created_at, is_active,"
+            " subscription_tier, subscription_status, trial_ends_at)"
+            " VALUES (?, ?, ?, ?, ?, 1, 'trial', 'trialing', ?)",
+            (user_id, username, pw_hash, salt, now_iso, trial_end),
         )
     return {"id": user_id, "username": username}
 
@@ -173,6 +214,7 @@ def list_users() -> list[dict]:
     with _get_conn() as conn:
         rows = conn.execute("""
             SELECT u.id, u.username, u.created_at, u.is_active,
+                   u.subscription_tier, u.subscription_status,
                    COUNT(s.token)  AS session_count,
                    MAX(s.last_seen) AS last_seen
             FROM users u
@@ -205,3 +247,109 @@ def claim_legacy_data(user_id: str) -> None:
         conn.execute("UPDATE trades SET user_id = ? WHERE user_id = ''", (user_id,))
         conn.execute("UPDATE settings SET user_id = ? WHERE user_id = ''", (user_id,))
         conn.execute("UPDATE chat_messages SET user_id = ? WHERE user_id = ''", (user_id,))
+
+
+# ── Subscription helpers ─────────────────────────────────────────────────────
+
+def get_user_by_id(user_id: str) -> dict | None:
+    """Return full user row as dict."""
+    with _get_conn() as conn:
+        row = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+    return dict(row) if row else None
+
+
+def get_user_by_stripe_customer(customer_id: str) -> dict | None:
+    """Look up user by Stripe customer ID."""
+    with _get_conn() as conn:
+        row = conn.execute(
+            "SELECT * FROM users WHERE stripe_customer_id = ?", (customer_id,)
+        ).fetchone()
+    return dict(row) if row else None
+
+
+def update_subscription_fields(user_id: str, **fields) -> None:
+    """Update arbitrary subscription-related columns on the user row."""
+    if not fields:
+        return
+    allowed = {
+        "stripe_customer_id", "stripe_subscription_id",
+        "subscription_tier", "subscription_status",
+        "trial_ends_at", "subscription_ends_at",
+        "chat_messages_today", "chat_messages_date",
+    }
+    filtered = {k: v for k, v in fields.items() if k in allowed}
+    if not filtered:
+        return
+    set_clause = ", ".join(f"{k} = ?" for k in filtered)
+    values = list(filtered.values()) + [user_id]
+    with _get_conn() as conn:
+        conn.execute(f"UPDATE users SET {set_clause} WHERE id = ?", values)
+
+
+def get_user_tier(user_id: str) -> str:
+    """Return the effective tier for a user, handling trial expiry and cancel grace."""
+    from datetime import datetime, timezone
+    user = get_user_by_id(user_id)
+    if not user:
+        return "expired"
+
+    tier = user.get("subscription_tier", "trial")
+    status = user.get("subscription_status", "trialing")
+    now = datetime.now(timezone.utc)
+
+    # Admin bypasses everything
+    if tier == "admin":
+        return "admin"
+
+    # Active paid subscription
+    if status == "active" and tier in ("hashrate", "blockrate", "difficulty"):
+        # Check if cancel scheduled — still active until period end
+        ends_at = user.get("subscription_ends_at")
+        if ends_at:
+            end_dt = datetime.fromisoformat(ends_at).replace(tzinfo=timezone.utc)
+            if now > end_dt:
+                return "expired"
+        return tier
+
+    # Past due — give grace period (Stripe retries for ~3 weeks)
+    if status == "past_due" and tier in ("hashrate", "blockrate", "difficulty"):
+        return tier
+
+    # Trial
+    if tier == "trial" and status == "trialing":
+        trial_end = user.get("trial_ends_at")
+        if trial_end:
+            trial_dt = datetime.fromisoformat(trial_end).replace(tzinfo=timezone.utc)
+            if now <= trial_dt:
+                return "trial"
+        return "expired"
+
+    # Explicit expired
+    if tier == "expired" or status == "expired":
+        return "expired"
+
+    return "expired"
+
+
+def increment_chat_count(user_id: str) -> int:
+    """Increment today's chat message count, return new total."""
+    from datetime import datetime, timezone
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    with _get_conn() as conn:
+        row = conn.execute(
+            "SELECT chat_messages_today, chat_messages_date FROM users WHERE id = ?",
+            (user_id,),
+        ).fetchone()
+        if not row:
+            return 0
+        current_date = row["chat_messages_date"]
+        current_count = row["chat_messages_today"] or 0
+        if current_date != today:
+            # New day — reset counter
+            current_count = 0
+        new_count = current_count + 1
+        conn.execute(
+            "UPDATE users SET chat_messages_today = ?, chat_messages_date = ? WHERE id = ?",
+            (new_count, today, user_id),
+        )
+    return new_count

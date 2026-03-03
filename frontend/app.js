@@ -68,7 +68,15 @@ async function runAnalysis() {
   try {
     const resp = await fetch("/api/analyze", { method: "POST" });
     clearInterval(_timer);
-    if (!resp.ok) { const err = await resp.json(); throw new Error(err.detail || "Request failed"); }
+    if (!resp.ok) {
+      const err = await resp.json();
+      const detail = err.detail;
+      if (typeof detail === 'object' && detail.code === 'upgrade_required') {
+        showUpgradePrompt('Analysis requires an active subscription.');
+        throw new Error('Subscription required');
+      }
+      throw new Error(typeof detail === 'string' ? detail : "Request failed");
+    }
     const data = await resp.json();
 
     const _took = Math.round((Date.now() - _start) / 1000);
@@ -887,6 +895,14 @@ function renderSettings(s) {
       <div id="watchlistContent" style="width:100%"><span style="font-size:.62rem;color:var(--muted)">Loading…</span></div>
       <span id="watchlistStatus" class="settings-status"></span>
     </div>
+    ${currentSubscription && currentSubscription.tier !== 'admin' ? `
+    <div class="settings-row" style="border-top:1px solid var(--border2);margin-top:0.4rem;padding-top:0.75rem">
+      <span class="settings-label">Plan</span>
+      <span style="font-size:0.72rem;font-weight:600;color:var(--text);letter-spacing:0.08em;text-transform:uppercase">${currentSubscription.tier}</span>
+      <button onclick="manageBilling()" style="font-size:0.6rem;color:var(--green);letter-spacing:0.1em;text-transform:uppercase;background:none;border:1px solid var(--green-dim);padding:0.2rem 0.6rem;cursor:pointer;font-family:inherit">
+        ${currentSubscription.stripe_subscription_id ? 'Manage Billing' : 'Upgrade'}
+      </button>
+    </div>` : ''}
     <div class="settings-row" style="border-top:1px solid var(--border2);margin-top:0.4rem;padding-top:0.75rem">
       <span class="settings-label"></span>
       <button onclick="tourStart(0)" style="font-size:0.62rem;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;background:none;border:none;cursor:pointer;font-family:inherit;padding:0">↩ Restart Tour</button>
@@ -1025,7 +1041,12 @@ async function addSearchedTicker(ticker) {
     });
     if (!resp.ok) {
       const err = await resp.json();
-      throw new Error(err.detail || "Failed");
+      const detail = err.detail;
+      if (typeof detail === 'object' && (detail.code === 'upgrade_required' || detail.code === 'ticker_limit_reached' || detail.code === 'preset_only')) {
+        showUpgradePrompt(detail.message || `Ticker limit reached. Upgrade for more.`);
+        return;
+      }
+      throw new Error(typeof detail === 'string' ? detail : "Failed");
     }
     if (statusEl) {
       statusEl.textContent = `${ticker} added`;
@@ -1087,6 +1108,8 @@ async function saveSettings(body) {
 }
 
 // ── User profile ──
+let currentSubscription = null;
+
 async function loadUserProfile() {
   try {
     const resp = await fetch('/api/auth/me');
@@ -1099,6 +1122,94 @@ async function loadUserProfile() {
     if (name)  name.textContent  = user.username;
     if (adminLink && user.is_admin) adminLink.style.display = 'block';
   } catch {}
+}
+
+async function loadSubscription() {
+  try {
+    const resp = await fetch('/api/subscription');
+    if (!resp.ok) return;
+    currentSubscription = await resp.json();
+    applyTierRestrictions();
+  } catch {}
+}
+
+function applyTierRestrictions() {
+  if (!currentSubscription) return;
+  const tier = currentSubscription.tier;
+  const level = currentSubscription.limits?.tier_level ?? -1;
+
+  // Tier badge in header
+  const badge = document.getElementById('tierBadge');
+  if (badge && tier !== 'admin') {
+    badge.textContent = tier.toUpperCase();
+    badge.className = 'tier-badge tier-' + tier;
+    badge.style.display = '';
+  }
+
+  // Billing link in user menu
+  const billingLink = document.getElementById('billingLink');
+  if (billingLink && tier !== 'admin') {
+    billingLink.style.display = 'block';
+  }
+
+  // Expired overlay
+  if (tier === 'expired') {
+    const overlay = document.getElementById('expiredOverlay');
+    if (overlay) overlay.style.display = 'flex';
+    return;
+  }
+
+  // Trial banner with countdown
+  if (tier === 'trial' && currentSubscription.trial_ends_at) {
+    const trialEnd = new Date(currentSubscription.trial_ends_at);
+    const now = new Date();
+    const daysLeft = Math.max(0, Math.ceil((trialEnd - now) / (1000 * 60 * 60 * 24)));
+    const banner = document.getElementById('trialBanner');
+    const bannerText = document.getElementById('trialBannerText');
+    if (banner && bannerText) {
+      bannerText.textContent = `Free trial: ${daysLeft} day${daysLeft !== 1 ? 's' : ''} remaining`;
+      banner.style.display = 'flex';
+    }
+  }
+
+  // Hashrate (tier 1): hide search bar, hide CSV, hide chat
+  if (level <= 1) {
+    const searchBar = document.querySelector('.ticker-search-bar');
+    if (searchBar) searchBar.style.display = 'none';
+
+    const csvBtn = document.getElementById('csvBtn');
+    if (csvBtn) csvBtn.style.display = 'none !important';
+  }
+}
+
+function showUpgradePrompt(message) {
+  const modal = document.getElementById('upgradeModal');
+  const msgEl = document.getElementById('upgradeModalMessage');
+  if (modal && msgEl) {
+    msgEl.textContent = message || 'This feature requires a higher plan.';
+    modal.classList.add('open');
+  }
+}
+
+function closeUpgradeModal() {
+  const modal = document.getElementById('upgradeModal');
+  if (modal) modal.classList.remove('open');
+}
+
+function manageBilling() {
+  const d = document.getElementById('userMenuDropdown');
+  if (d) d.classList.remove('open');
+  if (!currentSubscription || !currentSubscription.stripe_subscription_id) {
+    window.location.href = '/pricing';
+    return;
+  }
+  fetch('/api/billing/portal', { method: 'POST' })
+    .then(r => r.json())
+    .then(data => {
+      if (data.url) window.location.href = data.url;
+      else window.location.href = '/pricing';
+    })
+    .catch(() => { window.location.href = '/pricing'; });
 }
 
 function toggleUserMenu() {
@@ -1149,6 +1260,19 @@ const _bootSeq = setInterval(() => {
 }, 480);
 
 loadUserProfile();
+loadSubscription();
+
+// Handle checkout success redirect
+if (new URLSearchParams(window.location.search).get('checkout') === 'success') {
+  const status = document.getElementById('status');
+  if (status) {
+    status.textContent = 'Subscription activated! Welcome.';
+    status.className = 'status pos';
+    setTimeout(() => { status.textContent = ''; status.className = 'status'; }, 5000);
+  }
+  // Clean URL
+  history.replaceState(null, '', '/');
+}
 loadSettings();
 loadPortfolio();
 loadTrades();
@@ -1405,6 +1529,14 @@ function outcomeIcon(outcome) {
         // fetchMessages doesn't re-render it on top of the optimistic bubble.
         if (data.user_msg_id) _lastMsgId = Math.max(_lastMsgId, data.user_msg_id);
         await fetchMessages(false);
+      } else if (resp.status === 403 || resp.status === 429) {
+        const err = await resp.json().catch(() => ({}));
+        const detail = err.detail;
+        if (typeof detail === 'object' && detail.code === 'upgrade_required') {
+          showUpgradePrompt('Chat advisor requires Blockrate plan or higher.');
+        } else if (typeof detail === 'object' && detail.code === 'chat_limit_reached') {
+          appendBubble({ id: 0, role: 'assistant', text: `Daily chat limit reached (${detail.limit} messages). Upgrade for more.`, ts: new Date().toISOString() });
+        }
       }
     } catch {
       typing.remove();
@@ -1593,7 +1725,14 @@ window.addEventListener('load', loadPrivateMarkets);
     if (!query || query.length < 1) { results.innerHTML = ''; return; }
     try {
       const resp = await fetch(`/api/ticker-search?q=${encodeURIComponent(query)}`);
-      if (!resp.ok) { results.innerHTML = ''; return; }
+      if (!resp.ok) {
+        if (resp.status === 403) {
+          results.innerHTML = '<div class="ticker-search-result" style="color:var(--hold)">Custom search requires Blockrate plan. <a href="/pricing" style="color:var(--green)">Upgrade</a></div>';
+        } else {
+          results.innerHTML = '';
+        }
+        return;
+      }
       const data = await resp.json();
       if (!data.length) {
         results.innerHTML = '<div class="ticker-search-result" style="color:var(--muted)">No results</div>';
@@ -1622,7 +1761,12 @@ async function headerAddTicker(ticker) {
     });
     if (!resp.ok) {
       const err = await resp.json();
-      throw new Error(err.detail || 'Failed');
+      const detail = err.detail;
+      if (typeof detail === 'object' && (detail.code === 'upgrade_required' || detail.code === 'ticker_limit_reached' || detail.code === 'preset_only')) {
+        showUpgradePrompt(detail.message || `Ticker limit reached (${detail.max || ''}). Upgrade for more.`);
+        return;
+      }
+      throw new Error(typeof detail === 'string' ? detail : JSON.stringify(detail) || 'Failed');
     }
     if (input) input.value = '';
     if (results) results.innerHTML = '';
