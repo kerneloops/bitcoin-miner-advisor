@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="icon" href="/static/favicon.ico" type="image/x-icon" />
-  <link rel="stylesheet" href="/static/style.css?v=79" />
+  <link rel="stylesheet" href="/static/style.css?v=80" />
 </head>
 <body>
   <header>
@@ -16,14 +16,10 @@
       <div class="controls">
         <button id="analyzeBtn" onclick="runAnalysis()">Run Analysis</button>
         <span id="runTimer" class="run-timer"></span>
-        <button id="exportBtn" class="export-btn" onclick="exportToGoogle()" style="display:none">
-          Export to Sheets
-        </button>
         <button id="csvBtn" class="export-btn" onclick="exportCSV()" style="display:none">
           Download CSV
         </button>
         <span id="status" class="status"></span>
-        <span id="exportStatus" class="status export-status"></span>
       </div>
       <div id="btcTicker" class="btc-ticker">
         <span class="btc-pair">BTC</span>
@@ -223,7 +219,7 @@
   </div>
 
   <div id="tipPopup" class="tip-popup"></div>
-  <script src="/static/app.js?v=62"></script>
+  <script src="/static/app.js?v=63"></script>
   <script type="text/javascript">
     window.$crisp = [];
     window.CRISP_WEBSITE_ID = "07663adf-eae7-4d8e-b98a-9bc183bdb3b2";

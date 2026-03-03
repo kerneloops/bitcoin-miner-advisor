@@ -33,10 +33,8 @@ function updateRunTimer() {
     el.textContent = `next run in ${m}:${String(s).padStart(2, "0")}`;
     el.className = "run-timer waiting";
   } else {
-    const lastRunDate = localStorage.getItem(_COOLDOWN_DATE);
-    if (!lastRunDate) { el.textContent = ""; return; }
-    el.textContent = lastRunDate === localDateStr() ? "ready" : "ready for today's run";
-    el.className = "run-timer rdy";
+    el.textContent = "";
+    el.className = "run-timer";
   }
 }
 
@@ -81,8 +79,6 @@ async function runAnalysis() {
 
     const _took = Math.round((Date.now() - _start) / 1000);
     lastAnalysisData = data;
-    const exportBtn = document.getElementById("exportBtn");
-    if (exportBtn) exportBtn.style.display = "";
     const csvBtn = document.getElementById("csvBtn");
     if (csvBtn) csvBtn.style.display = "";
     renderFundamentals(data.fundamentals);
@@ -528,8 +524,6 @@ function exportCSV() {
   a.click();
   URL.revokeObjectURL(url);
 }
-
-checkExportStatus();
 
 function drawSparkline(spySeries, portfolioSeries) {
   if (!spySeries || spySeries.length < 2) return "";
@@ -1291,8 +1285,6 @@ fetch("/api/ticker-universe").then(r => r.json()).then(data => {
 // Auto-render analysis on page load: try localStorage first, then server
 function _renderAnalysisData(data) {
   lastAnalysisData = data;
-  const exportBtn = document.getElementById("exportBtn");
-  if (exportBtn) exportBtn.style.display = "";
   const csvBtn = document.getElementById("csvBtn");
   if (csvBtn) csvBtn.style.display = "";
   if (data.fundamentals) renderFundamentals(data.fundamentals);
