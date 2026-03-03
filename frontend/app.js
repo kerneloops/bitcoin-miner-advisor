@@ -6,9 +6,13 @@ let activeHistoryTicker = TICKERS[0];
 let lastAnalysisData = null;
 let currentSettings = { risk_tier: "neutral", total_capital: 0 };
 
+const OTHER_UNIVERSE = UNIVERSE === 'miners' ? 'tech' : 'miners';
+
 const COOLDOWN_MS = 2 * 60 * 1000;
 const _COOLDOWN_AT   = `lastRunAt_${UNIVERSE}`;
 const _COOLDOWN_DATE = `lastRunDate_${UNIVERSE}`;
+const _OTHER_COOLDOWN_AT   = `lastRunAt_${OTHER_UNIVERSE}`;
+const _OTHER_COOLDOWN_DATE = `lastRunDate_${OTHER_UNIVERSE}`;
 
 function localDateStr() {
   const d = new Date();
@@ -56,20 +60,31 @@ async function runAnalysis() {
   btn.disabled = true;
   const _start = Date.now();
   let _elapsed = 0;
-  status.textContent = "Analyzing… 0s";
+  status.textContent = "Analyzing both universes… 0s";
   const _timer = setInterval(() => {
     _elapsed = Math.round((Date.now() - _start) / 1000);
-    status.textContent = `Analyzing… ${_elapsed}s`;
+    status.textContent = `Analyzing both universes… ${_elapsed}s`;
   }, 1000);
 
   try {
-    const resp = await fetch("/api/analyze?universe=" + UNIVERSE, { method: "POST" });
+    // Fire both universe analyses in parallel
+    const [currentResult, otherResult] = await Promise.allSettled([
+      fetch("/api/analyze?universe=" + UNIVERSE, { method: "POST" }).then(async r => {
+        if (!r.ok) { const err = await r.json(); throw new Error(err.detail || "Request failed"); }
+        return r.json();
+      }),
+      fetch("/api/analyze?universe=" + OTHER_UNIVERSE, { method: "POST" }).then(async r => {
+        if (!r.ok) return null;
+        return r.json();
+      }),
+    ]);
+
     clearInterval(_timer);
-    if (!resp.ok) {
-      const err = await resp.json();
-      throw new Error(err.detail || "Request failed");
-    }
-    const data = await resp.json();
+
+    // Current universe must succeed
+    if (currentResult.status === 'rejected') throw currentResult.reason;
+
+    const data = currentResult.value;
     const _took = Math.round((Date.now() - _start) / 1000);
     lastAnalysisData = data;
     const exportBtn = document.getElementById("exportBtn");
@@ -84,10 +99,31 @@ async function runAnalysis() {
     await loadPortfolio();
     await loadTrades();
     fetchAccuracy();
-    localStorage.setItem(_COOLDOWN_AT, new Date().toISOString());
-    localStorage.setItem(_COOLDOWN_DATE, localDateStr());
+
+    // Cache current universe results
+    localStorage.setItem(`lastAnalysis_${UNIVERSE}`, JSON.stringify({
+      date: localDateStr(), data: data,
+    }));
+
+    // Cache other universe results if successful
+    if (otherResult.status === 'fulfilled' && otherResult.value) {
+      localStorage.setItem(`lastAnalysis_${OTHER_UNIVERSE}`, JSON.stringify({
+        date: localDateStr(), data: otherResult.value,
+      }));
+    }
+
+    // Set cooldown for BOTH universes
+    const now = new Date().toISOString();
+    const today = localDateStr();
+    localStorage.setItem(_COOLDOWN_AT, now);
+    localStorage.setItem(_COOLDOWN_DATE, today);
+    localStorage.setItem(_OTHER_COOLDOWN_AT, now);
+    localStorage.setItem(_OTHER_COOLDOWN_DATE, today);
     updateRunTimer();
-    status.textContent = `Updated ${new Date().toLocaleDateString()} · ran in ${_took}s`;
+
+    const otherOk = otherResult.status === 'fulfilled' && otherResult.value;
+    const label = otherOk ? "both universes" : UNIVERSE;
+    status.textContent = `Updated ${label} ${new Date().toLocaleDateString()} · ran in ${_took}s`;
   } catch (e) {
     clearInterval(_timer);
     status.textContent = `Error: ${e.message}`;
@@ -957,8 +993,32 @@ loadTrades();
 updateRunTimer();
 setInterval(updateRunTimer, 1000);
 
-// Load cached macro on page load (no API calls)
-fetch("/api/macro").then(r => r.json()).then(renderMacro).catch(() => {});
+// Auto-render cached analysis on page load (instant, no API calls)
+const _cachedAnalysis = (() => {
+  try {
+    const raw = localStorage.getItem(`lastAnalysis_${UNIVERSE}`);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed.date !== localDateStr() || !parsed.data) return null;
+    return parsed.data;
+  } catch { return null; }
+})();
+
+if (_cachedAnalysis) {
+  lastAnalysisData = _cachedAnalysis;
+  const exportBtn = document.getElementById("exportBtn");
+  if (exportBtn) exportBtn.style.display = "";
+  const csvBtn = document.getElementById("csvBtn");
+  if (csvBtn) csvBtn.style.display = "";
+  renderFundamentals(_cachedAnalysis.fundamentals);
+  renderMacro({..._cachedAnalysis.macro, macro_bias: _cachedAnalysis.macro_bias});
+  renderDashboard(_cachedAnalysis.tickers);
+  document.getElementById("historySection").style.display = "block";
+  loadHistory(activeHistoryTicker);
+} else {
+  // No cached analysis — load macro signals only (lightweight GET)
+  fetch("/api/macro").then(r => r.json()).then(renderMacro).catch(() => {});
+}
 fetchAccuracy();
 
 // ── Keyboard shortcuts ──
