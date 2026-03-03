@@ -1569,6 +1569,79 @@ if (_pmForm) {
 // Boot: load private markets
 window.addEventListener('load', loadPrivateMarkets);
 
+// ── Header ticker search ─────────────────────────────────────────────────────
+
+(function () {
+  let _hdrTimer = null;
+  const input = document.getElementById('headerSearchInput');
+  const results = document.getElementById('headerSearchResults');
+  if (!input || !results) return;
+
+  input.addEventListener('input', () => {
+    clearTimeout(_hdrTimer);
+    const q = input.value.trim();
+    if (!q) { results.innerHTML = ''; return; }
+    _hdrTimer = setTimeout(() => headerTickerSearch(q), 400);
+  });
+
+  // Close results when clicking outside
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.header-search')) results.innerHTML = '';
+  });
+
+  async function headerTickerSearch(query) {
+    if (!query || query.length < 1) { results.innerHTML = ''; return; }
+    try {
+      const resp = await fetch(`/api/ticker-search?q=${encodeURIComponent(query)}`);
+      if (!resp.ok) { results.innerHTML = ''; return; }
+      const data = await resp.json();
+      if (!data.length) {
+        results.innerHTML = '<div class="ticker-search-result" style="color:var(--muted)">No results</div>';
+        return;
+      }
+      results.innerHTML = data.map(r => `
+        <div class="ticker-search-result">
+          <span class="tsr-ticker">${r.ticker}</span>
+          <span class="tsr-name">${r.name}</span>
+          <button class="tsr-add" onclick="headerAddTicker('${r.ticker}')">+ Add</button>
+        </div>
+      `).join('');
+    } catch { results.innerHTML = ''; }
+  }
+})();
+
+async function headerAddTicker(ticker) {
+  const input = document.getElementById('headerSearchInput');
+  const results = document.getElementById('headerSearchResults');
+  const status = document.getElementById('status');
+  try {
+    const resp = await fetch('/api/tickers', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ticker }),
+    });
+    if (!resp.ok) {
+      const err = await resp.json();
+      throw new Error(err.detail || 'Failed');
+    }
+    if (input) input.value = '';
+    if (results) results.innerHTML = '';
+    if (status) {
+      status.textContent = `${ticker} added to watchlist`;
+      status.className = 'status pos';
+      setTimeout(() => { status.textContent = ''; status.className = 'status'; }, 3000);
+    }
+    // Refresh watchlist in settings if open
+    renderWatchlist();
+  } catch (e) {
+    if (status) {
+      status.textContent = `Error: ${e.message}`;
+      status.className = 'status neg';
+      setTimeout(() => { status.textContent = ''; status.className = 'status'; }, 3000);
+    }
+  }
+}
+
 // ── BTC ticker ───────────────────────────────────────────────────────────────
 
 (function () {

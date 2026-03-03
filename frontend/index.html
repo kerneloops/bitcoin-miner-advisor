@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="icon" href="/static/favicon.ico" type="image/x-icon" />
-  <link rel="stylesheet" href="/static/style.css?v=76" />
+  <link rel="stylesheet" href="/static/style.css?v=77" />
 </head>
 <body>
   <header>
@@ -24,6 +24,10 @@
         </button>
         <span id="status" class="status"></span>
         <span id="exportStatus" class="status export-status"></span>
+        <div class="header-search">
+          <input id="headerSearchInput" type="text" class="header-search-input" placeholder="+ Add ticker…" autocomplete="off">
+          <div id="headerSearchResults" class="header-search-results"></div>
+        </div>
       </div>
       <div id="btcTicker" class="btc-ticker">
         <span class="btc-pair">BTC</span>
@@ -189,7 +193,7 @@
   </div>
 
   <div id="tipPopup" class="tip-popup"></div>
-  <script src="/static/app.js?v=59"></script>
+  <script src="/static/app.js?v=60"></script>
   <script type="text/javascript">
     window.$crisp = [];
     window.CRISP_WEBSITE_ID = "07663adf-eae7-4d8e-b98a-9bc183bdb3b2";

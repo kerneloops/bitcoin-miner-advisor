@@ -165,6 +165,39 @@ header {
 .user-menu-logout { color: var(--sell) !important; }
 .user-menu-logout:hover { background: rgba(255,59,59,0.07) !important; }
 
+/* ── Header ticker search ── */
+.header-search {
+  position: relative;
+  margin-left: auto;
+}
+.header-search-input {
+  background: var(--bg);
+  border: 1px solid var(--border2);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.65rem;
+  padding: 0.22rem 0.6rem;
+  width: 130px;
+  outline: none;
+  letter-spacing: 0.04em;
+  transition: border-color 0.12s, width 0.2s;
+}
+.header-search-input::placeholder { color: var(--muted); }
+.header-search-input:focus { border-color: var(--green-dim); width: 180px; }
+.header-search-results {
+  position: absolute;
+  z-index: 200;
+  top: 100%;
+  right: 0;
+  width: 280px;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  max-height: 260px;
+  overflow-y: auto;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+}
+.header-search-results:empty { display: none; }
+
 /* ── Ticker search (settings watchlist) ── */
 .ticker-search-wrap { position: relative; }
 .ticker-search-results {
