@@ -237,6 +237,9 @@ class TradeIn(BaseModel):
 class SettingsIn(BaseModel):
     risk_tier: str | None = None
     total_capital: float | None = None
+    trading_style: str | None = None
+    rsi_overbought: int | None = None
+    rsi_oversold: int | None = None
 
 
 class CashIn(BaseModel):
@@ -411,8 +414,13 @@ async def analyze(universe: str = Query("miners")):
     if not macro:
         macro = cache.get_latest_macro() or None
 
+    signal_prefs = {
+        "trading_style": cache.get_setting("trading_style", "balanced"),
+        "rsi_overbought": int(cache.get_setting("rsi_overbought", "70") or "70"),
+        "rsi_oversold": int(cache.get_setting("rsi_oversold", "30") or "30"),
+    }
     try:
-        results = await run_analysis(signals, fundamentals, macro, universe=universe)
+        results = await run_analysis(signals, fundamentals, macro, universe=universe, signal_prefs=signal_prefs)
     except Exception as e:
         raise HTTPException(502, f"AI analysis failed: {e}")
 
@@ -484,18 +492,34 @@ def get_settings():
     return {
         "risk_tier": cache.get_setting("risk_tier", "neutral"),
         "total_capital": float(cache.get_setting("total_capital", "0") or "0"),
+        "trading_style": cache.get_setting("trading_style", "balanced"),
+        "rsi_overbought": int(cache.get_setting("rsi_overbought", "70") or "70"),
+        "rsi_oversold": int(cache.get_setting("rsi_oversold", "30") or "30"),
         "telegram_configured": bool(os.getenv("TELEGRAM_BOT_TOKEN") and os.getenv("TELEGRAM_CHAT_ID")),
     }
 
 
 @router.post("/api/settings")
 def save_settings(body: SettingsIn):
+    from .advisor import TRADING_STYLES
     if body.risk_tier is not None:
         if body.risk_tier not in sizing.TIERS:
             raise HTTPException(400, f"Invalid risk_tier. Must be one of: {list(sizing.TIERS)}")
         cache.set_setting("risk_tier", body.risk_tier)
     if body.total_capital is not None:
         cache.set_setting("total_capital", str(body.total_capital))
+    if body.trading_style is not None:
+        if body.trading_style not in TRADING_STYLES:
+            raise HTTPException(400, f"Invalid trading_style. Must be one of: {list(TRADING_STYLES)}")
+        cache.set_setting("trading_style", body.trading_style)
+    if body.rsi_overbought is not None:
+        if not 50 <= body.rsi_overbought <= 95:
+            raise HTTPException(400, "rsi_overbought must be between 50 and 95")
+        cache.set_setting("rsi_overbought", str(body.rsi_overbought))
+    if body.rsi_oversold is not None:
+        if not 5 <= body.rsi_oversold <= 50:
+            raise HTTPException(400, "rsi_oversold must be between 5 and 50")
+        cache.set_setting("rsi_oversold", str(body.rsi_oversold))
     return {"ok": True}
 
 

@@ -6,6 +6,47 @@ from . import cache
 
 client = AsyncAnthropic()
 
+TRADING_STYLES = {
+    "balanced": "",
+    "momentum": (
+        "TRADING STYLE EMPHASIS: The user follows a momentum strategy. "
+        "Prioritize 1W/1M returns, trend direction, and relative strength vs sector. "
+        "Strong recent momentum is the primary buy signal; fading momentum is the primary sell signal. "
+        "RSI and moving averages are secondary confirmation."
+    ),
+    "mean_reversion": (
+        "TRADING STYLE EMPHASIS: The user follows a mean-reversion strategy. "
+        "RSI is the primary signal — extreme oversold readings are buy opportunities, "
+        "extreme overbought readings are sell triggers. Take a contrarian approach: "
+        "buy fear, sell greed. Trend and momentum signals are secondary."
+    ),
+    "trend_following": (
+        "TRADING STYLE EMPHASIS: The user follows a trend-following strategy. "
+        "The SMA20/SMA50 relationship is the primary signal. Price above both SMAs with "
+        "SMA20 > SMA50 (golden cross) is bullish; price below both with SMA20 < SMA50 "
+        "(death cross) is bearish. RSI and short-term momentum are secondary confirmation."
+    ),
+}
+
+
+def _build_style_section(signal_prefs: dict | None) -> str:
+    if not signal_prefs:
+        return ""
+    parts = []
+    style = signal_prefs.get("trading_style", "balanced")
+    style_text = TRADING_STYLES.get(style, "")
+    if style_text:
+        parts.append(style_text)
+    ob = signal_prefs.get("rsi_overbought", 70)
+    os_val = signal_prefs.get("rsi_oversold", 30)
+    if ob != 70 or os_val != 30:
+        parts.append(
+            f"RSI THRESHOLDS: The user considers RSI > {ob} as overbought "
+            f"and RSI < {os_val} as oversold (instead of the standard 70/30)."
+        )
+    return "\n".join(parts)
+
+
 SYSTEM_PROMPT = """You are a disciplined, data-driven investment advisor specializing in Bitcoin miner ETFs and stocks.
 You analyze technical signals and provide clear, reasoned daily buy/sell/hold recommendations.
 Be concise, specific, and honest about uncertainty. Never give financial advice disclaimers — the user understands this is a personal decision-support tool."""
@@ -53,7 +94,7 @@ def _macro_summary(macro: dict) -> str:
     return "\nMacro & market context:\n" + "\n".join(lines) if lines else ""
 
 
-async def get_recommendation(ticker: str, signals: dict, btc_trend: str, fundamentals: dict | None = None, macro: dict | None = None, universe: str = "miners") -> dict:
+async def get_recommendation(ticker: str, signals: dict, btc_trend: str, fundamentals: dict | None = None, macro: dict | None = None, universe: str = "miners", signal_prefs: dict | None = None) -> dict:
     if universe == "tech":
         system = TECH_SYSTEM_PROMPT
         btc_line = f"BTC 7-day trend (macro context): {btc_trend}"
@@ -75,6 +116,7 @@ Bitcoin network fundamentals:
 """
 
     macro_section = _macro_summary(macro or {})
+    style_section = _build_style_section(signal_prefs)
 
     prompt = f"""Analyze {ticker} for today's decision.
 
@@ -84,6 +126,7 @@ Technical signals:
 {btc_line}
 {fund_section}{macro_section}
 {sector_hint}
+{style_section}
 
 Respond ONLY with valid JSON (no markdown):
 {{"recommendation": "BUY|SELL|HOLD", "confidence": "LOW|MEDIUM|HIGH", "reasoning": "2-3 sentences", "key_risk": "one sentence"}}"""
@@ -144,7 +187,7 @@ Respond with only the sentence, no JSON, no markdown."""
     return message.content[0].text.strip()
 
 
-async def run_analysis(all_signals: dict, fundamentals: dict | None = None, macro: dict | None = None, universe: str = "miners") -> dict:
+async def run_analysis(all_signals: dict, fundamentals: dict | None = None, macro: dict | None = None, universe: str = "miners", signal_prefs: dict | None = None) -> dict:
     from datetime import date
 
     btc_trend = _btc_trend_summary()
@@ -156,7 +199,7 @@ async def run_analysis(all_signals: dict, fundamentals: dict | None = None, macr
             results[ticker] = signals
             continue
 
-        rec = await get_recommendation(ticker, signals, btc_trend, fundamentals, macro, universe)
+        rec = await get_recommendation(ticker, signals, btc_trend, fundamentals, macro, universe, signal_prefs)
         cache.save_analysis(
             run_date, ticker, signals, rec["recommendation"], rec.get("reasoning", ""),
             confidence=rec.get("confidence"), key_risk=rec.get("key_risk"),

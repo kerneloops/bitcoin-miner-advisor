@@ -119,7 +119,12 @@ async def _run_universe(universe: str):
 
     from app import sizing, telegram
 
-    results = await run_analysis(signals, fundamentals, macro)
+    signal_prefs = {
+        "trading_style": cache.get_setting("trading_style", "balanced"),
+        "rsi_overbought": int(cache.get_setting("rsi_overbought", "70") or "70"),
+        "rsi_oversold": int(cache.get_setting("rsi_oversold", "30") or "30"),
+    }
+    results = await run_analysis(signals, fundamentals, macro, universe=universe, signal_prefs=signal_prefs)
 
     tier_name = cache.get_setting("risk_tier", "neutral")
     cap_str = cache.get_setting("total_capital")

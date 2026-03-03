@@ -4,7 +4,7 @@ const _TECH_TICKERS   = ["NVDA", "AMD", "MSFT", "GOOGL", "META", "TSLA", "AMZN",
 const TICKERS = UNIVERSE === 'tech' ? _TECH_TICKERS : _MINERS_TICKERS;
 let activeHistoryTicker = TICKERS[0];
 let lastAnalysisData = null;
-let currentSettings = { risk_tier: "neutral", total_capital: 0 };
+let currentSettings = { risk_tier: "neutral", total_capital: 0, trading_style: "balanced", rsi_overbought: 70, rsi_oversold: 30 };
 
 const OTHER_UNIVERSE = UNIVERSE === 'miners' ? 'tech' : 'miners';
 
@@ -871,6 +871,18 @@ function renderSettings(s) {
     <button class="tier-btn ${t === s.risk_tier ? 'active' : ''}" onclick="setTier('${t}')" data-tip="${tierTips[t]}">${t}</button>
   `).join("");
 
+  const styleTips = {
+    balanced:        "Default — AI uses its own judgment&#10;weighing all signals equally",
+    momentum:        "Emphasize 1W/1M returns, trend direction,&#10;and relative strength vs sector",
+    mean_reversion:  "RSI is primary signal — buy oversold,&#10;sell overbought. Contrarian approach",
+    trend_following: "SMA20/SMA50 relationship is primary —&#10;golden cross = buy, death cross = sell",
+  };
+  const styleLabels = { balanced: "balanced", momentum: "momentum", mean_reversion: "mean reversion", trend_following: "trend following" };
+  const styles = ["balanced", "momentum", "mean_reversion", "trend_following"];
+  const styleBtns = styles.map(st => `
+    <button class="tier-btn ${st === s.trading_style ? 'active' : ''}" onclick="setStyle('${st}')" data-tip="${styleTips[st]}">${styleLabels[st]}</button>
+  `).join("");
+
   el.innerHTML = `
     <div class="settings-row">
       <span class="settings-label tip" data-tip="Controls position sizing guidance shown on BUY/SELL cards.&#10;Requires Total Capital to be set.&#10;&#10;CONSERVATIVE — HIGH confidence only&#10;Buy 3% of capital · max 5% position · sell 50%&#10;&#10;NEUTRAL — MEDIUM confidence or higher&#10;Buy 6% of capital · max 10% position · sell 75%&#10;&#10;AGGRESSIVE — any confidence (LOW+)&#10;Buy 12% of capital · max 20% position · sell 100%">Risk Tier</span>
@@ -884,6 +896,23 @@ function renderSettings(s) {
       <span style="font-size:.65rem;color:var(--muted)">USD (used for position sizing)</span>
       <span id="capitalStatus" class="settings-status"></span>
     </div>
+    <div class="settings-row">
+      <span class="settings-label tip" data-tip="Tells the AI advisor which signals to emphasize.&#10;Does not change signal computation — only&#10;steers the AI's reasoning and weighting.">Trading Style</span>
+      <div class="tier-buttons">${styleBtns}</div>
+      <span id="styleStatus" class="settings-status"></span>
+    </div>
+    <div class="settings-row">
+      <span class="settings-label tip" data-tip="Custom RSI thresholds for the AI advisor.&#10;Standard: oversold=30, overbought=70.&#10;Lower oversold = more extreme dips only.&#10;Higher overbought = more room before selling.">RSI Levels</span>
+      <div style="display:flex;align-items:center;gap:0.5rem">
+        <label style="font-size:.65rem;color:var(--muted)">Oversold</label>
+        <input class="settings-capital-input" id="rsiOversoldInput" type="number" min="5" max="50" step="1"
+               style="width:3.5rem" value="${s.rsi_oversold}">
+        <label style="font-size:.65rem;color:var(--muted)">Overbought</label>
+        <input class="settings-capital-input" id="rsiOverboughtInput" type="number" min="50" max="95" step="1"
+               style="width:3.5rem" value="${s.rsi_overbought}">
+      </div>
+      <span id="rsiStatus" class="settings-status"></span>
+    </div>
     <div class="settings-row" style="border-top:1px solid var(--border2);margin-top:0.4rem;padding-top:0.75rem">
       <span class="settings-label"></span>
       <button onclick="tourStart(0)" style="font-size:0.62rem;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;background:none;border:none;cursor:pointer;font-family:inherit;padding:0">↩ Restart Tour</button>
@@ -893,6 +922,14 @@ function renderSettings(s) {
   document.getElementById("capitalInput").addEventListener("blur", saveCapital);
   document.getElementById("capitalInput").addEventListener("keydown", (e) => {
     if (e.key === "Enter") saveCapital();
+  });
+  document.getElementById("rsiOversoldInput").addEventListener("blur", saveRsiLevels);
+  document.getElementById("rsiOversoldInput").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") saveRsiLevels();
+  });
+  document.getElementById("rsiOverboughtInput").addEventListener("blur", saveRsiLevels);
+  document.getElementById("rsiOverboughtInput").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") saveRsiLevels();
   });
 }
 
@@ -912,6 +949,31 @@ function saveCapital() {
   currentSettings.total_capital = val;
   saveSettings({ total_capital: val }).then(() => {
     const el = document.getElementById("capitalStatus");
+    if (el) { el.textContent = "Saved."; setTimeout(() => { el.textContent = ""; }, 1500); }
+  });
+}
+
+async function setStyle(style) {
+  currentSettings.trading_style = style;
+  await saveSettings({ trading_style: style });
+  const labels = { balanced:"balanced", momentum:"momentum", mean_reversion:"mean reversion", trend_following:"trend following" };
+  const statusEl = document.getElementById("styleStatus");
+  const container = statusEl ? statusEl.closest(".settings-row") : null;
+  if (container) {
+    container.querySelectorAll(".tier-btn").forEach(b => b.classList.toggle("active", b.textContent.trim() === labels[style]));
+  }
+  if (statusEl) { statusEl.textContent = "Saved."; setTimeout(() => { statusEl.textContent = ""; }, 1500); }
+}
+
+function saveRsiLevels() {
+  const ob = parseInt(document.getElementById("rsiOverboughtInput").value);
+  const os = parseInt(document.getElementById("rsiOversoldInput").value);
+  const body = {};
+  if (!isNaN(ob) && ob >= 50 && ob <= 95) { body.rsi_overbought = ob; currentSettings.rsi_overbought = ob; }
+  if (!isNaN(os) && os >= 5 && os <= 50) { body.rsi_oversold = os; currentSettings.rsi_oversold = os; }
+  if (Object.keys(body).length === 0) return;
+  saveSettings(body).then(() => {
+    const el = document.getElementById("rsiStatus");
     if (el) { el.textContent = "Saved."; setTimeout(() => { el.textContent = ""; }, 1500); }
   });
 }
