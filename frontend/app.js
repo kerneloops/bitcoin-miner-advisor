@@ -1248,7 +1248,20 @@ async function loadUserProfile() {
     if (label) label.textContent = user.username;
     if (name)  name.textContent  = user.username;
     if (adminLink && user.is_admin) adminLink.style.display = 'block';
+    // Show disclaimer modal if not yet accepted
+    if (!user.disclaimer_accepted) {
+      const modal = document.getElementById('disclaimerModal');
+      if (modal) modal.classList.add('open');
+    }
   } catch {}
+}
+
+async function acceptDisclaimer() {
+  try {
+    await fetch('/api/disclaimer/accept', { method: 'POST' });
+  } catch {}
+  const modal = document.getElementById('disclaimerModal');
+  if (modal) modal.classList.remove('open');
 }
 
 async function loadSubscription() {

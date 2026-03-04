@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="icon" href="/static/favicon.ico" type="image/x-icon" />
-  <link rel="stylesheet" href="/static/style.css?v=83" />
+  <link rel="stylesheet" href="/static/style.css?v=84" />
 </head>
 <body>
   <header>
@@ -209,10 +209,25 @@
       <span class="fkey-num">@</span><span class="fkey-label">SUPPORT</span>
     </a>
     <span id="fkeySep"></span>
-    <span id="fkeySystem">LAPIO SIGNAL TERMINAL v2.0 &nbsp;|&nbsp; SESSION: ACTIVE</span>
+    <span id="fkeySystem">LAPIO SIGNAL TERMINAL v2.0 &nbsp;|&nbsp; SESSION: ACTIVE &nbsp;|&nbsp; NOT FINANCIAL ADVICE</span>
     <div class="fkey" onclick="window.location='/logout'" style="margin-left:auto;color:var(--sell)">
       <span class="fkey-num" style="color:var(--sell)">F12</span><span class="fkey-label">LOGOUT</span>
     </div>
+    </div>
+  </div>
+
+  <div id="disclaimerModal" class="settings-overlay">
+    <div class="settings-modal disclaimer-modal">
+      <div class="settings-modal-header">
+        <span>IMPORTANT NOTICE</span>
+      </div>
+      <div class="disclaimer-body">
+        <p>This platform provides <strong>technical signals and AI-generated analysis</strong> for informational purposes only.</p>
+        <p>Nothing here constitutes financial advice, investment recommendation, or solicitation to buy or sell any security.</p>
+        <p>Past signals do not guarantee future results. Markets are volatile. You can lose money.</p>
+        <p><strong>Your trades, your risk, your responsibility.</strong></p>
+      </div>
+      <button class="disclaimer-accept-btn" onclick="acceptDisclaimer()">I UNDERSTAND &amp; ACCEPT</button>
     </div>
   </div>
 
@@ -227,7 +242,7 @@
   </div>
 
   <div id="tipPopup" class="tip-popup"></div>
-  <script src="/static/app.js?v=66"></script>
+  <script src="/static/app.js?v=67"></script>
   <script type="text/javascript">
     window.$crisp = [];
     window.CRISP_WEBSITE_ID = "07663adf-eae7-4d8e-b98a-9bc183bdb3b2";

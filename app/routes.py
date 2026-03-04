@@ -155,7 +155,15 @@ async def api_me(request: Request):
         "user_id": user["user_id"],
         "is_admin": user["user_id"] == primary_id,
         "tier": tier,
+        "disclaimer_accepted": bool(cache.get_setting("disclaimer_accepted")),
     }
+
+
+@router.post("/api/disclaimer/accept")
+def accept_disclaimer():
+    from datetime import datetime
+    cache.set_setting("disclaimer_accepted", datetime.now().isoformat())
+    return {"ok": True}
 
 
 @router.post("/api/support")

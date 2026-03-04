@@ -1368,6 +1368,18 @@ header {
 .settings-close { background:none; border:none; color:var(--muted); font-size:1.1rem; cursor:pointer; padding:0 0.25rem; }
 .settings-close:hover { color:var(--text); }
 
+/* ── Disclaimer modal ── */
+.disclaimer-modal { max-width:460px; text-align:center; }
+.disclaimer-body { font-size:0.68rem; color:var(--text); line-height:1.7; margin-bottom:1.25rem; }
+.disclaimer-body p { margin-bottom:0.6rem; }
+.disclaimer-body strong { color:var(--green); }
+.disclaimer-accept-btn {
+  background:var(--green); color:var(--bg); border:none;
+  padding:0.55rem 1.5rem; font-family:inherit; font-size:0.65rem;
+  font-weight:700; letter-spacing:0.12em; text-transform:uppercase; cursor:pointer;
+}
+.disclaimer-accept-btn:hover { background:var(--green-dim); }
+
 /* ── Watchlist ── */
 .watchlist-group { margin-bottom: 0.5rem; }
 .watchlist-group-label { font-size: 0.58rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 0.25rem; }
