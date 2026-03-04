@@ -109,25 +109,47 @@ async function runAnalysis() {
   }
 }
 
+let accuracyData = null;
+let activeAccuracyWindow = "14d";
+let _backfillPollTimer = null;
+
+function switchAccuracyWindow(w) {
+  activeAccuracyWindow = w;
+  if (accuracyData) renderAccuracy(accuracyData);
+}
+
 function renderAccuracy(data) {
   const el = document.getElementById("accuracyPanel");
   if (!el) return;
-  if (!data || data.total === 0) {
-    el.style.display = "none";
-    return;
-  }
+  accuracyData = data;
 
-  const wr = data.win_rate_pct;
+  const windows = data && data.windows;
+  if (!windows) { el.style.display = "none"; return; }
+
+  // Check if any window has data
+  const anyData = Object.values(windows).some(w => w.total > 0);
+  if (!anyData) { el.style.display = "none"; return; }
+
+  const w = windows[activeAccuracyWindow] || windows["14d"];
+  if (!w) { el.style.display = "none"; return; }
+
+  const wr = w.win_rate_pct;
   const wrColor = wr == null ? "" : wr >= 60 ? "pos" : wr < 40 ? "neg" : "";
   const wrText = wr != null ? wr.toFixed(1) + "%" : "—";
 
-  const streakText = data.streak > 0 ? "+" + data.streak : data.streak < 0 ? String(data.streak) : "0";
-  const streakColor = data.streak > 0 ? "pos" : data.streak < 0 ? "neg" : "";
+  const streakText = w.streak > 0 ? "+" + w.streak : w.streak < 0 ? String(w.streak) : "0";
+  const streakColor = w.streak > 0 ? "pos" : w.streak < 0 ? "neg" : "";
+
+  // Window tabs
+  const tabsHtml = ["7d", "14d", "30d"].map(k => {
+    const active = k === activeAccuracyWindow ? "active" : "";
+    return `<button class="accuracy-tab ${active}" onclick="switchAccuracyWindow('${k}')">${k.toUpperCase()}</button>`;
+  }).join("");
 
   // By recommendation
   let recHtml = "";
   for (const r of ["BUY", "SELL", "HOLD"]) {
-    const b = (data.by_recommendation || {})[r];
+    const b = (w.by_recommendation || {})[r];
     if (!b) continue;
     const bwr = b.win_rate_pct != null ? b.win_rate_pct.toFixed(0) + "%" : "—";
     const bwrColor = b.win_rate_pct == null ? "" : b.win_rate_pct >= 60 ? "pos" : b.win_rate_pct < 40 ? "neg" : "";
@@ -138,7 +160,7 @@ function renderAccuracy(data) {
   // By confidence
   let confHtml = "";
   for (const c of ["HIGH", "MEDIUM", "LOW"]) {
-    const b = (data.by_confidence || {})[c];
+    const b = (w.by_confidence || {})[c];
     if (!b) continue;
     const bwr = b.win_rate_pct != null ? b.win_rate_pct.toFixed(0) + "%" : "—";
     const bwrColor = b.win_rate_pct == null ? "" : b.win_rate_pct >= 60 ? "pos" : b.win_rate_pct < 40 ? "neg" : "";
@@ -148,27 +170,86 @@ function renderAccuracy(data) {
 
   el.style.display = "";
   el.innerHTML = `
-    <div class="panel-header">SIGNAL ACCURACY (14-DAY)</div>
+    <div class="panel-header" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <span>SIGNAL ACCURACY</span>
+      <div class="accuracy-tabs">${tabsHtml}</div>
+      <button class="accuracy-backfill-btn" onclick="startBackfill()" title="Backfill historical analyses">BACKFILL</button>
+    </div>
+    <div id="backfillProgress" style="display:none;padding:4px 8px;font-size:0.8em;color:var(--text-dim);"></div>
     <div class="fund-grid">
       <div class="fund-item">
         <div class="fund-label">Win Rate</div>
         <div class="fund-value ${wrColor}">${wrText}</div>
-        <div class="fund-sub">${data.correct} correct / ${data.resolved} resolved</div>
+        <div class="fund-sub">${w.correct} correct / ${w.resolved} resolved</div>
       </div>
       <div class="fund-item">
         <div class="fund-label">Signals</div>
-        <div class="fund-value">${data.total}</div>
-        <div class="fund-sub">${data.resolved} resolved, ${data.pending} pending</div>
+        <div class="fund-value">${w.total}</div>
+        <div class="fund-sub">${w.resolved} resolved, ${w.pending} pending</div>
       </div>
       <div class="fund-item">
         <div class="fund-label">Streak</div>
         <div class="fund-value ${streakColor}">${streakText}</div>
-        <div class="fund-sub">consecutive ${data.streak >= 0 ? "correct" : "incorrect"}</div>
+        <div class="fund-sub">consecutive ${w.streak >= 0 ? "correct" : "incorrect"}</div>
       </div>
       ${recHtml}
       ${confHtml}
     </div>
   `;
+}
+
+async function startBackfill() {
+  const btn = document.querySelector(".accuracy-backfill-btn");
+  if (btn) btn.disabled = true;
+  try {
+    const resp = await fetch("/api/backfill", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({days_back: 60}),
+    });
+    const data = await resp.json();
+    if (!data.ok) {
+      const prog = document.getElementById("backfillProgress");
+      if (prog) { prog.style.display = ""; prog.textContent = data.message || "Backfill failed"; }
+      if (btn) btn.disabled = false;
+      return;
+    }
+    _pollBackfill();
+  } catch (e) {
+    if (btn) btn.disabled = false;
+  }
+}
+
+function _pollBackfill() {
+  if (_backfillPollTimer) clearInterval(_backfillPollTimer);
+  _backfillPollTimer = setInterval(async () => {
+    try {
+      const resp = await fetch("/api/backfill/status");
+      const s = await resp.json();
+      const prog = document.getElementById("backfillProgress");
+      if (prog) {
+        if (s.running) {
+          const pct = s.total > 0 ? Math.round(s.completed / s.total * 100) : 0;
+          const ticker = s.current_ticker || "";
+          const dt = s.current_date || "";
+          prog.style.display = "";
+          prog.textContent = `Backfilling: ${s.completed}/${s.total} (${pct}%) — ${ticker} ${dt}`;
+        } else {
+          prog.style.display = "";
+          prog.textContent = `Backfill complete: ${s.completed} processed, ${s.errors} errors`;
+          clearInterval(_backfillPollTimer);
+          _backfillPollTimer = null;
+          const btn = document.querySelector(".accuracy-backfill-btn");
+          if (btn) btn.disabled = false;
+          fetchAccuracy();
+          setTimeout(() => { if (prog) prog.style.display = "none"; }, 5000);
+        }
+      }
+    } catch {
+      clearInterval(_backfillPollTimer);
+      _backfillPollTimer = null;
+    }
+  }, 2000);
 }
 
 function fetchAccuracy() {

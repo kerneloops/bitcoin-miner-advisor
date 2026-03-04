@@ -1590,3 +1590,50 @@ header {
   /* Cards: single column */
   .dashboard { grid-template-columns: 1fr; }
 }
+
+/* ── Accuracy window tabs + backfill ─────────────────────────────────────── */
+.accuracy-tabs {
+  display: inline-flex;
+  gap: 2px;
+  margin-left: 0.3rem;
+}
+.accuracy-tab {
+  background: var(--bg);
+  color: var(--muted);
+  border: 1px solid var(--border2);
+  font-family: inherit;
+  font-size: 0.5rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.08rem 0.35rem;
+  cursor: pointer;
+}
+.accuracy-tab.active {
+  background: var(--green-dim);
+  color: var(--bg);
+  border-color: var(--green-dim);
+}
+.accuracy-tab:hover:not(.active) {
+  border-color: var(--green-dim);
+  color: var(--green-dim);
+}
+.accuracy-backfill-btn {
+  margin-left: auto;
+  background: var(--bg);
+  color: var(--muted);
+  border: 1px solid var(--border2);
+  font-family: inherit;
+  font-size: 0.5rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.08rem 0.4rem;
+  cursor: pointer;
+}
+.accuracy-backfill-btn:hover {
+  border-color: var(--green-dim);
+  color: var(--green-dim);
+}
+.accuracy-backfill-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

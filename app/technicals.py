@@ -14,8 +14,11 @@ def compute_rsi(series: pd.Series, period: int = 14) -> float | None:
     return round(float(rsi.iloc[-1]), 2)
 
 
-def compute_signals(ticker: str) -> dict:
-    rows = cache.get_prices(ticker, limit=100)
+def compute_signals(ticker: str, as_of_date: str | None = None) -> dict:
+    if as_of_date:
+        rows = cache.get_prices_as_of(ticker, as_of_date, limit=100)
+    else:
+        rows = cache.get_prices(ticker, limit=100)
     if len(rows) < 20:
         return {"ticker": ticker, "error": "Insufficient data — run a refresh first."}
 
@@ -32,7 +35,10 @@ def compute_signals(ticker: str) -> dict:
 
     # 30-day rolling correlation with BTC
     btc_correlation = None
-    btc_rows = cache.get_prices("BTC", limit=60)
+    if as_of_date:
+        btc_rows = cache.get_prices_as_of("BTC", as_of_date, limit=60)
+    else:
+        btc_rows = cache.get_prices("BTC", limit=60)
     if len(btc_rows) >= 30 and len(rows) >= 30:
         btc_series = pd.DataFrame(btc_rows).set_index("date")["close"].astype(float)
         ticker_series = df.set_index("date")["close"].astype(float)

@@ -25,6 +25,7 @@ from .data import (
 )
 from .macro import fetch_all_macro
 from .miners import fetch_miner_fundamentals
+from .backfill import get_backfill_status, run_backfill
 from .technicals import add_relative_strength, compute_signals
 from . import cache, google_workspace, push, sizing, telegram
 from . import users as user_store
@@ -597,9 +598,32 @@ async def analyze():
 
 @router.get("/api/accuracy")
 def get_accuracy():
-    """Return aggregate accuracy stats."""
+    """Return aggregate accuracy stats per window."""
     active_tickers = cache.get_active_tickers(DEFAULT_TICKERS)
     return cache.get_accuracy_summary(active_tickers)
+
+
+class BackfillIn(BaseModel):
+    days_back: int = 60
+
+
+@router.post("/api/backfill")
+async def start_backfill(body: BackfillIn):
+    """Launch backfill of historical analyses."""
+    import asyncio
+    status = get_backfill_status()
+    if status["running"]:
+        return {"ok": False, "message": "Backfill already running", "status": status}
+    active_tickers = cache.get_active_tickers(DEFAULT_TICKERS)
+    days = max(1, min(body.days_back, 180))
+    asyncio.create_task(run_backfill(active_tickers, days_back=days))
+    return {"ok": True}
+
+
+@router.get("/api/backfill/status")
+def backfill_status():
+    """Return current backfill progress."""
+    return get_backfill_status()
 
 
 @router.get("/api/signals")

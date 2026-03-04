@@ -6,6 +6,8 @@ from pathlib import Path
 
 DB_PATH = Path(__file__).parent.parent / "data" / "cache.db"
 
+ACCURACY_WINDOWS = [7, 14, 30]
+
 # Per-request (per-async-task) user identity set by AuthMiddleware
 _current_user_id: ContextVar[str] = ContextVar("user_id", default="")
 
@@ -176,6 +178,10 @@ def init_db():
             conn.execute(
                 "ALTER TABLE analyses ADD COLUMN key_risk TEXT"
             )
+        if "is_backfill" not in analyses_cols:
+            conn.execute(
+                "ALTER TABLE analyses ADD COLUMN is_backfill INTEGER DEFAULT 0"
+            )
 
         # ── One-time cash_balance backfill for user_id='' ───────────────────
         has_cash = conn.execute(
@@ -218,6 +224,16 @@ def get_prices(ticker: str, limit: int = 365) -> list[dict]:
     return [dict(r) for r in reversed(rows)]
 
 
+def get_prices_as_of(ticker: str, as_of_date: str, limit: int = 365) -> list[dict]:
+    """Return prices up to and including as_of_date (oldest first)."""
+    with get_conn() as conn:
+        rows = conn.execute(
+            "SELECT * FROM prices WHERE ticker = ? AND date <= ? ORDER BY date DESC LIMIT ?",
+            (ticker, as_of_date, limit),
+        ).fetchall()
+    return [dict(r) for r in reversed(rows)]
+
+
 def get_latest_date(ticker: str) -> str | None:
     with get_conn() as conn:
         row = conn.execute(
@@ -227,13 +243,23 @@ def get_latest_date(ticker: str) -> str | None:
 
 
 def save_analysis(run_date: str, ticker: str, signals: dict, recommendation: str, reasoning: str,
-                   confidence: str | None = None, key_risk: str | None = None):
+                   confidence: str | None = None, key_risk: str | None = None,
+                   is_backfill: bool = False):
     with get_conn() as conn:
         conn.execute(
-            """INSERT INTO analyses (run_date, ticker, signals, recommendation, reasoning, confidence, key_risk)
-               VALUES (?, ?, ?, ?, ?, ?, ?)""",
-            (run_date, ticker, json.dumps(signals), recommendation, reasoning, confidence, key_risk),
+            """INSERT INTO analyses (run_date, ticker, signals, recommendation, reasoning, confidence, key_risk, is_backfill)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+            (run_date, ticker, json.dumps(signals), recommendation, reasoning, confidence, key_risk, int(is_backfill)),
         )
+
+
+def has_analysis(ticker: str, run_date: str) -> bool:
+    with get_conn() as conn:
+        row = conn.execute(
+            "SELECT 1 FROM analyses WHERE ticker = ? AND run_date = ?",
+            (ticker, run_date),
+        ).fetchone()
+    return row is not None
 
 
 def get_latest_analysis(tickers: list[str]) -> dict[str, dict]:
@@ -648,6 +674,18 @@ def delete_private_company(company_id: int) -> None:
         conn.execute("DELETE FROM private_companies WHERE id = ?", (company_id,))
 
 
+def _evaluate_outcome(rec: str, entry_price: float, exit_price: float) -> tuple[float, str]:
+    """Return (return_pct, 'correct'|'incorrect') for a recommendation."""
+    ret = round((exit_price / entry_price - 1) * 100, 2)
+    if rec == "BUY":
+        correct = ret > 0
+    elif rec == "SELL":
+        correct = ret < 0
+    else:  # HOLD
+        correct = -5.0 <= ret <= 5.0
+    return ret, "correct" if correct else "incorrect"
+
+
 def get_analysis_history(ticker: str, limit: int = 12) -> list[dict]:
     with get_conn() as conn:
         rows = conn.execute(
@@ -659,36 +697,32 @@ def get_analysis_history(ticker: str, limit: int = 12) -> list[dict]:
     for r in rows:
         d = dict(r)
         d["signals"] = json.loads(d["signals"])
-
-        target_date = (date.fromisoformat(d["run_date"]) + timedelta(days=14)).isoformat()
         entry_price = d["signals"].get("current_price")
+        rec = d["recommendation"]
 
-        if not entry_price or target_date > today:
-            d["outcome_return_pct"] = None
-            d["outcome"] = "pending"
-        else:
-            exit_price = get_price_on_or_after(ticker, target_date)
-            if exit_price is None:
-                d["outcome_return_pct"] = None
-                d["outcome"] = "pending"
+        outcomes = {}
+        for window in ACCURACY_WINDOWS:
+            target_date = (date.fromisoformat(d["run_date"]) + timedelta(days=window)).isoformat()
+            if not entry_price or target_date > today:
+                outcomes[f"{window}d"] = {"return_pct": None, "outcome": "pending"}
             else:
-                ret = round((exit_price / entry_price - 1) * 100, 2)
-                d["outcome_return_pct"] = ret
-                rec = d["recommendation"]
-                if rec == "BUY":
-                    correct = ret > 0
-                elif rec == "SELL":
-                    correct = ret < 0
-                else:  # HOLD
-                    correct = -5.0 <= ret <= 5.0
-                d["outcome"] = "correct" if correct else "incorrect"
+                exit_price = get_price_on_or_after(ticker, target_date)
+                if exit_price is None:
+                    outcomes[f"{window}d"] = {"return_pct": None, "outcome": "pending"}
+                else:
+                    ret, outcome = _evaluate_outcome(rec, entry_price, exit_price)
+                    outcomes[f"{window}d"] = {"return_pct": ret, "outcome": outcome}
+        d["outcomes"] = outcomes
+        # Backward compat aliases (14d)
+        d["outcome_return_pct"] = outcomes["14d"]["return_pct"]
+        d["outcome"] = outcomes["14d"]["outcome"]
 
         result.append(d)
     return result
 
 
 def get_accuracy_summary(tickers: list[str]) -> dict:
-    """Aggregate accuracy stats across all analyses for the given tickers."""
+    """Aggregate accuracy stats across all analyses for the given tickers, per window."""
     today = date.today().isoformat()
     with get_conn() as conn:
         rows = conn.execute(
@@ -696,74 +730,53 @@ def get_accuracy_summary(tickers: list[str]) -> dict:
             tickers,
         ).fetchall()
 
-    total = 0
-    correct = 0
-    incorrect = 0
-    pending = 0
-    by_rec = {}    # {BUY: {correct, incorrect, pending}, ...}
-    by_conf = {}   # {HIGH: {correct, incorrect, pending}, ...}
-    outcomes_ordered = []  # list of True/False for streak calc
+    def _empty_window():
+        return {
+            "total": 0, "correct": 0, "incorrect": 0, "pending": 0,
+            "by_rec": {}, "by_conf": {}, "outcomes_ordered": [],
+        }
+
+    windows = {f"{w}d": _empty_window() for w in ACCURACY_WINDOWS}
 
     for r in rows:
         signals = json.loads(r["signals"])
         rec = r["recommendation"]
-        confidence = r["confidence"]  # may be None for old rows
-        target_date = (date.fromisoformat(r["run_date"]) + timedelta(days=14)).isoformat()
+        confidence = r["confidence"]
         entry_price = signals.get("current_price")
 
-        if not entry_price or target_date > today:
-            outcome = "pending"
-        else:
-            exit_price = get_price_on_or_after(r["ticker"], target_date)
-            if exit_price is None:
+        for window in ACCURACY_WINDOWS:
+            key = f"{window}d"
+            w = windows[key]
+            target_date = (date.fromisoformat(r["run_date"]) + timedelta(days=window)).isoformat()
+
+            if not entry_price or target_date > today:
                 outcome = "pending"
             else:
-                ret = (exit_price / entry_price - 1) * 100
-                if rec == "BUY":
-                    is_correct = ret > 0
-                elif rec == "SELL":
-                    is_correct = ret < 0
+                exit_price = get_price_on_or_after(r["ticker"], target_date)
+                if exit_price is None:
+                    outcome = "pending"
                 else:
-                    is_correct = -5.0 <= ret <= 5.0
-                outcome = "correct" if is_correct else "incorrect"
+                    _, outcome = _evaluate_outcome(rec, entry_price, exit_price)
 
-        total += 1
-        if outcome == "pending":
-            pending += 1
-        elif outcome == "correct":
-            correct += 1
-            outcomes_ordered.append(True)
-        else:
-            incorrect += 1
-            outcomes_ordered.append(False)
-
-        # By recommendation
-        if rec not in by_rec:
-            by_rec[rec] = {"correct": 0, "incorrect": 0, "pending": 0}
-        by_rec[rec][outcome] += 1
-
-        # By confidence (skip None)
-        if confidence:
-            if confidence not in by_conf:
-                by_conf[confidence] = {"correct": 0, "incorrect": 0, "pending": 0}
-            by_conf[confidence][outcome] += 1
-
-    resolved = correct + incorrect
-    win_rate_pct = round(correct / resolved * 100, 1) if resolved else None
-
-    # Streak: count from the end of outcomes_ordered
-    streak = 0
-    if outcomes_ordered:
-        last = outcomes_ordered[-1]
-        for o in reversed(outcomes_ordered):
-            if o == last:
-                streak += 1
+            w["total"] += 1
+            if outcome == "pending":
+                w["pending"] += 1
+            elif outcome == "correct":
+                w["correct"] += 1
+                w["outcomes_ordered"].append(True)
             else:
-                break
-        if not last:
-            streak = -streak
+                w["incorrect"] += 1
+                w["outcomes_ordered"].append(False)
 
-    # Win rates per bucket
+            if rec not in w["by_rec"]:
+                w["by_rec"][rec] = {"correct": 0, "incorrect": 0, "pending": 0}
+            w["by_rec"][rec][outcome] += 1
+
+            if confidence:
+                if confidence not in w["by_conf"]:
+                    w["by_conf"][confidence] = {"correct": 0, "incorrect": 0, "pending": 0}
+                w["by_conf"][confidence][outcome] += 1
+
     def _bucket_stats(d: dict) -> dict:
         out = {}
         for k, v in d.items():
@@ -776,16 +789,32 @@ def get_accuracy_summary(tickers: list[str]) -> dict:
             }
         return out
 
-    return {
-        "total": total,
-        "resolved": resolved,
-        "correct": correct,
-        "incorrect": incorrect,
-        "pending": pending,
-        "win_rate_pct": win_rate_pct,
-        "streak": streak,
-        "by_recommendation": _bucket_stats(by_rec),
-        "by_confidence": _bucket_stats(by_conf),
-    }
+    def _finalize(w: dict) -> dict:
+        resolved = w["correct"] + w["incorrect"]
+        win_rate_pct = round(w["correct"] / resolved * 100, 1) if resolved else None
+        streak = 0
+        oo = w["outcomes_ordered"]
+        if oo:
+            last = oo[-1]
+            for o in reversed(oo):
+                if o == last:
+                    streak += 1
+                else:
+                    break
+            if not last:
+                streak = -streak
+        return {
+            "total": w["total"],
+            "resolved": resolved,
+            "correct": w["correct"],
+            "incorrect": w["incorrect"],
+            "pending": w["pending"],
+            "win_rate_pct": win_rate_pct,
+            "streak": streak,
+            "by_recommendation": _bucket_stats(w["by_rec"]),
+            "by_confidence": _bucket_stats(w["by_conf"]),
+        }
+
+    return {"windows": {k: _finalize(v) for k, v in windows.items()}}
 
 
