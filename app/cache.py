@@ -721,14 +721,8 @@ def get_analysis_history(ticker: str, limit: int = 12) -> list[dict]:
     return result
 
 
-def get_accuracy_summary(tickers: list[str]) -> dict:
-    """Aggregate accuracy stats across all analyses for the given tickers, per window."""
-    today = date.today().isoformat()
-    with get_conn() as conn:
-        rows = conn.execute(
-            f"SELECT * FROM analyses WHERE ticker IN ({','.join('?' for _ in tickers)}) ORDER BY run_date ASC",
-            tickers,
-        ).fetchall()
+def _build_accuracy_windows(rows, today: str) -> dict:
+    """Build per-window accuracy stats from a list of analysis rows."""
 
     def _empty_window():
         return {
@@ -815,6 +809,25 @@ def get_accuracy_summary(tickers: list[str]) -> dict:
             "by_confidence": _bucket_stats(w["by_conf"]),
         }
 
-    return {"windows": {k: _finalize(v) for k, v in windows.items()}}
+    return {k: _finalize(v) for k, v in windows.items()}
+
+
+def get_accuracy_summary(tickers: list[str]) -> dict:
+    """Aggregate accuracy stats across all analyses for the given tickers, per window.
+    Returns separate 'live' and 'backfill' sections."""
+    today = date.today().isoformat()
+    with get_conn() as conn:
+        rows = conn.execute(
+            f"SELECT * FROM analyses WHERE ticker IN ({','.join('?' for _ in tickers)}) ORDER BY run_date ASC",
+            tickers,
+        ).fetchall()
+
+    live_rows = [r for r in rows if not r["is_backfill"]]
+    backfill_rows = [r for r in rows if r["is_backfill"]]
+
+    result = {"windows": _build_accuracy_windows(live_rows, today)}
+    if backfill_rows:
+        result["backfill"] = _build_accuracy_windows(backfill_rows, today)
+    return result
 
 

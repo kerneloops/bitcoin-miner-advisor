@@ -1637,3 +1637,13 @@ header {
   opacity: 0.4;
   cursor: not-allowed;
 }
+.accuracy-source-tag {
+  font-size: 0.45rem;
+  color: var(--muted);
+  font-style: italic;
+  letter-spacing: 0.05em;
+}
+.accuracy-tab.accuracy-src {
+  font-size: 0.45rem;
+  padding: 0.06rem 0.3rem;
+}

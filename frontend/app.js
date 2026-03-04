@@ -111,6 +111,7 @@ async function runAnalysis() {
 
 let accuracyData = null;
 let activeAccuracyWindow = "14d";
+let activeAccuracySource = "live";  // "live" | "backfill"
 let _backfillPollTimer = null;
 
 function switchAccuracyWindow(w) {
@@ -118,20 +119,13 @@ function switchAccuracyWindow(w) {
   if (accuracyData) renderAccuracy(accuracyData);
 }
 
-function renderAccuracy(data) {
-  const el = document.getElementById("accuracyPanel");
-  if (!el) return;
-  accuracyData = data;
+function switchAccuracySource(s) {
+  activeAccuracySource = s;
+  if (accuracyData) renderAccuracy(accuracyData);
+}
 
-  const windows = data && data.windows;
-  if (!windows) { el.style.display = "none"; return; }
-
-  // Check if any window has data
-  const anyData = Object.values(windows).some(w => w.total > 0);
-  if (!anyData) { el.style.display = "none"; return; }
-
-  const w = windows[activeAccuracyWindow] || windows["14d"];
-  if (!w) { el.style.display = "none"; return; }
+function _renderAccuracyGrid(w) {
+  if (!w || w.total === 0) return `<div class="fund-grid"><div class="fund-item"><div class="fund-label">No data</div><div class="fund-value">—</div><div class="fund-sub">Run analysis to generate signals</div></div></div>`;
 
   const wr = w.win_rate_pct;
   const wrColor = wr == null ? "" : wr >= 60 ? "pos" : wr < 40 ? "neg" : "";
@@ -140,13 +134,6 @@ function renderAccuracy(data) {
   const streakText = w.streak > 0 ? "+" + w.streak : w.streak < 0 ? String(w.streak) : "0";
   const streakColor = w.streak > 0 ? "pos" : w.streak < 0 ? "neg" : "";
 
-  // Window tabs
-  const tabsHtml = ["7d", "14d", "30d"].map(k => {
-    const active = k === activeAccuracyWindow ? "active" : "";
-    return `<button class="accuracy-tab ${active}" onclick="switchAccuracyWindow('${k}')">${k.toUpperCase()}</button>`;
-  }).join("");
-
-  // By recommendation
   let recHtml = "";
   for (const r of ["BUY", "SELL", "HOLD"]) {
     const b = (w.by_recommendation || {})[r];
@@ -157,7 +144,6 @@ function renderAccuracy(data) {
     recHtml += `<div class="fund-item"><div class="fund-label">${r}</div><div class="fund-value ${bwrColor}">${bwr}</div><div class="fund-sub">${resolved} resolved, ${b.pending} pending</div></div>`;
   }
 
-  // By confidence
   let confHtml = "";
   for (const c of ["HIGH", "MEDIUM", "LOW"]) {
     const b = (w.by_confidence || {})[c];
@@ -168,14 +154,7 @@ function renderAccuracy(data) {
     confHtml += `<div class="fund-item"><div class="fund-label">${c}</div><div class="fund-value ${bwrColor}">${bwr}</div><div class="fund-sub">${resolved} resolved, ${b.pending} pending</div></div>`;
   }
 
-  el.style.display = "";
-  el.innerHTML = `
-    <div class="panel-header" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-      <span>SIGNAL ACCURACY</span>
-      <div class="accuracy-tabs">${tabsHtml}</div>
-      <button class="accuracy-backfill-btn" onclick="startBackfill()" title="Backfill historical analyses">BACKFILL</button>
-    </div>
-    <div id="backfillProgress" style="display:none;padding:4px 8px;font-size:0.8em;color:var(--text-dim);"></div>
+  return `
     <div class="fund-grid">
       <div class="fund-item">
         <div class="fund-label">Win Rate</div>
@@ -194,7 +173,55 @@ function renderAccuracy(data) {
       </div>
       ${recHtml}
       ${confHtml}
+    </div>`;
+}
+
+function renderAccuracy(data) {
+  const el = document.getElementById("accuracyPanel");
+  if (!el) return;
+  accuracyData = data;
+
+  const liveWindows = data && data.windows;
+  const backfillWindows = data && data.backfill;
+  const hasLive = liveWindows && Object.values(liveWindows).some(w => w.total > 0);
+  const hasBackfill = backfillWindows && Object.values(backfillWindows).some(w => w.total > 0);
+
+  if (!hasLive && !hasBackfill) { el.style.display = "none"; return; }
+
+  // If current source has no data, switch to the one that does
+  if (activeAccuracySource === "backfill" && !hasBackfill) activeAccuracySource = "live";
+  if (activeAccuracySource === "live" && !hasLive) activeAccuracySource = "backfill";
+
+  const sourceWindows = activeAccuracySource === "backfill" ? backfillWindows : liveWindows;
+  const w = sourceWindows ? (sourceWindows[activeAccuracyWindow] || sourceWindows["14d"]) : null;
+
+  // Window tabs
+  const tabsHtml = ["7d", "14d", "30d"].map(k => {
+    const active = k === activeAccuracyWindow ? "active" : "";
+    return `<button class="accuracy-tab ${active}" onclick="switchAccuracyWindow('${k}')">${k.toUpperCase()}</button>`;
+  }).join("");
+
+  // Source tabs (only show if backfill data exists)
+  let sourceHtml = "";
+  if (hasBackfill) {
+    sourceHtml = `<div class="accuracy-tabs" style="margin-left:4px;">` +
+      `<button class="accuracy-tab accuracy-src ${activeAccuracySource === "live" ? "active" : ""}" onclick="switchAccuracySource('live')">LIVE</button>` +
+      `<button class="accuracy-tab accuracy-src ${activeAccuracySource === "backfill" ? "active" : ""}" onclick="switchAccuracySource('backfill')">BACKFILL</button>` +
+    `</div>`;
+  }
+
+  const sourceLabel = activeAccuracySource === "backfill" ? ' <span class="accuracy-source-tag">technicals only</span>' : "";
+
+  el.style.display = "";
+  el.innerHTML = `
+    <div class="panel-header" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <span>SIGNAL ACCURACY${sourceLabel}</span>
+      <div class="accuracy-tabs">${tabsHtml}</div>
+      ${sourceHtml}
+      <button class="accuracy-backfill-btn" onclick="startBackfill()" title="Backfill historical analyses">BACKFILL</button>
     </div>
+    <div id="backfillProgress" style="display:none;padding:4px 8px;font-size:0.8em;color:var(--text-dim);"></div>
+    ${_renderAccuracyGrid(w)}
   `;
 }
 
