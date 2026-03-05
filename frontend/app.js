@@ -1676,8 +1676,9 @@ function outcomeIcon(outcome) {
           appendBubble({ id: 0, role: 'assistant', text: `Daily chat limit reached (${detail.limit} messages). Upgrade for more.`, ts: new Date().toISOString() });
         }
       }
-    } catch {
+    } catch (e) {
       typing.remove();
+      appendBubble({ id: 0, role: 'assistant', text: 'Connection error — please try again.', ts: new Date().toISOString() });
     }
 
     _sending = false;

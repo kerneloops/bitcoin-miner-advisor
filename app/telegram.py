@@ -116,7 +116,7 @@ async def _build_context() -> str:
     cached = _context_cache.get(uid)
     if cached and time.time() - cached[1] < _CONTEXT_CACHE_TTL:
         return cached[0]
-    from .data import TICKERS
+    from .data import DEFAULT_TICKERS
     from .technicals import add_relative_strength, compute_signals
 
     lines = []
@@ -128,8 +128,9 @@ async def _build_context() -> str:
             lines.append(f"  {h['ticker']}: {h['shares']} shares @ ${h['avg_cost']:.2f}")
         lines.append(f"  Cash: ${cache.get_cash():.2f}")
 
+    active = cache.get_active_tickers(DEFAULT_TICKERS)
     try:
-        signals = add_relative_strength({t: compute_signals(t) for t in TICKERS})
+        signals = add_relative_strength({t: compute_signals(t) for t in active})
         lines.append("\n<b>Current signals</b>")
         for ticker, s in signals.items():
             if "error" in s:
