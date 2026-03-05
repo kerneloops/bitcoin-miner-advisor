@@ -369,6 +369,18 @@ function eli5Macro(key, value) {
       if (v < 5.0) return "normal spreads — neutral";
       if (v < 7.0) return "credit stress building — risk-off signal";
       return "credit crunch — high risk-off";
+    case "pm_fed":
+      if (v > 90) return "market certain Fed holds — no surprise expected";
+      if (v > 70) return "likely hold but some cut expectations building";
+      if (v > 50) return "market split — Fed decision is a coin flip";
+      return "market expects a rate change — big move possible";
+    case "pm_recession":
+      if (v < 15) return "recession unlikely — risk-on";
+      if (v < 30) return "some recession worry — worth watching";
+      if (v < 50) return "significant recession risk — defensive posture";
+      return "recession likely — major headwind for risk assets";
+    case "pm_cuts":
+      return "market's best guess for total Fed rate cuts this year";
     default: return "";
   }
 }
@@ -405,6 +417,9 @@ function renderMacro(m) {
     m.us_2y_yield != null ? `<div class="fund-item"><div class="fund-label tip" data-tip="US 2-Year Treasury Yield (%)&#10;Reflects short-term rate expectations&#10;Higher = tighter monetary policy&#10;&#10;< 3.5%  neutral for risk assets&#10;3.5–4.5%  elevated pressure&#10;> 4.5%  significant headwind for risk assets">US 2Y Yield</div><div class="fund-value">${m.us_2y_yield}%</div><div class="fund-eli5">${eli5Macro("yield", m.us_2y_yield)}</div></div>` : "",
     m.dxy != null ? `<div class="fund-item"><div class="fund-label tip" data-tip="US Dollar Index vs basket of 6 currencies&#10;Scale: ~85–115&#10;&#10;< 95  weak dollar → tailwind for risk assets&#10;95–105  neutral range&#10;> 105  strong dollar → headwind for risk assets&#10;Rising DXY = risk-off pressure">DXY</div><div class="fund-value">${m.dxy}</div><div class="fund-eli5">${eli5Macro("dxy", m.dxy)}</div></div>` : "",
     m.hy_spread != null ? `<div class="fund-item"><div class="fund-label tip" data-tip="High-yield credit spread over Treasuries (%)&#10;Measures credit market stress&#10;&#10;< 3%  calm — risk-on environment&#10;3–5%  normal — neutral&#10;5–7%  stress building — caution&#10;> 7%  credit crunch → strong risk-off">HY Spread</div><div class="fund-value">${m.hy_spread}%</div><div class="fund-eli5">${eli5Macro("hy", m.hy_spread)}</div></div>` : "",
+    m.pm_fed_hold_pct != null ? `<div class="fund-item"><div class="fund-label tip" data-tip="Polymarket: probability Fed holds rates at next FOMC&#10;Source: real-money prediction market&#10;&#10;> 90%  market certain — no surprise&#10;70–90%  likely hold&#10;< 70%  rate change possible">Fed Hold Odds</div><div class="fund-value ${m.pm_fed_hold_pct > 90 ? "pos" : m.pm_fed_hold_pct < 70 ? "neg" : ""}">${m.pm_fed_hold_pct}%</div><div class="fund-sub">${m.pm_fed_meeting || "next FOMC"}</div><div class="fund-eli5">${eli5Macro("pm_fed", m.pm_fed_hold_pct)}</div></div>` : "",
+    m.pm_recession_pct != null ? `<div class="fund-item"><div class="fund-label tip" data-tip="Polymarket: US recession probability by end of 2026&#10;Source: real-money prediction market&#10;&#10;< 15%  unlikely — risk-on&#10;15–30%  some worry&#10;30–50%  significant risk&#10;> 50%  recession likely">Recession Risk</div><div class="fund-value ${m.pm_recession_pct > 40 ? "neg" : m.pm_recession_pct < 15 ? "pos" : ""}">${m.pm_recession_pct}%</div><div class="fund-sub">Polymarket odds</div><div class="fund-eli5">${eli5Macro("pm_recession", m.pm_recession_pct)}</div></div>` : "",
+    m.pm_fed_cuts_2026 != null ? `<div class="fund-item"><div class="fund-label tip" data-tip="Polymarket: most likely number of Fed rate cuts in 2026&#10;Source: real-money prediction market&#10;Shows the outcome with highest probability">Rate Cuts 2026</div><div class="fund-value">${m.pm_fed_cuts_2026}</div><div class="fund-sub">${m.pm_fed_cuts_2026_pct}% probability</div><div class="fund-eli5">${eli5Macro("pm_cuts", m.pm_fed_cuts_2026)}</div></div>` : "",
   ].filter(Boolean).join("");
 
   el.style.display = "";

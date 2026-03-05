@@ -1,6 +1,7 @@
 """Fetch market-wide macro and on-chain signals."""
 
 import asyncio
+import json
 import logging
 import os
 import time
@@ -160,6 +161,78 @@ async def _fetch_fred(series_id: str, api_key: str) -> float | None:
     return None
 
 
+def _pm_prices(mkt: dict) -> list[float]:
+    """Parse outcomePrices (JSON string or list) into list of floats."""
+    raw = mkt.get("outcomePrices", [])
+    if isinstance(raw, str):
+        raw = json.loads(raw)
+    return [float(p) for p in raw] if raw else []
+
+
+async def _fetch_polymarket() -> dict:
+    """Polymarket prediction market signals via Gamma API (free, no auth)."""
+    result = {}
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            fed_resp, econ_resp = await asyncio.gather(
+                client.get("https://gamma-api.polymarket.com/events", params={
+                    "tag_slug": "fed-rates", "active": "true", "closed": "false", "limit": "10",
+                }),
+                client.get("https://gamma-api.polymarket.com/events", params={
+                    "tag_slug": "economy", "active": "true", "closed": "false", "limit": "10",
+                }),
+                return_exceptions=True,
+            )
+
+            # --- FOMC hold odds + rate cuts 2026 ---
+            if not isinstance(fed_resp, Exception):
+                fed_resp.raise_for_status()
+                for event in fed_resp.json():
+                    slug = event.get("slug", "")
+
+                    # Next FOMC decision — pick first matching event
+                    if slug.startswith("fed-decision-in-") and "pm_fed_hold_pct" not in result:
+                        for mkt in event.get("markets", []):
+                            if (mkt.get("groupItemTitle") or "").lower() == "no change":
+                                prices = _pm_prices(mkt)
+                                if prices:
+                                    result["pm_fed_hold_pct"] = round(prices[0] * 100, 1)
+                                    title = event.get("title", "")
+                                    meeting = title.replace("Fed decision in ", "").rstrip("?").strip()
+                                    result["pm_fed_meeting"] = meeting
+                                break
+
+                    # 2026 rate cuts — highest-probability outcome
+                    if "rate-cuts" in slug and "2026" in slug:
+                        best_label, best_pct = None, 0.0
+                        for mkt in event.get("markets", []):
+                            prices = _pm_prices(mkt)
+                            if prices:
+                                yes_pct = round(prices[0] * 100, 1)
+                                if yes_pct > best_pct:
+                                    best_pct = yes_pct
+                                    best_label = mkt.get("groupItemTitle", "")
+                        if best_label:
+                            result["pm_fed_cuts_2026"] = best_label
+                            result["pm_fed_cuts_2026_pct"] = best_pct
+
+            # --- US recession ---
+            if not isinstance(econ_resp, Exception):
+                econ_resp.raise_for_status()
+                for event in econ_resp.json():
+                    if "recession" in event.get("slug", ""):
+                        markets = event.get("markets", [])
+                        if markets:
+                            prices = _pm_prices(markets[0])
+                            if prices:
+                                result["pm_recession_pct"] = round(prices[0] * 100, 1)
+                        break
+
+    except Exception as e:
+        logger.warning(f"Polymarket fetch failed: {e}")
+    return result
+
+
 async def fetch_all_macro() -> dict:
     """Fetch all Tier-A macro signals concurrently and cache results."""
     fred_key = os.getenv("FRED_API_KEY", "").strip()
@@ -170,12 +243,12 @@ async def fetch_all_macro() -> dict:
         "BAMLH0A0HYM2": "hy_spread",
     }
 
-    base_tasks = [_fetch_dvol(), _fetch_funding_rate(), _fetch_fear_greed(), _fetch_puell()]
+    base_tasks = [_fetch_dvol(), _fetch_funding_rate(), _fetch_fear_greed(), _fetch_puell(), _fetch_polymarket()]
     fred_tasks = [_fetch_fred(sid, fred_key) for sid in fred_map] if fred_key else []
 
     results = await asyncio.gather(*base_tasks, *fred_tasks, return_exceptions=True)
-    dvol, funding, fear_greed, puell_data = results[:4]
-    fred_results = list(results[4:])
+    dvol, funding, fear_greed, puell_data, polymarket_data = results[:5]
+    fred_results = list(results[5:])
 
     macro: dict = {}
 
@@ -188,6 +261,8 @@ async def fetch_all_macro() -> dict:
         macro["fear_greed_label"] = fear_greed["label"]
     if isinstance(puell_data, dict):
         macro.update(puell_data)
+    if isinstance(polymarket_data, dict):
+        macro.update(polymarket_data)
     for key, val in zip(fred_map.values(), fred_results):
         if isinstance(val, float):
             macro[key] = val

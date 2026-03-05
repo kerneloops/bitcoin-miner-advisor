@@ -95,6 +95,14 @@ def _macro_summary(macro: dict) -> str:
         lines.append(f"- US Dollar Index: {macro['dxy']}")
     if "hy_spread" in macro:
         lines.append(f"- HY credit spread: {macro['hy_spread']}%")
+    if "pm_fed_hold_pct" in macro:
+        meeting = macro.get("pm_fed_meeting", "next")
+        cuts_info = ""
+        if "pm_fed_cuts_2026" in macro:
+            cuts_info = f", expected 2026: {macro['pm_fed_cuts_2026']} at {macro.get('pm_fed_cuts_2026_pct', '')}%"
+        lines.append(f"- Polymarket Fed {meeting}: {macro['pm_fed_hold_pct']}% hold{cuts_info}")
+    if "pm_recession_pct" in macro:
+        lines.append(f"- Polymarket US recession: {macro['pm_recession_pct']}% probability")
     return "\nMacro & market context:\n" + "\n".join(lines) if lines else ""
 
 
