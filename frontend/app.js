@@ -48,6 +48,55 @@ function showPatienceModal() {
   setTimeout(() => document.getElementById("patienceModal").style.display = "none", 3000);
 }
 
+// ── Collapsible panels ──
+
+const _PANEL_DEFAULTS = {
+  fundamentals: false, macro: false, accuracy: false,
+  history: false, chat: true, portfolio: false,
+  tradelog: false, private: false,
+};
+
+function togglePanel(id) {
+  const el = document.querySelector(`[data-panel="${id}"]`);
+  if (!el) return;
+  el.classList.toggle("expanded");
+  el.classList.toggle("collapsed");
+  _savePanelState();
+}
+
+function _savePanelState() {
+  const state = {};
+  document.querySelectorAll(".panel-section").forEach(s => {
+    state[s.dataset.panel] = s.classList.contains("expanded");
+  });
+  localStorage.setItem("panelState", JSON.stringify(state));
+}
+
+function _restorePanelState() {
+  let state = _PANEL_DEFAULTS;
+  try {
+    const raw = localStorage.getItem("panelState");
+    if (raw) state = { ..._PANEL_DEFAULTS, ...JSON.parse(raw) };
+  } catch {}
+  document.querySelectorAll(".panel-section").forEach(s => {
+    const open = state[s.dataset.panel] ?? _PANEL_DEFAULTS[s.dataset.panel] ?? false;
+    s.classList.toggle("expanded", open);
+    s.classList.toggle("collapsed", !open);
+  });
+}
+_restorePanelState();
+
+function expandAndScroll(panelId, sectionId) {
+  const panel = document.querySelector(`[data-panel="${panelId}"]`);
+  if (panel && !panel.classList.contains("expanded")) {
+    panel.classList.remove("collapsed");
+    panel.classList.add("expanded");
+    _savePanelState();
+  }
+  const target = document.getElementById(sectionId) || panel;
+  if (target) target.scrollIntoView({ behavior: "smooth" });
+}
+
 async function runAnalysis() {
   if (cooldownRemaining() > 0) { showPatienceModal(); return; }
 
@@ -85,7 +134,8 @@ async function runAnalysis() {
     renderMacro({...data.macro, macro_bias: data.macro_bias});
     renderDashboard(data.tickers);
     await loadHistory(activeHistoryTicker);
-    document.getElementById("historySection").style.display = "block";
+    const histPanel = document.getElementById("historyPanel");
+    if (histPanel) histPanel.style.display = "";
     await loadPortfolio();
     await loadTrades();
     fetchAccuracy();
@@ -178,6 +228,7 @@ function _renderAccuracyGrid(w) {
 
 function renderAccuracy(data) {
   const el = document.getElementById("accuracyPanel");
+  const section = document.getElementById("accuracySection");
   if (!el) return;
   accuracyData = data;
 
@@ -186,7 +237,9 @@ function renderAccuracy(data) {
   const hasLive = liveWindows && Object.values(liveWindows).some(w => w.total > 0);
   const hasBackfill = backfillWindows && Object.values(backfillWindows).some(w => w.total > 0);
 
-  if (!hasLive && !hasBackfill) { el.style.display = "none"; return; }
+  if (!hasLive && !hasBackfill) { if (section) section.style.display = "none"; return; }
+
+  if (section) section.style.display = "";
 
   // If current source has no data, switch to the one that does
   if (activeAccuracySource === "backfill" && !hasBackfill) activeAccuracySource = "live";
@@ -212,7 +265,13 @@ function renderAccuracy(data) {
 
   const sourceLabel = activeAccuracySource === "backfill" ? ' <span class="accuracy-source-tag">technicals only</span>' : "";
 
-  el.style.display = "";
+  // Update collapsed summary
+  const accSum = document.getElementById("accuracySummary");
+  if (accSum && w) {
+    const wr = w.win_rate_pct != null ? w.win_rate_pct.toFixed(1) + "%" : "—";
+    accSum.textContent = `Win Rate: ${wr} (${activeAccuracyWindow} · ${w.total} signals)`;
+  }
+
   el.innerHTML = `
     <div class="panel-header" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
       <span>SIGNAL ACCURACY${sourceLabel}</span>
@@ -287,15 +346,20 @@ function fetchAccuracy() {
 }
 
 function renderFundamentals(f) {
+  const section = document.getElementById("fundSection");
   const el = document.getElementById("fundamentals");
-  if (!f) { el.style.display = "none"; return; }
+  if (!f) { if (section) section.style.display = "none"; return; }
 
   const diffDir = f.difficulty_change_pct > 0 ? "neg" : "pos"; // harder = worse for miners
   const retargetSign = f.difficulty_change_pct > 0 ? "+" : "";
 
-  el.style.display = "";
+  if (section) {
+    section.style.display = "";
+    const sum = document.getElementById("fundSummary");
+    if (sum) sum.textContent = `Hashprice $${f.hashprice_usd_per_ph_day ?? "—"}/PH/day · ${f.network_hashrate_eh ?? "—"} EH/s · Diff ${retargetSign}${f.difficulty_change_pct ?? "—"}% in ${f.days_until_retarget}d`;
+  }
+
   el.innerHTML = `
-    <div class="panel-header">MINING FUNDAMENTALS</div>
     <div class="fund-grid">
       <div class="fund-item">
         <div class="fund-label tip" data-tip="Daily miner revenue per petahash/s&#10;(excludes transaction fees)&#10;Scale: $0–200+/PH/day&#10;< $50  tight margins&#10;$50–100  moderate&#10;> $100  comfortable profitability">Hashprice</div>
@@ -386,8 +450,11 @@ function eli5Macro(key, value) {
 }
 
 function renderMacro(m) {
+  const section = document.getElementById("macroSection");
   const el = document.getElementById("macroPanel");
-  if (!m || !Object.keys(m).length) { el.style.display = "none"; return; }
+  if (!m || !Object.keys(m).length) { if (section) section.style.display = "none"; return; }
+
+  if (section) section.style.display = "";
 
   const biasEl = document.getElementById("macroBias");
   if (m.macro_bias) {
@@ -395,6 +462,20 @@ function renderMacro(m) {
     biasEl.style.display = "";
   } else {
     biasEl.style.display = "none";
+  }
+
+  // Set collapsed summary
+  const sum = document.getElementById("macroSummary");
+  if (sum) {
+    if (m.macro_bias) {
+      sum.textContent = m.macro_bias;
+    } else {
+      const parts = [];
+      if (m.fear_greed_value != null) parts.push(`Fear ${m.fear_greed_value}`);
+      if (m.vix != null) parts.push(`VIX ${m.vix}`);
+      if (m.pm_fed_hold_pct != null) parts.push(`Fed Hold ${m.pm_fed_hold_pct}%`);
+      sum.textContent = parts.join(" · ") || "";
+    }
   }
 
   const fgColor = m.fear_greed_value != null
@@ -422,8 +503,7 @@ function renderMacro(m) {
     m.pm_fed_cuts_2026 != null ? `<div class="fund-item"><div class="fund-label tip" data-tip="Polymarket: most likely number of Fed rate cuts in 2026&#10;Source: real-money prediction market&#10;Shows the outcome with highest probability">Rate Cuts 2026</div><div class="fund-value">${m.pm_fed_cuts_2026}</div><div class="fund-sub">${m.pm_fed_cuts_2026_pct}% probability</div><div class="fund-eli5">${eli5Macro("pm_cuts", m.pm_fed_cuts_2026)}</div></div>` : "",
   ].filter(Boolean).join("");
 
-  el.style.display = "";
-  el.innerHTML = `<div class="panel-header">MACRO SIGNALS</div><div class="fund-grid">${items}</div>`;
+  el.innerHTML = `<div class="fund-grid">${items}</div>`;
 }
 
 let _lastDashboardData = null;
@@ -468,55 +548,66 @@ function buildCard(d) {
   const rec = d.recommendation || "—";
   const conf = d.confidence || "";
 
+  const sma20Arrow = d.above_sma20 != null ? (d.above_sma20 ? "\u25B2" : "\u25BC") : "";
+  const sma20Label = d.above_sma20 != null ? (d.above_sma20 ? "Above" : "Below") : "\u2014";
+
   const card = document.createElement("div");
   card.className = "card";
   card.innerHTML = `
-    <div class="card-header">
+    <div class="card-header" onclick="this.closest('.card').classList.toggle('card-expanded')">
       <span class="ticker-name">${d.ticker}</span>
       ${rec !== "—" ? `<span class="badge ${rec}">${rec}</span>` : ""}
     </div>
 
-    <div class="card-body">
-      <div class="price">$${fmt(d.current_price)}</div>
+    <div class="card-summary">
+      <span class="card-price">$${fmt(d.current_price)}</span>
+      ${conf ? `<span class="card-conf">${conf}</span>` : ""}
+      <span class="card-signals">RSI ${d.rsi ?? "\u2014"} · 1W ${pct(d.week_return_pct)} · ${sma20Arrow} SMA20</span>
+    </div>
 
-      <div class="signals">
-        <div class="signal-row">
-          <span class="tip" data-tip="14-period Relative Strength Index&#10;Scale: 0–100&#10;< 30  oversold (potential buy)&#10;> 70  overbought (potential sell)">RSI</span>
-          <span class="signal-val ${rsiColor(d.rsi)}">${d.rsi ?? "—"}</span>
+    <div class="card-details">
+      <div class="card-body">
+        <div class="price">$${fmt(d.current_price)}</div>
+
+        <div class="signals">
+          <div class="signal-row">
+            <span class="tip" data-tip="14-period Relative Strength Index&#10;Scale: 0–100&#10;< 30  oversold (potential buy)&#10;> 70  overbought (potential sell)">RSI</span>
+            <span class="signal-val ${rsiColor(d.rsi)}">${d.rsi ?? "—"}</span>
+          </div>
+          <div class="signal-row">
+            <span class="tip" data-tip="20-day Simple Moving Average&#10;Short-term trend price level&#10;Acts as dynamic support / resistance">SMA20</span>
+            <span class="signal-val">${d.sma20 ? "$" + fmt(d.sma20) : "—"}</span>
+          </div>
+          <div class="signal-row">
+            <span class="tip" data-tip="Price vs 20-day moving average&#10;Above = short-term uptrend&#10;Below = short-term downtrend&#10;Crossovers are short-term signals">vs SMA20</span>
+            <span class="signal-val ${d.above_sma20 ? "pos" : "neg"}">${sma20Label}</span>
+          </div>
+          <div class="signal-row">
+            <span class="tip" data-tip="Price vs 50-day moving average&#10;Above = medium-term uptrend&#10;Below = medium-term downtrend&#10;Stronger trend signal than SMA20">vs SMA50</span>
+            <span class="signal-val ${d.above_sma50 ? "pos" : "neg"}">${d.above_sma50 != null ? (d.above_sma50 ? "Above" : "Below") : "—"}</span>
+          </div>
+          <div class="signal-row">
+            <span class="tip" data-tip="Price change over the past 7 days&#10;+ green = price gained&#10;− red = price declined">1W return</span>
+            <span class="signal-val ${pctColor(d.week_return_pct)}">${pct(d.week_return_pct)}</span>
+          </div>
+          <div class="signal-row">
+            <span class="tip" data-tip="Price change over the past 30 days&#10;+ green = price gained&#10;− red = price declined">1M return</span>
+            <span class="signal-val ${pctColor(d.month_return_pct)}">${pct(d.month_return_pct)}</span>
+          </div>
+          <div class="signal-row">
+            <span class="tip" data-tip="30-day rolling correlation with Bitcoin&#10;+1.0 = moves in lockstep with BTC&#10; 0.0 = independent movement&#10;−1.0 = moves opposite to BTC&#10;Miners typically 0.6–0.9">BTC corr</span>
+            <span class="signal-val">${d.btc_correlation ?? "—"}</span>
+          </div>
+          ${d.btc_trend ? `<div class="signal-row" style="grid-column:1/-1"><span class="tip" data-tip="Bitcoin price change over past 7 days&#10;Context for miner stock moves&#10;Miners typically amplify BTC moves 2–4×">BTC 7d</span><span class="signal-val">${d.btc_trend}</span></div>` : ""}
+          ${d.vs_sector_1w != null ? `<div class="signal-row"><span class="tip" data-tip="This ticker's 1-week return&#10;minus the sector average 1-week return&#10;+ = outperforming peers this week&#10;− = lagging behind peers">vs Peers 1W</span><span class="signal-val ${pctColor(d.vs_sector_1w)}">${pct(d.vs_sector_1w)}</span></div>` : ""}
+          ${d.vs_sector_1m != null ? `<div class="signal-row"><span class="tip" data-tip="This ticker's 1-month return&#10;minus the sector average 1-month return&#10;+ = outperforming peers this month&#10;− = lagging behind peers">vs Peers 1M</span><span class="signal-val ${pctColor(d.vs_sector_1m)}">${pct(d.vs_sector_1m)}</span></div>` : ""}
         </div>
-        <div class="signal-row">
-          <span class="tip" data-tip="20-day Simple Moving Average&#10;Short-term trend price level&#10;Acts as dynamic support / resistance">SMA20</span>
-          <span class="signal-val">${d.sma20 ? "$" + fmt(d.sma20) : "—"}</span>
-        </div>
-        <div class="signal-row">
-          <span class="tip" data-tip="Price vs 20-day moving average&#10;Above = short-term uptrend&#10;Below = short-term downtrend&#10;Crossovers are short-term signals">vs SMA20</span>
-          <span class="signal-val ${d.above_sma20 ? "pos" : "neg"}">${d.above_sma20 != null ? (d.above_sma20 ? "Above" : "Below") : "—"}</span>
-        </div>
-        <div class="signal-row">
-          <span class="tip" data-tip="Price vs 50-day moving average&#10;Above = medium-term uptrend&#10;Below = medium-term downtrend&#10;Stronger trend signal than SMA20">vs SMA50</span>
-          <span class="signal-val ${d.above_sma50 ? "pos" : "neg"}">${d.above_sma50 != null ? (d.above_sma50 ? "Above" : "Below") : "—"}</span>
-        </div>
-        <div class="signal-row">
-          <span class="tip" data-tip="Price change over the past 7 days&#10;+ green = price gained&#10;− red = price declined">1W return</span>
-          <span class="signal-val ${pctColor(d.week_return_pct)}">${pct(d.week_return_pct)}</span>
-        </div>
-        <div class="signal-row">
-          <span class="tip" data-tip="Price change over the past 30 days&#10;+ green = price gained&#10;− red = price declined">1M return</span>
-          <span class="signal-val ${pctColor(d.month_return_pct)}">${pct(d.month_return_pct)}</span>
-        </div>
-        <div class="signal-row">
-          <span class="tip" data-tip="30-day rolling correlation with Bitcoin&#10;+1.0 = moves in lockstep with BTC&#10; 0.0 = independent movement&#10;−1.0 = moves opposite to BTC&#10;Miners typically 0.6–0.9">BTC corr</span>
-          <span class="signal-val">${d.btc_correlation ?? "—"}</span>
-        </div>
-        ${d.btc_trend ? `<div class="signal-row" style="grid-column:1/-1"><span class="tip" data-tip="Bitcoin price change over past 7 days&#10;Context for miner stock moves&#10;Miners typically amplify BTC moves 2–4×">BTC 7d</span><span class="signal-val">${d.btc_trend}</span></div>` : ""}
-        ${d.vs_sector_1w != null ? `<div class="signal-row"><span class="tip" data-tip="This ticker's 1-week return&#10;minus the sector average 1-week return&#10;+ = outperforming peers this week&#10;− = lagging behind peers">vs Peers 1W</span><span class="signal-val ${pctColor(d.vs_sector_1w)}">${pct(d.vs_sector_1w)}</span></div>` : ""}
-        ${d.vs_sector_1m != null ? `<div class="signal-row"><span class="tip" data-tip="This ticker's 1-month return&#10;minus the sector average 1-month return&#10;+ = outperforming peers this month&#10;− = lagging behind peers">vs Peers 1M</span><span class="signal-val ${pctColor(d.vs_sector_1m)}">${pct(d.vs_sector_1m)}</span></div>` : ""}
+
+        ${conf ? `<div class="confidence">Confidence: ${conf}</div>` : ""}
+        ${d.reasoning ? `<div class="reasoning">${d.reasoning}</div>` : ""}
+        ${d.key_risk ? `<div class="key-risk rec-${rec}">Risk: ${d.key_risk}</div>` : ""}
+        ${buildGuidance(d.position_guidance, currentSettings.risk_tier)}
       </div>
-
-      ${conf ? `<div class="confidence">Confidence: ${conf}</div>` : ""}
-      ${d.reasoning ? `<div class="reasoning">${d.reasoning}</div>` : ""}
-      ${d.key_risk ? `<div class="key-risk rec-${rec}">Risk: ${d.key_risk}</div>` : ""}
-      ${buildGuidance(d.position_guidance, currentSettings.risk_tier)}
     </div>
   `;
   return card;
@@ -764,13 +855,20 @@ async function loadPortfolio() {
   const totalSinceRunPct   = prevTotalMarket > 0 ? (totalSinceRunValue / prevTotalMarket * 100) : null;
   const hasRunData         = rows.some(r => r.since_run_value != null);
 
-  const h2 = document.querySelector("#portfolioSection h2");
-  if (hasRunData) {
-    const sign = totalSinceRunValue >= 0 ? "+" : "";
-    const cls  = totalSinceRunValue >= 0 ? "pos" : "neg";
-    h2.innerHTML = `Portfolio <span class="portfolio-since-run ${cls}">${sign}$${fmt(Math.abs(totalSinceRunValue))} (${sign}${totalSinceRunPct.toFixed(2)}%) since last run</span>`;
-  } else {
-    h2.textContent = "Portfolio";
+  // Update collapsed panel summary
+  const portSum = document.getElementById("portfolioSummary");
+  if (portSum) {
+    const parts = [];
+    if (rows.length) parts.push(`${rows.length} position${rows.length > 1 ? "s" : ""}`);
+    parts.push(`$${fmt(grandTotal)}`);
+    if (hasRunData && totalSinceRunPct != null) {
+      const sign = totalSinceRunPct >= 0 ? "+" : "";
+      parts.push(`${sign}${totalSinceRunPct.toFixed(1)}% since last run`);
+    } else if (totalGainPct != null) {
+      const sign = totalGainPct >= 0 ? "+" : "";
+      parts.push(`${sign}${totalGainPct.toFixed(1)}% P&L`);
+    }
+    portSum.textContent = parts.join(" · ");
   }
 
   const positionsHtml = rows.length ? `
@@ -1451,7 +1549,8 @@ function _renderAnalysisData(data) {
   if (data.fundamentals) renderFundamentals(data.fundamentals);
   renderMacro({...data.macro, macro_bias: data.macro_bias});
   renderDashboard(data.tickers);
-  document.getElementById("historySection").style.display = "block";
+  const histPanel = document.getElementById("historyPanel");
+  if (histPanel) histPanel.style.display = "";
   loadHistory(activeHistoryTicker);
 }
 
@@ -1489,8 +1588,8 @@ fetchAccuracy();
 document.addEventListener("keydown", (e) => {
   if (e.key === "F2") { e.preventDefault(); runAnalysis(); }
   if (e.key === "F5") { e.preventDefault(); exportToGoogle(); }
-  if (e.key === "F8") { e.preventDefault(); document.getElementById("tradeLogSection").scrollIntoView({ behavior: "smooth" }); }
-  if (e.key === "F9") { e.preventDefault(); document.getElementById("historySection").scrollIntoView({ behavior: "smooth" }); }
+  if (e.key === "F8") { e.preventDefault(); expandAndScroll("tradelog", "tradeLogSection"); }
+  if (e.key === "F9") { e.preventDefault(); expandAndScroll("history", "historySection"); }
   if (e.key === "F10") { e.preventDefault(); window.scrollTo({ top: 0, behavior: "smooth" }); }
   if (e.key === "F12") { e.preventDefault(); window.location = "/logout"; }
 });
@@ -2013,10 +2112,10 @@ const _TOUR_STEPS = [
     body: 'Log every buy and sell here. The trade log is the single source of truth — it auto-computes cost basis, P&L, and drives the position sizing guidance shown on the cards.',
   },
   {
-    target: '#macroPanel',
+    target: '#macroSection',
     title: 'Macro Signals',
     body: 'After your first analysis run, macro context appears here: Fear & Greed, BTC funding rates, Puell Multiple, DVOL, and more — helping you frame the ticker-level signals.',
-    fallback: '#macroBias',
+    fallback: '#macroPanel',
   },
 ];
 

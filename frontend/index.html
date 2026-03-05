@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="icon" href="/static/favicon.ico" type="image/x-icon" />
-  <link rel="stylesheet" href="/static/style.css?v=84" />
+  <link rel="stylesheet" href="/static/style.css?v=85" />
 </head>
 <body>
   <header>
@@ -92,10 +92,39 @@
       <div id="headerSearchResults" class="ticker-search-bar-results"></div>
     </div>
 
-    <div id="fundamentals" class="fundamentals" style="display:none"></div>
-    <div id="macroPanel" class="fundamentals" style="display:none"></div>
-    <div id="macroBias" class="macro-bias" style="display:none"></div>
-    <div id="accuracyPanel" class="fundamentals" style="display:none"></div>
+    <section class="panel-section collapsed" id="fundSection" data-panel="fundamentals" style="display:none">
+      <div class="panel-toggle" onclick="togglePanel('fundamentals')">
+        <span class="panel-title">MINING FUNDAMENTALS</span>
+        <span class="panel-summary" id="fundSummary"></span>
+        <span class="panel-chevron">&#x25B8;</span>
+      </div>
+      <div class="panel-body">
+        <div id="fundamentals" class="fundamentals"></div>
+      </div>
+    </section>
+
+    <section class="panel-section collapsed" id="macroSection" data-panel="macro" style="display:none">
+      <div class="panel-toggle" onclick="togglePanel('macro')">
+        <span class="panel-title">MACRO SIGNALS</span>
+        <span class="panel-summary" id="macroSummary"></span>
+        <span class="panel-chevron">&#x25B8;</span>
+      </div>
+      <div class="panel-body">
+        <div id="macroPanel" class="fundamentals"></div>
+        <div id="macroBias" class="macro-bias" style="display:none"></div>
+      </div>
+    </section>
+
+    <section class="panel-section collapsed" id="accuracySection" data-panel="accuracy" style="display:none">
+      <div class="panel-toggle" onclick="togglePanel('accuracy')">
+        <span class="panel-title">SIGNAL ACCURACY</span>
+        <span class="panel-summary" id="accuracySummary"></span>
+        <span class="panel-chevron">&#x25B8;</span>
+      </div>
+      <div class="panel-body">
+        <div id="accuracyPanel" class="fundamentals"></div>
+      </div>
+    </section>
 
     <div class="dashboard-wrap">
       <div class="panel-header">SIGNAL CARDS
@@ -114,70 +143,110 @@
       </div>
     </div>
 
-    <section id="historySection" class="history-section" style="display:none">
-      <h2>Analysis History</h2>
-      <div class="ticker-tabs" id="historyTabs"></div>
-      <div id="historyContent"></div>
+    <section class="panel-section collapsed" id="historyPanel" data-panel="history" style="display:none">
+      <div class="panel-toggle" onclick="togglePanel('history')">
+        <span class="panel-title">ANALYSIS HISTORY</span>
+        <span class="panel-summary" id="historySummary"></span>
+        <span class="panel-chevron">&#x25B8;</span>
+      </div>
+      <div class="panel-body">
+        <section id="historySection" class="history-section">
+          <div class="ticker-tabs" id="historyTabs"></div>
+          <div id="historyContent"></div>
+        </section>
+      </div>
     </section>
 
-    <div id="chatSection" class="history-section">
-      <h2>LAPIO Advisor</h2>
-      <div id="chatMessages" class="chat-messages"></div>
-      <div class="chat-input-bar">
-        <div class="chat-input-wrap">
-          <textarea id="chatInput" class="chat-input" rows="1" placeholder="Ask about your positions, signals, market conditions…"></textarea>
-        </div>
-        <button id="chatSendBtn" class="chat-send-btn" onclick="chatSend()">Send</button>
+    <section class="panel-section expanded" id="chatPanel" data-panel="chat">
+      <div class="panel-toggle" onclick="togglePanel('chat')">
+        <span class="panel-title">LAPIO ADVISOR</span>
+        <span class="panel-summary"></span>
+        <span class="panel-chevron">&#x25B8;</span>
       </div>
-    </div>
+      <div class="panel-body">
+        <div id="chatSection" class="history-section">
+          <div id="chatMessages" class="chat-messages"></div>
+          <div class="chat-input-bar">
+            <div class="chat-input-wrap">
+              <textarea id="chatInput" class="chat-input" rows="1" placeholder="Ask about your positions, signals, market conditions…"></textarea>
+            </div>
+            <button id="chatSendBtn" class="chat-send-btn" onclick="chatSend()">Send</button>
+          </div>
+        </div>
+      </div>
+    </section>
 
-    <div id="portfolioSection" class="history-section">
-      <h2>Portfolio</h2>
-      <div id="portfolioContent"></div>
-    </div>
+    <section class="panel-section collapsed" id="portfolioPanel" data-panel="portfolio">
+      <div class="panel-toggle" onclick="togglePanel('portfolio')">
+        <span class="panel-title">PORTFOLIO</span>
+        <span class="panel-summary" id="portfolioSummary"></span>
+        <span class="panel-chevron">&#x25B8;</span>
+      </div>
+      <div class="panel-body">
+        <div id="portfolioSection" class="history-section">
+          <div id="portfolioContent"></div>
+        </div>
+      </div>
+    </section>
 
-    <div id="tradeLogSection" class="history-section">
-      <h2>Trade Log</h2>
-      <div id="tradeLogContent"></div>
-      <form id="tradeForm" class="holding-form">
-        <input id="tradeDate"     type="date">
-        <select id="tradeTicker"></select>
-        <select id="tradeType">
-          <option value="BUY">Buy</option>
-          <option value="SELL">Sell</option>
-        </select>
-        <input id="tradePrice"    type="number" step="any" min="0" placeholder="Price ($)">
-        <input id="tradeQuantity" type="number" step="any" min="0" placeholder="Quantity">
-        <input id="tradeNotes"    type="text" placeholder="Notes (optional)">
-        <button type="submit">Record Trade</button>
-      </form>
-    </div>
+    <section class="panel-section collapsed" id="tradeLogPanel" data-panel="tradelog">
+      <div class="panel-toggle" onclick="togglePanel('tradelog')">
+        <span class="panel-title">TRADE LOG</span>
+        <span class="panel-summary" id="tradeLogSummary"></span>
+        <span class="panel-chevron">&#x25B8;</span>
+      </div>
+      <div class="panel-body">
+        <div id="tradeLogSection" class="history-section">
+          <div id="tradeLogContent"></div>
+          <form id="tradeForm" class="holding-form">
+            <input id="tradeDate"     type="date">
+            <select id="tradeTicker"></select>
+            <select id="tradeType">
+              <option value="BUY">Buy</option>
+              <option value="SELL">Sell</option>
+            </select>
+            <input id="tradePrice"    type="number" step="any" min="0" placeholder="Price ($)">
+            <input id="tradeQuantity" type="number" step="any" min="0" placeholder="Quantity">
+            <input id="tradeNotes"    type="text" placeholder="Notes (optional)">
+            <button type="submit">Record Trade</button>
+          </form>
+        </div>
+      </div>
+    </section>
 
-    <section id="privateMarketsSection" class="history-section">
-      <h2>Pre-IPO / Private Markets</h2>
-      <p class="pm-disclaimer">Last-round valuations from public announcements. Secondary prices entered manually — check <a href="https://forgeglobal.com" target="_blank" rel="noopener">Forge Global</a>, <a href="https://equityzen.com" target="_blank" rel="noopener">EquityZen</a>, or <a href="https://www.hiive.com" target="_blank" rel="noopener">Hiive</a> if you have accounts there.</p>
-      <div id="privateMarketsContent"></div>
+    <section class="panel-section collapsed" id="privatePanel" data-panel="private">
+      <div class="panel-toggle" onclick="togglePanel('private')">
+        <span class="panel-title">PRE-IPO / PRIVATE MARKETS</span>
+        <span class="panel-summary"></span>
+        <span class="panel-chevron">&#x25B8;</span>
+      </div>
+      <div class="panel-body">
+        <section id="privateMarketsSection" class="history-section">
+          <p class="pm-disclaimer">Last-round valuations from public announcements. Secondary prices entered manually — check <a href="https://forgeglobal.com" target="_blank" rel="noopener">Forge Global</a>, <a href="https://equityzen.com" target="_blank" rel="noopener">EquityZen</a>, or <a href="https://www.hiive.com" target="_blank" rel="noopener">Hiive</a> if you have accounts there.</p>
+          <div id="privateMarketsContent"></div>
 
-      <details class="pm-add-details">
-        <summary class="pm-add-toggle">+ Add / update company</summary>
-        <form id="pmAddForm" class="pm-add-form">
-          <input id="pmName"      type="text"   placeholder="Company name *" required>
-          <input id="pmSector"    type="text"   placeholder="Sector (e.g. AI Infrastructure)">
-          <select id="pmStage">
-            <option value="Pre-IPO">Pre-IPO</option>
-            <option value="S-1 Filed">S-1 Filed</option>
-            <option value="Acquired">Acquired</option>
-            <option value="Public">Public</option>
-          </select>
-          <input id="pmValuation" type="number" step="any" min="0" placeholder="Valuation ($B)">
-          <input id="pmRoundType" type="text"   placeholder="Round type (e.g. Series C)">
-          <input id="pmRoundAmt"  type="number" step="any" min="0" placeholder="Round size ($M)">
-          <input id="pmRoundDate" type="text"   placeholder="Round date (YYYY-MM)">
-          <input id="pmNotes"     type="text"   placeholder="Notes">
-          <input id="pmForgeUrl"  type="url"    placeholder="Forge listing URL (optional)">
-          <button type="submit">Save</button>
-        </form>
-      </details>
+          <details class="pm-add-details">
+            <summary class="pm-add-toggle">+ Add / update company</summary>
+            <form id="pmAddForm" class="pm-add-form">
+              <input id="pmName"      type="text"   placeholder="Company name *" required>
+              <input id="pmSector"    type="text"   placeholder="Sector (e.g. AI Infrastructure)">
+              <select id="pmStage">
+                <option value="Pre-IPO">Pre-IPO</option>
+                <option value="S-1 Filed">S-1 Filed</option>
+                <option value="Acquired">Acquired</option>
+                <option value="Public">Public</option>
+              </select>
+              <input id="pmValuation" type="number" step="any" min="0" placeholder="Valuation ($B)">
+              <input id="pmRoundType" type="text"   placeholder="Round type (e.g. Series C)">
+              <input id="pmRoundAmt"  type="number" step="any" min="0" placeholder="Round size ($M)">
+              <input id="pmRoundDate" type="text"   placeholder="Round date (YYYY-MM)">
+              <input id="pmNotes"     type="text"   placeholder="Notes">
+              <input id="pmForgeUrl"  type="url"    placeholder="Forge listing URL (optional)">
+              <button type="submit">Save</button>
+            </form>
+          </details>
+        </section>
+      </div>
     </section>
 
   </main>
@@ -190,13 +259,13 @@
     <div class="fkey" onclick="exportToGoogle()">
       <span class="fkey-num">F5</span><span class="fkey-label">EXPORT</span>
     </div>
-    <div class="fkey" onclick="document.getElementById('chatSection').scrollIntoView({behavior:'smooth'});document.getElementById('chatInput').focus()">
+    <div class="fkey" onclick="expandAndScroll('chat','chatSection');document.getElementById('chatInput').focus()">
       <span class="fkey-num">F7</span><span class="fkey-label">CHAT</span>
     </div>
-    <div class="fkey" onclick="document.getElementById('tradeLogSection').scrollIntoView({behavior:'smooth'})">
+    <div class="fkey" onclick="expandAndScroll('tradelog','tradeLogSection')">
       <span class="fkey-num">F8</span><span class="fkey-label">TRADE LOG</span>
     </div>
-    <div class="fkey" onclick="document.getElementById('historySection').scrollIntoView({behavior:'smooth'})">
+    <div class="fkey" onclick="expandAndScroll('history','historySection')">
       <span class="fkey-num">F9</span><span class="fkey-label">HISTORY</span>
     </div>
     <div class="fkey" onclick="window.scrollTo({top:0,behavior:'smooth'})">
@@ -242,7 +311,7 @@
   </div>
 
   <div id="tipPopup" class="tip-popup"></div>
-  <script src="/static/app.js?v=68"></script>
+  <script src="/static/app.js?v=69"></script>
   <script type="text/javascript">
     window.$crisp = [];
     window.CRISP_WEBSITE_ID = "07663adf-eae7-4d8e-b98a-9bc183bdb3b2";

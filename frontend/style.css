@@ -1659,3 +1659,95 @@ header {
   font-size: 0.45rem;
   padding: 0.06rem 0.3rem;
 }
+
+/* ── Collapsible Panels ─────────────────────────────────────────────────── */
+.panel-section {
+  margin-bottom: 1.5rem;
+}
+.panel-toggle {
+  display: flex;
+  align-items: center;
+  background: var(--surface);
+  padding: 0.22rem 0.8rem;
+  border: 1px solid var(--border2);
+  border-top: 2px solid var(--green-dim);
+  cursor: pointer;
+  user-select: none;
+}
+.panel-toggle:hover { background: var(--surface2); }
+.panel-title {
+  font-size: 0.6rem;
+  color: var(--green-dim);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+.panel-title::before { content: '─['; color: var(--border2); margin-right: 0.15rem; }
+.panel-title::after  { content: ']─'; color: var(--border2); margin-left: 0.15rem; }
+.panel-summary {
+  color: var(--muted);
+  font-size: 0.55rem;
+  margin-left: 0.5rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: 0.03em;
+}
+.panel-chevron {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 0.6rem;
+  transition: transform 0.2s;
+  flex-shrink: 0;
+}
+.panel-section .panel-body { display: none; }
+.panel-section.expanded .panel-body { display: block; }
+.panel-section.expanded .panel-chevron { transform: rotate(90deg); }
+.panel-section.expanded .panel-summary { display: none; }
+
+/* Remove redundant borders/margins when content is inside a panel */
+.panel-section .fundamentals {
+  margin-bottom: 0;
+  border-top: none;
+}
+.panel-section .macro-bias {
+  margin-bottom: 0;
+}
+.panel-section .history-section {
+  margin-top: 0;
+}
+.panel-section .history-section h2 { display: none; }
+
+/* ── Compact Signal Cards ───────────────────────────────────────────────── */
+.card-summary {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.62rem;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+  padding-top: 0.3rem;
+}
+.card-summary .card-price {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+  text-shadow: 0 0 6px rgba(200,216,192,.25);
+}
+.card-summary .badge {
+  font-size: 0.55rem;
+  padding: 0.08rem 0.35rem;
+}
+.card-summary .card-conf {
+  font-size: 0.55rem;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.card-summary .card-signals {
+  color: var(--muted);
+  font-size: 0.58rem;
+}
+.card-details { display: none; }
+.card-expanded .card-summary { display: none; }
+.card-expanded .card-details { display: block; }
+.card .card-header { cursor: pointer; }
